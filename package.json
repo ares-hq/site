@@ -2,13 +2,16 @@
   "name": "ares-site",
   "main": "expo-router/entry",
   "version": "1.0.0",
+  "homepage": "https://ares-bot.com",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "predeploy": "npx expo export -p web",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
@@ -55,6 +58,7 @@
     "@types/react-native": "^0.72.8",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",
+    "gh-pages": "^6.3.0",
     "react-native-svg-transformer": "^1.5.1",
     "typescript": "~5.8.3"
   },
