@@ -9,6 +9,7 @@ import {
 import Analytics from './left_sidebar/analytics';
 import Dashboards from './left_sidebar/dashboards';
 import UsedTabs from './left_sidebar/usedTabs';
+import Platforms from './left_sidebar/platforms';
 
 type SidebarProps = {
   navigateToPage: (page: string) => void;
@@ -35,6 +36,9 @@ export default function Sidebar({ navigateToPage }: SidebarProps) {
 
         {/* Analytics */}
         <Analytics navigateToPage={navigateToPage}/>
+
+        {/* Platforms */}
+        <Platforms navigateToPage={navigateToPage}/>
         
       </ScrollView>
 

@@ -46,7 +46,7 @@ const LeftSide = ({ toggleSidebar, pageTitle }: LeftSideProps) => {
 
       {/* Labels */}
       <Text style={styles.faded}>
-       {pageTitle === 'AGE' || pageTitle === 'DIVE' ? 'Dashboards' : 'Analytics'}
+       {pageTitle === 'AGE' || pageTitle === 'DIVE' ? 'Dashboards' : pageTitle === 'Discord' || pageTitle === 'App' ? 'Platforms' : 'Analytics'}
       </Text>
       <Text style={styles.separator}> / </Text>
       <Text style={styles.active}>{pageTitle}</Text>

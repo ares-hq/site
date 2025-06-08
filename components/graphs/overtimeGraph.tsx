@@ -100,7 +100,7 @@ const UserGraphSection: React.FC = () => {
 
         <View style={styles.chartWrapper} onLayout={onChartWrapperLayout}>
           {chartWrapperWidth > 0 && (
-            <ResponsiveContainer width={chartWrapperWidth} height={250}>
+            <ResponsiveContainer width={chartWrapperWidth} height={325}>
               <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
                 <defs>
                   <linearGradient id="currentGradient" x1="0" y1="0" x2="0" y2="1">
@@ -163,7 +163,7 @@ const UserGraphSection: React.FC = () => {
       {/* Enhanced Traffic by Source */}
       <View style={styles.trafficContainer}>
         <View style={styles.trafficHeader}>
-          <Text style={styles.trafficTitle}>Team Performance</Text>
+          <Text style={styles.trafficTitle}>Team Data</Text>
           <Text style={styles.trafficSubtitle}>Current Season</Text>
         </View>
         
@@ -233,8 +233,16 @@ const UserGraphSection: React.FC = () => {
             <Text style={{ fontSize: 14, color: '#111827', fontWeight: '600' }}>190</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
-            <Text style={{ fontSize: 12, color: '#374151', fontWeight: '500' }}>Location</Text>
-            <Text style={{ fontSize: 14, color: '#111827', fontWeight: '600' }}>Tucson, AZ</Text>
+            <Text style={{ fontSize: 12, color: '#374151', fontWeight: '500' }}>Auto Rank</Text>
+            <Text style={{ fontSize: 14, color: '#111827', fontWeight: '600' }}>1000</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
+            <Text style={{ fontSize: 12, color: '#374151', fontWeight: '500' }}>TeleOp Rank</Text>
+            <Text style={{ fontSize: 14, color: '#111827', fontWeight: '600' }}>2021</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
+            <Text style={{ fontSize: 12, color: '#374151', fontWeight: '500' }}>Endgame Rank</Text>
+            <Text style={{ fontSize: 14, color: '#111827', fontWeight: '600' }}>202</Text>
           </View>
         </View>
       </View>
@@ -248,6 +256,7 @@ const styles = StyleSheet.create({
     gap: 12.6,
     backgroundColor: '#fff',
     borderRadius: 12.6,
+    marginBottom: 22,
   },
   graphContainer: {
     flex: 1,

@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import UserGraphSection from '@/components/graphs/overtimeGraph';
+import EventPerformance from '@/components/graphs/eventPerformace';
+import EventScores from '@/components/graphs/eventScores';
 
 type StatCardProps = {
   title: string;
@@ -71,6 +73,14 @@ const IntoTheDeep = () => {
       <View style={styles.headerRow}>
         <Text style={styles.header}>Team Information</Text>
       </View>
+      <View style={styles.row}>
+        <View style={styles.chart}>
+            <EventPerformance />
+        </View>
+        <View style={styles.chart}>
+            <EventScores />
+        </View>
+      </View>
       <View style={styles.headerRow}>
         <Text style={styles.header}>Events</Text>
       </View>
@@ -115,6 +125,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 9,
     justifyContent: 'space-between',
   },
   value: {
@@ -128,6 +139,10 @@ const styles = StyleSheet.create({
   },
   change: {
     fontSize: 13,
+  },
+  chart: {
+    flex: 1,
+    minWidth: 300,
   },
 });
 

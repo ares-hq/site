@@ -14,7 +14,8 @@ import IntoTheDeep from '@/screens/intothedeep';
 import Premier from '@/screens/premier';
 import Finals from '@/screens/finals';
 import Footer from '@/components/footer';
-import UserGraphSection from '@/components/graphs/overtimeGraph';
+import App from '@/screens/app';
+import Discord from '@/screens/discord';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [fontsLoaded] = useFonts({
@@ -47,6 +48,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         return <Age />;
       case 'DIVE':
         return <IntoTheDeep />;
+      case 'App':
+        return <App />;
+      case 'Discord':
+        return <Discord />;
       default:
         return <TRanks />;
     }
