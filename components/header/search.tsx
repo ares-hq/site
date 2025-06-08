@@ -12,7 +12,7 @@ const Search = () => {
       onHoverOut={() => setHovered(false)}
       style={[styles.container, hovered && styles.hovered]}
     >
-      <Feather name="search" size={13} color="#9ca3af" style={styles.icon} />
+      <Feather name="search" size={14} color="#9ca3af" style={styles.icon} />
       <TextInput
         style={styles.input}
         placeholder="Search"
@@ -32,21 +32,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f3f4f6',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    width: 160,
+    paddingHorizontal: 11,
+    paddingVertical: 4.4,
+    borderRadius: 9,
+    width: 176,
   },
   hovered: {
-    backgroundColor: '#e5e7eb', // slightly darker gray
+    backgroundColor: '#e5e7eb',
   },
   icon: {
-    marginRight: 6,
+    marginRight: 7,
   },
   input: {
     flex: 1,
     width: '100%',
-    fontSize: 11,
+    fontSize: 12,
     color: '#000',
     padding: 0,
     outlineWidth: 0,
@@ -56,15 +56,15 @@ const styles = StyleSheet.create({
   },
   keyHint: {
     backgroundColor: '#fff',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 2.2,
+    borderRadius: 4.4,
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
   keyText: {
     color: '#9ca3af',
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '500',
   },
 });

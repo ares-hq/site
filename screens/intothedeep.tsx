@@ -22,7 +22,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, change, positive, col
         <Text style={styles.value}>{value}</Text>
         <View style={styles.changeRow}>
             <Text style={[styles.change, { color: textColor }]}>{change}</Text>
-            <Feather name="trending-up" size={12} color={textColor} />
+            <Feather name="trending-up" size={11} color={textColor} />
         </View>
         </View>
     </View>
@@ -85,32 +85,32 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 9,
   },
   header: {
-    fontSize: 14,
+    fontSize: 15,
   },
   date: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#6b7280',
   },
   cardRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 12,
+    gap: 13,
+    marginBottom: 13,
   },
   card: {
     flex: 1,
-    minWidth: 150,
-    height: 90,
-    borderRadius: 12,
-    padding: 18,
+    minWidth: 162,
+    height: 97,
+    borderRadius: 13,
+    padding: 20,
   },
   title: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#6b7280',
-    marginBottom: 8,
+    marginBottom: 9,
   },
   row: {
     flexDirection: 'row',
@@ -118,16 +118,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   value: {
-    fontSize: 24,
+    fontSize: 26,
     color: '#000',
   },
   changeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 4.5,
   },
   change: {
-    fontSize: 12,
+    fontSize: 13,
   },
 });
 

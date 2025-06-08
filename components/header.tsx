@@ -25,8 +25,8 @@ export default TopNavbar;
 
 const styles = StyleSheet.create({
   container: {
-    height: 40,
-    padding: 20,
+    height: 44,
+    padding: 22,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderColor: '#e5e7eb',
@@ -39,20 +39,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconSpacing: {
-    marginLeft: 10,
+    marginLeft: 11,
   },
   sectionTitle: {
     color: '#9CA3AF',
-    fontSize: 14,
-    marginLeft: 12,
+    fontSize: 15,
+    marginLeft: 13,
   },
   divider: {
     color: '#9CA3AF',
-    fontSize: 14,
-    marginHorizontal: 6,
+    fontSize: 15,
+    marginHorizontal: 7,
   },
   current: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: '#111827',
   },
@@ -64,19 +64,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F3F4F6',
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    height: 36,
-    marginRight: 16,
+    paddingHorizontal: 11,
+    borderRadius: 9,
+    height: 40,
+    marginRight: 18,
   },
   searchInput: {
-    marginLeft: 6,
-    fontSize: 14,
-    width: 120,
+    marginLeft: 7,
+    fontSize: 15,
+    width: 132,
     color: '#111',
   },
   iconButton: {
-    marginHorizontal: 6,
-    padding: 6,
+    marginHorizontal: 7,
+    padding: 7,
   },
 });

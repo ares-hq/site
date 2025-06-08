@@ -57,10 +57,10 @@ const Analytics = ({ navigateToPage }: AnalyticsProps) => {
           <View style={styles.teamIcons}>
             <View style={styles.arrowContainer}>
               <Animated.View style={[styles.arrow, { transform: [{ rotate: rotate }] }]}>
-                <CaretRight fill='rgba(0,0,0,.2)' width={14} height={14} />
+                <CaretRight fill='rgba(0,0,0,.2)' width={15} height={15} />
               </Animated.View>
             </View>
-            <IdentificationBadge width={16} height={16} />
+            <IdentificationBadge width={18} height={18} />
           </View>
         }
         onPress={() => setTeamsExpanded(!teamsExpanded)}
@@ -82,10 +82,10 @@ const Analytics = ({ navigateToPage }: AnalyticsProps) => {
           <View style={styles.teamIcons}>
             <View style={styles.arrowContainer}>
               <Animated.View style={[styles.arrow, { transform: [{ rotate: rotateMatch }] }]}>
-                <CaretRight fill='rgba(0,0,0,.2)' width={14} height={14} />
+                <CaretRight fill='rgba(0,0,0,.2)' width={15} height={15} />
               </Animated.View>
             </View>
-            <Controller width={16} height={16}/>
+            <Controller width={18} height={18}/>
           </View>
         }
         onPress={() => setMatchesExpanded(!matchesExpanded)}
@@ -140,43 +140,43 @@ const SidebarItem = ({
 
 const styles = StyleSheet.create({
   sidebar: {
-    paddingHorizontal: 8,
-    gap: 2,
+    paddingHorizontal: 9,
+    gap: 2.2,
     backgroundColor: '#fff',
   },
   sectionTitle: {
-    fontSize: 14,
-    marginBottom: 8,
+    fontSize: 15,
+    marginBottom: 9,
     color: 'rgba(0, 0, 0, 0.4)',
-    paddingHorizontal: 12,
+    paddingHorizontal: 13,
   },
   item: {
-    paddingVertical: 8,
+    paddingVertical: 9,
   },
   iconLabel: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 9,
   },
   hoveredItem: {
     backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    borderRadius: 12,
+    borderRadius: 13,
   },
   label: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#000',
   },
   teamIcons: {
-    paddingLeft: 8,
+    paddingLeft: 9,
     flexDirection: 'row',
     alignItems: 'center',
   },
   arrowContainer: {
-    width: 18,
-    height: 18,
+    width: 20,
+    height: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 4,
+    marginRight: 4.4,
     position: 'relative',
   },
   arrow: {

@@ -36,11 +36,11 @@ const LeftSide = ({ toggleSidebar, pageTitle }: LeftSideProps) => {
       {/* Icons */}
       <View style={styles.icons}>
         <HoverIcon onPress={toggleSidebar}>
-          <Sidebar width={14} height={14} />
+          <Sidebar width={15} height={15} />
         </HoverIcon>
 
         <HoverIcon>
-          <Star width={14} height={14} />
+          <Star width={15} height={15} />
         </HoverIcon>
       </View>
 
@@ -56,35 +56,35 @@ const LeftSide = ({ toggleSidebar, pageTitle }: LeftSideProps) => {
 
 const styles = StyleSheet.create({
   container: {
-    gap: 8,
+    gap: 9,
     flexDirection: 'row',
     alignItems: 'center',
   },
   icons: {
-    gap: 8,
-    paddingRight: 6,
+    gap: 9,
+    paddingRight: 7,
     flexDirection: 'row',
     alignItems: 'center',
   },
   iconWrapper: {
-    padding: 4,
-    borderRadius: 6,
+    padding: 4.4,
+    borderRadius: 7,
   },
   iconHovered: {
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   faded: {
     color: 'rgba(0, 0, 0, .4)',
-    fontSize: 12,
+    fontSize: 13,
   },
   separator: {
-    marginHorizontal: 2,
+    marginHorizontal: 2.2,
     color: 'rgba(0, 0, 0, .2)',
-    fontSize: 12,
+    fontSize: 13,
   },
   active: {
     color: '#000',
-    fontSize: 12,
+    fontSize: 13,
   },
 });
 

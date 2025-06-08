@@ -32,20 +32,20 @@ const RightSide = () => {
 
       <Pressable>
         <HoverIcon>
-            <Sun width={14} height={14} />
+            <Sun width={15} height={15} />
         </HoverIcon>
       </Pressable>
 
       {/* Refresh button to reload the screen not the entire page*/}
       <Pressable onPress={() => Linking.openURL(window.location.href)}>
         <HoverIcon>
-            <Refresh width={14} height={14} />
+            <Refresh width={15} height={15} />
         </HoverIcon>
       </Pressable>
 
       <Pressable>
         <HoverIcon>
-            <Bell width={14} height={14} />
+            <Bell width={15} height={15} />
         </HoverIcon>
       </Pressable>
     </View>
@@ -55,18 +55,18 @@ const RightSide = () => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 11,
     alignItems: 'center',
   },
   iconWrapper: {
-    padding: 4,
-    borderRadius: 6,
+    padding: 4.4,
+    borderRadius: 7,
   },
   iconHovered: {
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   search: {
-    paddingRight: 6,
+    paddingRight: 7,
   }
 });
 

@@ -54,7 +54,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     Animated.timing(sidebarWidth, {
-      toValue: sidebarVisible ? 190 : 0,
+      toValue: sidebarVisible ? 209 : 0,
       duration: 200,
       useNativeDriver: false,
     }).start();

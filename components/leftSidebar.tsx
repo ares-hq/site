@@ -48,9 +48,9 @@ export default function Sidebar({ navigateToPage }: SidebarProps) {
 
 const styles = StyleSheet.create({
   container: {
-    width: 190,
+    width: 209,
     height: '100%',
-    paddingTop: 12,
+    paddingTop: 13,
     backgroundColor: '#fff',
     justifyContent: 'space-between',
     borderRightWidth: 1,
@@ -59,26 +59,26 @@ const styles = StyleSheet.create({
   profileSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 22,
+    marginBottom: 22,
   },
   avatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 16,
-    marginRight: 12,
+    width: 26,
+    height: 26,
+    borderRadius: 18,
+    marginRight: 13,
   },
   profileName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     fontFamily: 'InterRegular',
   },
   footer: {
-    paddingVertical: 16,
+    paddingVertical: 18,
     alignItems: 'center',
   },
   footerText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#aaa',
   },
 });

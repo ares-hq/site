@@ -21,7 +21,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "viewport": "width=device-width, initial-scale=1.2, maximum-scale=1.2, user-scalable=no",
+      "viewport": "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
       "favicon": "./assets/images/favicon.png",
       "router": {
         "basename": ".",

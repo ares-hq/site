@@ -21,7 +21,7 @@ const Dashboards = ({ navigateToPage }: DashboardProps) => {
         label="Into the Deep"
         icon={
           <View style={styles.teamIcons}>
-            <Chart width={16} height={16} />
+            <Chart width={18} height={18} />
           </View>
         }
         onPress={() => navigateToPage('DIVE')}
@@ -31,7 +31,7 @@ const Dashboards = ({ navigateToPage }: DashboardProps) => {
         label="Decode"
         icon={
           <View style={styles.teamIcons}>
-            <Graph width={16} height={16} />
+            <Graph width={18} height={18} />
           </View>
         }
         onPress={() => navigateToPage('AGE')}
@@ -77,45 +77,45 @@ const SidebarItem = ({
 
 const styles = StyleSheet.create({
   sidebar: {
-    paddingHorizontal: 8,
-    gap: 2,
-    paddingVertical: 8,
+    paddingHorizontal: 9,
+    gap: 2.2,
+    paddingVertical: 9,
     backgroundColor: '#fff',
-    marginBottom: 16,
+    marginBottom: 18,
   },
   sectionTitle: {
-    fontSize: 14,
-    marginBottom: 8,
+    fontSize: 15,
+    marginBottom: 9,
     color: 'rgba(0, 0, 0, 0.4)',
-    paddingHorizontal: 12,
+    paddingHorizontal: 13,
   },
   item: {
-    paddingVertical: 8,
+    paddingVertical: 9,
   },
   iconLabel: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 9,
   },
   hoveredItem: {
     backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    borderRadius: 12,
+    borderRadius: 13,
   },
   label: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#000',
   },
   teamIcons: {
-    paddingLeft: 30,
+    paddingLeft: 33,
     flexDirection: 'row',
     alignItems: 'center',
   },
   arrowContainer: {
-    width: 18,
-    height: 18,
+    width: 20,
+    height: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 4,
+    marginRight: 4.4,
     position: 'relative',
   },
   arrow: {

@@ -97,42 +97,42 @@ const UsedTabs = ({ navigateToPage }: UsedTabsProps) => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
-    paddingHorizontal: 14, 
-    marginBottom: 16,
+    paddingHorizontal: 15,
+    marginBottom: 18,
   },
   tabs: {
     flexDirection: 'row',
-    gap: 16,
-    marginBottom: 4,
+    gap: 18,
+    marginBottom: 4.4,
   },
   tab: {
-    fontSize: 14,
+    fontSize: 15,
     color: 'rgba(0, 0, 0, 0.2)',
-    padding: 6,
-    paddingVertical: 4,
+    padding: 6.6,
+    paddingVertical: 4.4,
   },
   activeTab: {
     color: 'rgba(0, 0, 0, 0.4)',
   },
   hoveredItem: {
     backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    borderRadius: 6,
+    borderRadius: 7,
   },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 6.6,
   },
   dot: {
-    marginLeft: 7,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    marginLeft: 8,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    marginRight: 10,
+    marginRight: 11,
   },
   itemText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#000',
   },
 });
