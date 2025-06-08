@@ -34,6 +34,9 @@ jobs:
     - name: Build with Expo
       run: npx expo export -p web
     
+    - name: Add CNAME file
+      run: echo "yourdomain.com" > ./dist/CNAME
+    
     - name: Setup Pages
       uses: actions/configure-pages@v4
     

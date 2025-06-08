@@ -2,7 +2,7 @@
   "name": "ares-site",
   "main": "expo-router/entry",
   "version": "1.0.0",
-  "homepage": "https://ares-bot.com",
+  "homepage": "https://ares-digital-hub.github.io/ARES-Site/",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
