@@ -1,19 +1,19 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Linking, Alert } from 'react-native';
-import LocationIcon from '@/assets/icons/robot.svg';
-import TrophyIcon from '@/assets/icons/robot.svg';
-import UsersIcon from '@/assets/icons/robot.svg';
-import CalendarIcon from '@/assets/icons/robot.svg';
-import StarIcon from '@/assets/icons/robot.svg';
-import ShieldIcon from '@/assets/icons/robot.svg';
-import GlobeIcon from '@/assets/icons/robot.svg';
+import LocationIcon from '@/assets/icons/map-pin.svg';
+import TrophyIcon from '@/assets/icons/ranking.svg';
+import TopScore from '@/assets/icons/trophy.svg';
+import UsersIcon from '@/assets/icons/handshake.svg';
+import CalendarIcon from '@/assets/icons/calendar.svg';
+import ShieldIcon from '@/assets/icons/identification-card.svg';
+import GlobeIcon from '@/assets/icons/link-simple-horizontal.svg';
 
 const InfoBox = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Team Profile</Text>
       <View style={styles.contentContainer}>
-        <View>
+        <View style={{gap: 30}}>
           <InfoRow icon={<ShieldIcon />} label="Team Name" value="Team 1234" />
           <InfoRow icon={<LocationIcon />} label="Location" value="City, Country" />
           <InfoRow icon={<CalendarIcon />} label="Founded" value="2010" />
@@ -32,7 +32,7 @@ const InfoBox = () => {
             value="Sponsor A, Sponsor B, Sponsor C, Sponsor D, Sponsor E, Sponsor F"
           />
           <InfoRow
-            icon={<TrophyIcon />}
+            icon={<TopScore />}
             label="Achievements"
             value="Achievement 1 • Achievement 2"
           />
@@ -108,7 +108,6 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 16,
   },
   icon: {
     width: 24,
@@ -119,6 +118,7 @@ const styles = StyleSheet.create({
   offsetColumn: {
     flex: 1,
     minWidth: 150,
+    gap: 30,
   },
   textContainer: {
     flex: 1,
@@ -130,7 +130,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     fontWeight: '600',
     letterSpacing: 0.5,
-    marginBottom: 4,
   },
   value: {
     fontSize: 14,
