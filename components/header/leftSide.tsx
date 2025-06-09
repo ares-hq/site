@@ -46,7 +46,7 @@ const LeftSide = ({ toggleSidebar, pageTitle }: LeftSideProps) => {
 
       {/* Labels */}
       <Text style={styles.faded}>
-       {pageTitle === 'AGE' || pageTitle === 'DIVE' ? 'Dashboards' : pageTitle === 'Discord' || pageTitle === 'App' ? 'Platforms' : 'Analytics'}
+       {pageTitle === 'AGE' || pageTitle === 'DIVE' ? 'Dashboards' : pageTitle === 'Discord' || pageTitle === 'App' ? 'Platforms' : pageTitle === 'ScoutSheet' ? 'Scouting' : 'Analytics'}
       </Text>
       <Text style={styles.separator}> / </Text>
       <Text style={styles.active}>{pageTitle}</Text>
@@ -59,6 +59,7 @@ const styles = StyleSheet.create({
     gap: 9,
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 22,
   },
   icons: {
     gap: 9,

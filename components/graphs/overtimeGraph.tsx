@@ -259,6 +259,7 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
   graphContainer: {
+    minWidth: 500,
     flex: 1,
     padding: 17,
     backgroundColor: '#F9F9FA',

@@ -16,6 +16,7 @@ import Finals from '@/screens/finals';
 import Footer from '@/components/footer';
 import App from '@/screens/app';
 import Discord from '@/screens/discord';
+import ScoutSheet from '@/screens/scoutSheet';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [fontsLoaded] = useFonts({
@@ -52,6 +53,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         return <App />;
       case 'Discord':
         return <Discord />;
+      case 'ScoutSheet':
+        return <ScoutSheet />;
       default:
         return <TRanks />;
     }

@@ -8,26 +8,23 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  CartesianGrid,
   Cell,
 } from 'recharts';
 
 const rankData = [
-  { name: 'Auto', value: 1000, fill: '#a78bfa' },
-  { name: 'TeleOp', value: 2021, fill: '#6ee7b7' },
-  { name: 'Endgame', value: 202, fill: '#60a5fa' },
+  { name: 'Qualifier', 'Match Score': 1000, fill: '#a78bfa' },
+  { name: 'Finals', 'Match Score': 2021, fill: '#6ee7b7' },
 ];
 
 const EventPerformance = () => {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>OPR Rank by Phase</Text>
+      <Text style={styles.title}>Average Match Score</Text>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={rankData}
           margin={{ top: 10, right: 0, bottom: 0, left: -25 }}
           barCategoryGap="25%"
-          barGap={4}
         >
           <XAxis
             dataKey="name"
@@ -39,12 +36,13 @@ const EventPerformance = () => {
             tick={{ fontSize: 12, fill: '#9ca3af', fontFamily: 'Arial' }}
             axisLine={false}
             tickLine={false}
+            tickCount={4}
           />
           <Tooltip
             cursor={{ fill: 'transparent' }}
             contentStyle={{ borderRadius: 8, borderColor: '#e5e7eb', fontSize: 12, backgroundColor: 'white', fontFamily: 'Arial' }}
           />
-          <Bar dataKey="value" radius={6} barSize={30}>
+          <Bar dataKey="Match Score" radius={6} barSize={30}>
             {rankData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.fill} />
             ))}
@@ -58,7 +56,7 @@ const EventPerformance = () => {
 const styles = StyleSheet.create({
   container: {
     height: 300,
-    width: 300,
+    width: 250,
     padding: 20,
     borderRadius: 8,
     backgroundColor: '#f9fafb',

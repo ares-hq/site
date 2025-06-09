@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { View, StyleSheet } from 'react-native';
 import LeftSide from './header/leftSide';
 import RightSide from './header/rightSide';
 
@@ -11,12 +10,15 @@ type HeaderBarProps = {
 
 const TopNavbar = ({ toggleSidebar, currentPage }: HeaderBarProps) => {
   return (
-    <View style={styles.container}>
-      {/* Left side */}
-      <LeftSide toggleSidebar={toggleSidebar} pageTitle={currentPage ?? ''}/>
-
-      {/* Right side */}
-      <RightSide />
+    <View style={styles.wrapper}>
+      <View style={styles.container}>
+        <View style={styles.leftSide}>
+          <LeftSide toggleSidebar={toggleSidebar} pageTitle={currentPage ?? ''} />
+        </View>
+        <View style={styles.rightSide}>
+          <RightSide />
+        </View>
+      </View>
     </View>
   );
 };
@@ -24,59 +26,30 @@ const TopNavbar = ({ toggleSidebar, currentPage }: HeaderBarProps) => {
 export default TopNavbar;
 
 const styles = StyleSheet.create({
-  container: {
-    height: 44,
-    padding: 22,
+  wrapper: {
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderColor: '#e5e7eb',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  container: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap', // this is key to wrapping when needed
     justifyContent: 'space-between',
-  },
-  leftSection: {
-    flexDirection: 'row',
     alignItems: 'center',
   },
-  iconSpacing: {
-    marginLeft: 11,
+  leftSide: {
+    flexShrink: 1,
+    minWidth: 150,
+    flexGrow: 1,
+    marginBottom: 6, // spacing when stacked
   },
-  sectionTitle: {
-    color: '#9CA3AF',
-    fontSize: 15,
-    marginLeft: 13,
-  },
-  divider: {
-    color: '#9CA3AF',
-    fontSize: 15,
-    marginHorizontal: 7,
-  },
-  current: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  rightSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 11,
-    borderRadius: 9,
-    height: 40,
-    marginRight: 18,
-  },
-  searchInput: {
-    marginLeft: 7,
-    fontSize: 15,
-    width: 132,
-    color: '#111',
-  },
-  iconButton: {
-    marginHorizontal: 7,
-    padding: 7,
+  rightSide: {
+    flexShrink: 1,
+    minWidth: 150,
+    flexGrow: 1,
+    alignItems: 'flex-end',
+    marginBottom: 6,
   },
 });

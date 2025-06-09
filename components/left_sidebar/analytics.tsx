@@ -142,7 +142,8 @@ const styles = StyleSheet.create({
   sidebar: {
     paddingHorizontal: 9,
     gap: 2.2,
-    backgroundColor: '#fff',
+    backgroundColor: '#fff',    
+    marginBottom: 18,
   },
   sectionTitle: {
     fontSize: 15,

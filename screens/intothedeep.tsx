@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import UserGraphSection from '@/components/graphs/overtimeGraph';
 import EventPerformance from '@/components/graphs/eventPerformace';
 import EventScores from '@/components/graphs/eventScores';
+import InfoBlock from '@/components/teamInfo/infoBlock';
 
 type StatCardProps = {
   title: string;
@@ -70,17 +71,21 @@ const IntoTheDeep = () => {
       </View>
 
       <UserGraphSection />
+
       <View style={styles.headerRow}>
         <Text style={styles.header}>Team Information</Text>
       </View>
-      <View style={styles.row}>
-        <View style={styles.chart}>
-            <EventPerformance />
-        </View>
-        <View style={styles.chart}>
-            <EventScores />
-        </View>
-      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chartScrollContainer}
+      >
+        <EventPerformance />
+        <EventScores />
+        <InfoBlock
+
+        />
+      </ScrollView>
       <View style={styles.headerRow}>
         <Text style={styles.header}>Events</Text>
       </View>
@@ -124,9 +129,8 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 20,
   },
   value: {
     fontSize: 26,
@@ -140,9 +144,9 @@ const styles = StyleSheet.create({
   change: {
     fontSize: 13,
   },
-  chart: {
-    flex: 1,
-    minWidth: 300,
+  chartScrollContainer: {
+    paddingHorizontal: 8,
+    gap: 16, // spacing between charts
   },
 });
 

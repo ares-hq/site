@@ -24,7 +24,7 @@ const EventScores = () => {
     const item = contributionData.find((d) => d.name === value);
     const percentage = item ? ((item.value / total) * 100).toFixed(1) + '%' : '';
     return (
-      <Text style={{ color: '#000' }}>{`${value}  ${percentage}`}</Text>
+      <Text style={{ color: '#6b7280', margin:5, fontSize:12 }}>{`${value}  ${percentage}`}</Text>
     );
   };
 
@@ -67,6 +67,8 @@ const EventScores = () => {
 const styles = StyleSheet.create({
   container: {
     height: 300,
+    maxWidth: 500,
+    minWidth: 400,
     padding: 16,
     borderRadius: 16,
     backgroundColor: '#f9fafb',
@@ -74,7 +76,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: '600',
     marginBottom: 12,
     color: '#000',
   },

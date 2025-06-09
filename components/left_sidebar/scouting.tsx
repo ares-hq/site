@@ -5,36 +5,25 @@ import {
   StyleSheet,
   Pressable,
 } from 'react-native';
-import App from '../../assets/icons/app-store-logo.svg';
-import Robot from '../../assets/icons/robot.svg';
+import Binoculars from '../../assets/icons/binoculars.svg';
 
 type DashboardProps = {
   navigateToPage: (page: string) => void;
 };
 
-const Platforms = ({ navigateToPage }: DashboardProps) => {
+const Scouting = ({ navigateToPage }: DashboardProps) => {
   return (
     <View style={styles.sidebar}>
-      <Text style={styles.sectionTitle}>Platforms</Text>
+      <Text style={styles.sectionTitle}>Scouting</Text>
 
       <SidebarItem
-        label="Discord Bot"
+        label="Scout Sheet"
         icon={
           <View style={styles.teamIcons}>
-            <Robot width={18} height={18} />
+            <Binoculars width={18} height={18} />
           </View>
         }
-        onPress={() => navigateToPage('Discord')}
-      />
-
-    <SidebarItem
-        label="Mobile App"
-        icon={
-          <View style={styles.teamIcons}>
-            <App width={18} height={18} />
-          </View>
-        }
-        onPress={() => navigateToPage('App')}
+        onPress={() => navigateToPage('ScoutSheet')}
       />
     </View>
   );
@@ -81,7 +70,7 @@ const styles = StyleSheet.create({
     gap: 2.2,
     paddingVertical: 9,
     backgroundColor: '#fff',
-    marginBottom: 9,
+    marginBottom: 18,
   },
   sectionTitle: {
     fontSize: 15,
@@ -131,4 +120,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Platforms;
+export default Scouting;

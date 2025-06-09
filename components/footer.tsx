@@ -18,6 +18,12 @@ const Footer = () => {
         <Pressable onPress={() => handleLinkPress('https://ares-bot.com/tac')}>
           <Text style={styles.link}>Terms & Conditions</Text>
         </Pressable>
+
+        <Text style={styles.separator}>|</Text>
+
+        <Pressable onPress={() => handleLinkPress('https://ares-bot.com/tac')}>
+          <Text style={styles.link}>Systems Status</Text>
+        </Pressable>
       </View>
 
       <Text style={styles.copyright}>
