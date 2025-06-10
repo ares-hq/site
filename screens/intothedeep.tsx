@@ -88,9 +88,9 @@ const IntoTheDeep = () => {
       <View style={styles.headerRow}>
         <Text style={styles.header}>Events</Text>
       </View>
-      <EventCard
-       
-      />
+      <View style={styles.eventContainer}>
+        <EventCard/>
+      </View>
     </View>
   );
 };
@@ -147,8 +147,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   chartScrollContainer: {
-    gap: 16, // spacing between charts
-    marginBottom: 20
+    gap: 16,
+    marginBottom: 20,
+  },
+  eventContainer: {
+    marginBottom: 10,
   },
 });
 

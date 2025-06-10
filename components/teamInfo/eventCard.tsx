@@ -1,5 +1,12 @@
-import React, { JSX } from 'react';
-import { View, Text, StyleSheet, ScrollView, Linking, TouchableOpacity } from 'react-native';
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Linking,
+  TouchableOpacity
+} from 'react-native';
 
 interface Match {
   match: string;
@@ -47,8 +54,8 @@ const matches: Match[] = [
   }
 ];
 
-const EventCard: React.FC = () => {
-  const handleWebsitePress = async (): Promise<void> => {
+function EventCard() {
+  const handleWebsitePress = async () => {
     const url = 'https://www.douglascountyschools.com/robotics';
     try {
       await Linking.openURL(url);
@@ -57,241 +64,400 @@ const EventCard: React.FC = () => {
     }
   };
 
-  const renderTeamCell = (teams: string[], isRed: boolean): JSX.Element => {
+  const getTeamDisplayName = (team: string) => {
+    const knownNames: Record<string, string> = {
+      'ATOM': 'ATOM',
+      '100 Scholars': '100 Scholars',
+      'Geneton': 'Geneton',
+      'SAE Dragonbots': 'SAE Dragonbots',
+      'Java Beans': 'Java Beans',
+      'Whitefield Robotics': 'Whitefield Robotics',
+      'RoboRibbits': 'RoboRibbits',
+      'Flying Nuggets': 'Flying Nuggets',
+      'Rebellion Engineering': 'Rebellion Engineering',
+      'SMA Bobcats': 'SMA Bobcats'
+    };
+    return knownNames[team] || team;
+  };
+
+  const renderTeamCell = (teams: string[], isRed: boolean) => {
     return (
       <View style={[styles.teamCell, isRed ? styles.redAlliance : styles.blueAlliance]}>
-        {teams.map((team, index) => (
-          <View key={index} style={styles.teamRow}>
-            <Text style={[styles.teamNumber, isRed ? styles.redTeamText : styles.blueTeamText]}>
-              {team}
-            </Text>
-            {index < teams.length - 1 && teams.length > 2 && (
-              <Text style={[styles.teamName, isRed ? styles.redTeamText : styles.blueTeamText]}>
-                {index === 1 ? (team === 'ATOM' ? 'ATOM' : 
-                               team === '100 Scholars' ? '100 Scholars' :
-                               team === 'Geneton' ? 'Geneton' :
-                               team === 'SAE Dragonbots' ? 'SAE Dragonbots' :
-                               team === 'Java Beans' ? 'Java Beans' :
-                               team === 'Whitefield Robotics' ? 'Whitefield Robotics' :
-                               team === 'RoboRibbits' ? 'RoboRibbits' : '') : ''}
-              </Text>
-            )}
-          </View>
-        ))}
+        {teams.map((team, index) => {
+          const isNumber = /^\d+$/.test(team);
+          const displayName = getTeamDisplayName(team);
+          
+          return (
+            <View key={index} style={styles.teamRow}>
+              <View style={styles.teamInfo}>
+                <Text style={[
+                  styles.teamNumber, 
+                  isRed ? styles.redTeamText : styles.blueTeamText
+                ]}>
+                  {isNumber ? `#${team}` : team}
+                </Text>
+                {!isNumber && displayName !== team && (
+                  <Text style={[
+                    styles.teamName, 
+                    isRed ? styles.redTeamNameText : styles.blueTeamNameText
+                  ]}>
+                    {displayName}
+                  </Text>
+                )}
+              </View>
+            </View>
+          );
+        })}
       </View>
     );
   };
 
-  const renderMatchRow = (match: Match, index: number): JSX.Element => {
+  const renderMatchRow = (match: Match, index: number) => {
     const redWon = match.redScore > match.blueScore;
-    
+    const isLastRow = index === matches.length - 1;
+
     return (
-      <View key={index} style={styles.tableRow}>
+      <View key={index} style={[styles.tableRow, isLastRow && styles.lastRow]}>
         <View style={styles.matchCell}>
-          <Text style={[styles.matchText, redWon ? styles.redMatchText : styles.blueMatchText]}>
-            {match.match}
-          </Text>
+          <View style={[
+            styles.matchBadge, 
+            redWon ? styles.redMatchBadge : styles.blueMatchBadge
+          ]}>
+            <Text style={[
+              styles.matchText, 
+              redWon ? styles.redMatchText : styles.blueMatchText
+            ]}>
+              {match.match}
+            </Text>
+          </View>
         </View>
-        
+
         <View style={styles.scoreCell}>
-          <Text style={styles.scoreText}>
-            <Text style={redWon ? styles.winningScore : styles.normalScore}>{match.redScore}</Text>
-            <Text style={styles.scoreDivider}> - </Text>
-            <Text style={!redWon ? styles.winningScore : styles.normalScore}>{match.blueScore}</Text>
-          </Text>
+          <View style={styles.scoreContainer}>
+            <Text style={[
+              styles.scoreNumber,
+              redWon ? styles.winningScore : styles.losingScore
+            ]}>
+              {match.redScore}
+            </Text>
+            <Text style={styles.scoreDivider}>-</Text>
+            <Text style={[
+              styles.scoreNumber,
+              !redWon ? styles.winningScore : styles.losingScore
+            ]}>
+              {match.blueScore}
+            </Text>
+          </View>
         </View>
-        
+
         {renderTeamCell(match.redTeams, true)}
         {renderTeamCell(match.blueTeams, false)}
       </View>
     );
   };
 
+  // Calculate team stats
+  const teamWins = matches.filter(match => {
+    const isOnRed = match.redTeams.includes('22') || match.redTeams.includes('100 Scholars');
+    const isOnBlue = match.blueTeams.includes('22') || match.blueTeams.includes('100 Scholars');
+    
+    if (isOnRed) return match.redScore > match.blueScore;
+    if (isOnBlue) return match.blueScore > match.redScore;
+    return false;
+  }).length;
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.card}>
+        {/* Header Section */}
         <View style={styles.header}>
-          <Text style={styles.title}>Douglasville-DCHS League meet #2</Text>
-          
-          <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>📅</Text>
-            <Text style={styles.infoText}>November 23, 2024</Text>
-          </View>
-          
-          <TouchableOpacity onPress={handleWebsitePress}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoIcon}>📍</Text>
-              <Text style={[styles.infoText, styles.linkText]}>Douglas County High School, Douglasville, GA, USA</Text>
+          <View style={styles.titleSection}>
+            <Text style={styles.title}>Douglasville-DCHS League Meet #2</Text>
+            <View style={styles.statusBadge}>
+              <Text style={styles.statusText}>COMPLETED</Text>
             </View>
-          </TouchableOpacity>
-          
-          <View style={styles.statsContainer}>
-            <View style={styles.statRow}>
-              <Text style={styles.statIcon}>🏆</Text>
-              <Text style={styles.statText}>9th place (quals)</Text>
+          </View>
+
+          <View style={styles.eventDetails}>
+            <View style={styles.detailRow}>
+              <View style={styles.iconContainer}>
+                <Text style={styles.detailIcon}>📅</Text>
+              </View>
+              <Text style={styles.detailText}>November 23, 2024</Text>
+            </View>
+
+            <TouchableOpacity onPress={handleWebsitePress} style={styles.locationRow}>
+              <View style={styles.iconContainer}>
+                <Text style={styles.detailIcon}>📍</Text>
+              </View>
+              <Text style={[styles.detailText, styles.linkText]}>
+                Douglas County High School, Douglasville, GA
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Performance Summary */}
+          <View style={styles.performanceCard}>
+            <View style={styles.performanceHeader}>
+              <Text style={styles.performanceTitle}>Team Performance</Text>
+              <View style={styles.rankBadge}>
+                <Text style={styles.rankText}>9th Place</Text>
+              </View>
             </View>
             
-            <Text style={styles.recordText}>W-L-T: 1-4-0</Text>
-            <Text style={styles.statsText}>0.40 RP · 13.07 npOPR · 30.20 npAVG</Text>
+            <View style={styles.statsGrid}>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Record</Text>
+                <Text style={styles.statValue}>{teamWins}-{matches.length - teamWins}-0</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Win Rate</Text>
+                <Text style={styles.statValue}>{((teamWins / matches.length) * 100).toFixed(0)}%</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>OPR</Text>
+                <Text style={styles.statValue}>13.07</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Average</Text>
+                <Text style={styles.statValue}>30.20</Text>
+              </View>
+            </View>
           </View>
         </View>
 
-        <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <View style={styles.matchHeaderCell}>
-              <Text style={styles.headerText}>Match</Text>
-            </View>
-            <View style={styles.scoreHeaderCell}>
-              <Text style={styles.headerText}>Score</Text>
-            </View>
-            <View style={styles.allianceHeaderCell}>
-              <Text style={styles.headerText}>Red Alliance</Text>
-            </View>
-            <View style={styles.allianceHeaderCell}>
-              <Text style={styles.headerText}>Blue Alliance</Text>
-            </View>
-          </View>
+        {/* Matches Table */}
+        <View style={styles.matchesSection}>
+          <Text style={styles.sectionTitle}>Match Results</Text>
           
-          {matches.map(renderMatchRow)}
+          <View style={styles.table}>
+            <View style={styles.tableHeader}>
+              <View style={styles.matchHeaderCell}>
+                <Text style={styles.headerText}>Match</Text>
+              </View>
+              <View style={styles.scoreHeaderCell}>
+                <Text style={styles.headerText}>Final Score</Text>
+              </View>
+              <View style={styles.allianceHeaderCell}>
+                <Text style={styles.headerText}>Red Alliance</Text>
+              </View>
+              <View style={styles.allianceHeaderCell}>
+                <Text style={styles.headerText}>Blue Alliance</Text>
+              </View>
+            </View>
+
+            {matches.map(renderMatchRow)}
+          </View>
         </View>
       </View>
     </ScrollView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
-    padding: 16,
+    backgroundColor: '#FFFFFF',
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    borderWidth: 3,
+    borderColor: '#FAFBFC',
+    margin: 16,
+    borderRadius: 16,
     elevation: 4,
   },
   header: {
     padding: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFBFC',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  titleSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#000000',
-    marginBottom: 16,
+    color: '#111827',
+    flex: 1,
+    marginRight: 12,
+    lineHeight: 28,
   },
-  infoRow: {
+  statusBadge: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  eventDetails: {
+    marginBottom: 20,
+  },
+  detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  infoIcon: {
-    fontSize: 16,
-    marginRight: 8,
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  infoText: {
+  iconContainer: {
+    width: 32,
+    alignItems: 'center',
+  },
+  detailIcon: {
     fontSize: 16,
-    color: '#000000',
+  },
+  detailText: {
+    fontSize: 15,
+    color: '#374151',
+    flex: 1,
   },
   linkText: {
     color: '#2563EB',
     textDecorationLine: 'underline',
   },
-  statsContainer: {
-    marginTop: 16,
+  performanceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 6,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  statRow: {
+  performanceHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
   },
-  statIcon: {
+  performanceTitle: {
     fontSize: 16,
-    marginRight: 8,
+    fontWeight: '600',
+    color: '#111827',
   },
-  statText: {
-    fontSize: 16,
-    color: '#000000',
+  rankBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
   },
-  recordText: {
-    fontSize: 16,
-    color: '#000000',
+  rankText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#92400E',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6B7280',
     marginBottom: 4,
-    marginLeft: 24,
+    fontWeight: '500',
   },
-  statsText: {
+  statValue: {
     fontSize: 16,
-    color: '#000000',
-    marginLeft: 24,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  matchesSection: {
+    padding: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 16,
   },
   table: {
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5E5',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    overflow: 'hidden',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F9FAFB',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
+    borderBottomColor: '#E5E7EB',
   },
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
-    minHeight: 60,
+    borderBottomColor: '#E5E7EB',
+    minHeight: 80,
+  },
+  lastRow: {
+    borderBottomWidth: 0,
   },
   matchHeaderCell: {
     flex: 1,
-    padding: 12,
+    padding: 16,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   scoreHeaderCell: {
     flex: 1.2,
-    padding: 12,
+    padding: 16,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   allianceHeaderCell: {
     flex: 2.5,
-    padding: 12,
+    padding: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: '#6B7280',
     textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   matchCell: {
     flex: 1,
-    padding: 12,
+    padding: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  scoreCell: {
-    flex: 1.2,
-    padding: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+  matchBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
   },
-  teamCell: {
-    flex: 2.5,
-    padding: 8,
-    justifyContent: 'center',
-  },
-  redAlliance: {
+  redMatchBadge: {
     backgroundColor: '#FEE2E2',
+    borderColor: '#FECACA',
   },
-  blueAlliance: {
+  blueMatchBadge: {
     backgroundColor: '#DBEAFE',
+    borderColor: '#BFDBFE',
   },
   matchText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   redMatchText: {
@@ -300,36 +466,74 @@ const styles = StyleSheet.create({
   blueMatchText: {
     color: '#2563EB',
   },
-  scoreText: {
-    fontSize: 16,
+  scoreCell: {
+    flex: 1.2,
+    padding: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  scoreNumber: {
+    fontSize: 18,
     fontWeight: '600',
   },
   winningScore: {
+    color: '#059669',
     fontWeight: '700',
   },
-  normalScore: {
-    fontWeight: '600',
-  },
-  scoreDivider: {
+  losingScore: {
     color: '#6B7280',
   },
+  scoreDivider: {
+    fontSize: 16,
+    color: '#9CA3AF',
+    marginHorizontal: 8,
+  },
+  teamCell: {
+    flex: 2.5,
+    padding: 12,
+    justifyContent: 'center',
+  },
+  redAlliance: {
+    backgroundColor: '#FEF2F2',
+    borderLeftWidth: 4,
+    borderLeftColor: '#EF4444',
+  },
+  blueAlliance: {
+    backgroundColor: '#EFF6FF',
+    borderLeftWidth: 4,
+    borderLeftColor: '#3B82F6',
+  },
   teamRow: {
-    marginBottom: 2,
+    marginBottom: 8,
+  },
+  teamInfo: {
+    flexDirection: 'column',
   },
   teamNumber: {
     fontSize: 14,
     fontWeight: '600',
   },
   teamName: {
-    fontSize: 12,
+    fontSize: 11,
     fontStyle: 'italic',
-    marginTop: 1,
+    marginTop: 2,
+    opacity: 0.8,
   },
   redTeamText: {
     color: '#DC2626',
   },
   blueTeamText: {
     color: '#2563EB',
+  },
+  redTeamNameText: {
+    color: '#B91C1C',
+  },
+  blueTeamNameText: {
+    color: '#1D4ED8',
   },
 });
 
