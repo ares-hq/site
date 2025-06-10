@@ -8,7 +8,8 @@ import CalendarIcon from '@/assets/icons/calendar.svg';
 import ShieldIcon from '@/assets/icons/identification-card.svg';
 import GlobeIcon from '@/assets/icons/link-simple-horizontal.svg';
 
-const InfoBox = () => {
+const 
+InfoBox = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Team Profile</Text>

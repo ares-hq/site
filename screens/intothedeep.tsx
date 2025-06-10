@@ -5,6 +5,7 @@ import UserGraphSection from '@/components/graphs/overtimeGraph';
 import EventPerformance from '@/components/graphs/eventPerformace';
 import EventScores from '@/components/graphs/eventScores';
 import InfoBlock from '@/components/teamInfo/infoBlock';
+import EventCard from '@/components/teamInfo/eventCard';
 
 type StatCardProps = {
   title: string;
@@ -82,13 +83,14 @@ const IntoTheDeep = () => {
       >
         <EventPerformance />
         <EventScores />
-        <InfoBlock
-
-        />
+        <InfoBlock/>
       </ScrollView>
       <View style={styles.headerRow}>
         <Text style={styles.header}>Events</Text>
       </View>
+      <EventCard
+       
+      />
     </View>
   );
 };
@@ -145,8 +147,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   chartScrollContainer: {
-    paddingHorizontal: 8,
     gap: 16, // spacing between charts
+    marginBottom: 20
   },
 });
 
