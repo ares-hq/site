@@ -1,16 +1,24 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
 import LeftSide from './header/leftSide';
 import RightSide from './header/rightSide';
 
 type HeaderBarProps = {
   toggleSidebar: () => void;
   currentPage?: string;
+  onLayout?: (width: number) => void;
 };
 
-const TopNavbar = ({ toggleSidebar, currentPage }: HeaderBarProps) => {
+const TopNavbar = ({ toggleSidebar, currentPage, onLayout }: HeaderBarProps) => {
+  const handleLayout = (event: LayoutChangeEvent) => {
+    const { width } = event.nativeEvent.layout;
+    if (onLayout) {
+      onLayout(width);
+    }
+  };
+  
   return (
-    <View style={styles.wrapper}>
+    <View style={styles.wrapper} onLayout={handleLayout}>
       <View style={styles.container}>
         <View style={styles.leftSide}>
           <LeftSide toggleSidebar={toggleSidebar} pageTitle={currentPage ?? ''} />

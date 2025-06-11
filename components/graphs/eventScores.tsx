@@ -16,7 +16,7 @@ const contributionData = [
   { name: 'Endgame', value: 15.6 },
 ];
 
-const COLORS = ['#3B82F6', '#10B981', '#a78bfa'];
+const COLORS = ['#92BFFF', '#94E9B8', '#a78bfa'];
 
 const EventScores = () => {
   const total = contributionData.reduce((sum, d) => sum + d.value, 0);
@@ -42,6 +42,8 @@ const EventScores = () => {
             paddingAngle={2}
             cornerRadius={8}
             label={false}
+            activeIndex={undefined}
+            activeShape={false}
           >
             {contributionData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

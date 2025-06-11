@@ -12,8 +12,8 @@ import {
 } from 'recharts';
 
 const rankData = [
-  { name: 'Qualifier', 'Match Score': 1000, fill: '#a78bfa' },
-  { name: 'Finals', 'Match Score': 2021, fill: '#6ee7b7' },
+  { name: 'Qualifier', 'Match Score': 1000, fill: '#9F9FF8' },
+  { name: 'Finals', 'Match Score': 2021, fill: '#96E2D6' },
 ];
 
 const EventPerformance = () => {

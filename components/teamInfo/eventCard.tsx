@@ -3,10 +3,12 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Linking,
   TouchableOpacity
 } from 'react-native';
+import TopScore from '@/assets/icons/trophy.svg';
+import LocationIcon from '@/assets/icons/map-pin.svg';
+import CalendarIcon from '@/assets/icons/calendar.svg';
 
 interface Match {
   match: string;
@@ -167,7 +169,7 @@ function EventCard() {
   }).length;
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
       <View style={styles.card}>
         {/* Header Section */}
         <View style={styles.header}>
@@ -181,14 +183,14 @@ function EventCard() {
           <View style={styles.eventDetails}>
             <View style={styles.detailRow}>
               <View style={styles.iconContainer}>
-                <Text style={styles.detailIcon}>📅</Text>
+                <CalendarIcon width={16} height={16}/>
               </View>
               <Text style={styles.detailText}>November 23, 2024</Text>
             </View>
 
             <TouchableOpacity onPress={handleWebsitePress} style={styles.locationRow}>
               <View style={styles.iconContainer}>
-                <Text style={styles.detailIcon}>📍</Text>
+                <LocationIcon width={16} height={16}/>
               </View>
               <Text style={[styles.detailText, styles.linkText]}>
                 Douglas County High School, Douglasville, GA
@@ -201,6 +203,7 @@ function EventCard() {
             <View style={styles.performanceHeader}>
               <Text style={styles.performanceTitle}>Team Performance</Text>
               <View style={styles.rankBadge}>
+                <TopScore width={16} height={16}/>
                 <Text style={styles.rankText}>9th Place</Text>
               </View>
             </View>
@@ -250,7 +253,7 @@ function EventCard() {
           </View>
         </View>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -263,7 +266,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 3,
     borderColor: '#FAFBFC',
-    margin: 16,
+
     borderRadius: 16,
     elevation: 4,
   },
@@ -349,6 +352,8 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   rankBadge: {
+    flexDirection: 'row',
+    gap: 6,
     backgroundColor: '#FEF3C7',
     paddingHorizontal: 12,
     paddingVertical: 6,
