@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     height: 300,
     width: 250,
     padding: 20,
-    borderRadius: 8,
+    borderRadius: 16,
     backgroundColor: '#f9fafb',
   },
   title: {

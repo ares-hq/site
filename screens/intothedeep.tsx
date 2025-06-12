@@ -135,6 +135,7 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     gap: 10,
     marginBottom: 20,
   },
@@ -144,7 +145,6 @@ const styles = StyleSheet.create({
   },
   changeRow: {
     flexDirection: 'row',
-    
     alignItems: 'center',
     gap: 4.5,
   },

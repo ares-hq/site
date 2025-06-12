@@ -105,12 +105,12 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#F9FAFB',
     padding: 10,
+    paddingTop: 8,
     flex: 1,
-    borderRadius: 20,
+    borderRadius: 16,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 16,
     color: '#111827',
     marginBottom: 16,
     textAlign: 'left',

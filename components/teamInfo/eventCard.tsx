@@ -93,20 +93,32 @@ export default function EventCard() {
         return (
           <View key={index} style={[styles.teamRow, isSmallDevice && styles.teamRowSmall]}>
             <View style={styles.teamInfo}>
-              <Text style={[
-                styles.teamNumber, 
-                isRed ? styles.redTeamText : styles.blueTeamText,
-                isSmallDevice && styles.teamNumberSmall
-              ]}>
-                {isNumber ? `#${team}` : team}
-              </Text>
-              {!isNumber && displayName !== team && (
+              {isNumber ? (
+                <>
+                  <Text style={[
+                    styles.teamNumber, 
+                    isRed ? styles.redTeamText : styles.blueTeamText,
+                    isSmallDevice && styles.teamNumberSmall
+                  ]}>
+                    Team {team}
+                  </Text>
+                  {displayName !== team && (
+                    <Text style={[
+                      styles.teamName, 
+                      isRed ? styles.redTeamNameText : styles.blueTeamNameText,
+                      isSmallDevice && styles.teamNameSmall
+                    ]}>
+                      {displayName}
+                    </Text>
+                  )}
+                </>
+              ) : (
                 <Text style={[
                   styles.teamName, 
                   isRed ? styles.redTeamNameText : styles.blueTeamNameText,
                   isSmallDevice && styles.teamNameSmall
                 ]}>
-                  {displayName}
+                  {team}
                 </Text>
               )}
             </View>
@@ -313,29 +325,27 @@ const styles = StyleSheet.create({
     borderColor: '#FAFBFC',
     borderRadius: 16,
     elevation: 4,
-    maxWidth: 1200,
     alignSelf: 'center',
     width: '100%',
+    overflow: 'hidden', 
   },
   cardSmall: {
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 2,
   },
   cardLarge: {
-    borderRadius: 20,
+    borderRadius: 16,
   },
   header: {
     padding: 20,
     backgroundColor: '#FAFBFC',
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
+
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    overflow: 'hidden',
   },
   headerSmall: {
     padding: 12,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
   },
   titleSection: {
     flexDirection: 'row',
@@ -361,7 +371,7 @@ const styles = StyleSheet.create({
     lineHeight: 32,
   },
   statusBadge: {
-    backgroundColor: '#10B981',
+    backgroundColor: 'rgba(52, 199, 89, 0.2)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -369,7 +379,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#34C759',
     letterSpacing: 0.5,
   },
   statusTextSmall: {
@@ -474,6 +484,9 @@ const styles = StyleSheet.create({
   },
   matchesSection: {
     padding: 16,
+    borderBottomLeftRadius: 16,  // NEW
+    borderBottomRightRadius: 16, // NEW
+    overflow: 'hidden',          // NEW
   },
   matchesSectionSmall: {
     padding: 12,
@@ -619,7 +632,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   winningScore: {
-    color: '#059669',
+    // color: '#059669',
+    color: '#34C759',
     fontWeight: '700',
   },
   losingScore: {

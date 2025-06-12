@@ -690,7 +690,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12.6,
     backgroundColor: '#fff',
-    borderRadius: 12.6,
+    borderRadius: 16,
     marginBottom: 22,
   },
   graphContainer: {
@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 17,
     backgroundColor: '#F9F9FA',
-    borderRadius: 12.6,
+    borderRadius: 16,
   },
   chartWrapper: {
     borderRadius: 12.6,
@@ -726,7 +726,7 @@ const styles = StyleSheet.create({
     width: 302.4,
     padding: 17,
     backgroundColor: '#F9F9FA',
-    borderRadius: 12.6,
+    borderRadius: 16,
   },
   trafficHeader: {
     marginBottom: 17,
