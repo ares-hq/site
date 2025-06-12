@@ -1,5 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  LayoutChangeEvent,
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import UserGraphSection from '@/components/graphs/overtimeGraph';
 import EventPerformance from '@/components/graphs/eventPerformace';
@@ -21,75 +27,72 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, change, positive, col
 
   return (
     <View style={[styles.card, { backgroundColor }]}>
-        <Text style={styles.title}>{title}</Text>
-        <View style={styles.row}>
+      <Text style={styles.title}>{title}</Text>
+      <View style={styles.row}>
         <Text style={styles.value}>{value}</Text>
         <View style={styles.changeRow}>
-            <Text style={[styles.change, { color: textColor }]}>{change}</Text>
-            <Feather name="trending-up" size={11} color={textColor} />
+          <Text style={[styles.change, { color: textColor }]}>{change}</Text>
+          <Feather name="trending-up" size={11} color={textColor} />
         </View>
-        </View>
+      </View>
     </View>
   );
 };
 
 const IntoTheDeep = () => {
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  const handleLayout = (event: LayoutChangeEvent) => {
+    const { width } = event.nativeEvent.layout;
+    setContainerWidth(width);
+  };
+
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onLayout={handleLayout}>
       <View style={styles.headerRow}>
         <Text style={styles.header}>Overview</Text>
       </View>
 
       <View style={styles.cardRow}>
-        <StatCard
-          title="Auto OPR"
-          value="72.65"
-          change="+11.01"
-          positive={true}
-          color="indigo"
-        />
-        <StatCard
-          title="TeleOp OPR"
-          value="36.71"
-          change="-0.03"
-          positive={false}
-          color="blue"
-        />
-        <StatCard
-          title="Endgame OPR"
-          value="15.6"
-          change="+15.03"
-          positive={true}
-          color="indigo"
-        />
-        <StatCard
-          title="Overall OPR"
-          value="230.18"
-          change="+6.08"
-          positive={true}
-          color="blue"
-        />
+        <StatCard title="Auto OPR" value="72.65" change="+11.01" positive={true} color="indigo" />
+        <StatCard title="TeleOp OPR" value="36.71" change="-0.03" positive={false} color="blue" />
+        <StatCard title="Endgame OPR" value="15.6" change="+15.03" positive={true} color="indigo" />
+        <StatCard title="Overall OPR" value="230.18" change="+6.08" positive={true} color="blue" />
       </View>
 
-      <UserGraphSection />
+      {containerWidth > 0 && (
+        <UserGraphSection screenWidth={containerWidth} />
+      )}
 
       <View style={styles.headerRow}>
         <Text style={styles.header}>Team Information</Text>
       </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chartScrollContainer}
-      >
-        <EventPerformance />
-        <EventScores />
-        <InfoBlock/>
-      </ScrollView>
+      
+      {containerWidth < 1250 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chartScrollContainer}
+        >
+          <EventPerformance />
+          <EventScores />
+          <InfoBlock screenWidth={containerWidth}/>
+        </ScrollView>
+      ) : (
+        <View style={styles.chartScrollContainer}>
+          <EventPerformance />
+          <EventScores />
+          <InfoBlock screenWidth={containerWidth}/>
+        </View>
+      )}
+
+
       <View style={styles.headerRow}>
         <Text style={styles.header}>Events</Text>
       </View>
+      
       <View style={styles.eventContainer}>
-        <EventCard/>
+        <EventCard />
       </View>
     </View>
   );
@@ -97,6 +100,7 @@ const IntoTheDeep = () => {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1, // ensure layout width can be measured
     paddingHorizontal: 4,
   },
   headerRow: {
@@ -140,6 +144,7 @@ const styles = StyleSheet.create({
   },
   changeRow: {
     flexDirection: 'row',
+    
     alignItems: 'center',
     gap: 4.5,
   },
@@ -149,6 +154,7 @@ const styles = StyleSheet.create({
   chartScrollContainer: {
     gap: 16,
     marginBottom: 20,
+    flexDirection: 'row',
   },
   eventContainer: {
     marginBottom: 10,

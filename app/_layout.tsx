@@ -17,6 +17,7 @@ import Footer from '@/components/footer';
 import App from '@/screens/app';
 import Discord from '@/screens/discord';
 import ScoutSheet from '@/screens/scoutSheet';
+import Cancel from '../assets/icons/x-circle.svg';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [fontsLoaded] = useFonts({
@@ -177,7 +178,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               onPress={() => setSidebarVisible(false)}
               activeOpacity={0.7}
             >
-              <Text style={styles.closeButtonText}>✕</Text>
+              <Cancel width={16} height={16}/>
             </TouchableOpacity>
           </Animated.View>
         )}
@@ -212,7 +213,6 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#fff',
     zIndex: 1000,
-    elevation: 10, // Android shadow
   },
   blurOverlay: {
     position: 'absolute',
@@ -226,23 +226,16 @@ const styles = StyleSheet.create({
   closeButton: {
     position: 'absolute',
     top: 10,
-    right: -45,
+    right: -40,
     zIndex: 1001,
   },
   closeButtonTouch: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 30,
+    height: 30,
+    borderRadius: 6,
     backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
     elevation: 5,
   },
   closeButtonText: {

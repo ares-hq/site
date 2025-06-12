@@ -4,21 +4,15 @@ import {
   Text,
   StyleSheet,
   Linking,
-  TouchableOpacity
+  TouchableOpacity,
+  ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 import TopScore from '@/assets/icons/trophy.svg';
 import LocationIcon from '@/assets/icons/map-pin.svg';
 import CalendarIcon from '@/assets/icons/calendar.svg';
 
-interface Match {
-  match: string;
-  redScore: number;
-  blueScore: number;
-  redTeams: string[];
-  blueTeams: string[];
-}
-
-const matches: Match[] = [
+const matches = [
   {
     match: 'Q-2',
     redScore: 10,
@@ -56,7 +50,12 @@ const matches: Match[] = [
   }
 ];
 
-function EventCard() {
+export default function EventCard() {
+  const { width } = useWindowDimensions();
+  
+  const isSmallDevice = width < 380;
+  const isLargeDevice = width >= 768;
+
   const handleWebsitePress = async () => {
     const url = 'https://www.douglascountyschools.com/robotics';
     try {
@@ -67,7 +66,7 @@ function EventCard() {
   };
 
   const getTeamDisplayName = (team: string) => {
-    const knownNames: Record<string, string> = {
+    const knownNames: { [key: string]: string } = {
       'ATOM': 'ATOM',
       '100 Scholars': '100 Scholars',
       'Geneton': 'Geneton',
@@ -82,175 +81,221 @@ function EventCard() {
     return knownNames[team] || team;
   };
 
-  const renderTeamCell = (teams: string[], isRed: boolean) => {
-    return (
-      <View style={[styles.teamCell, isRed ? styles.redAlliance : styles.blueAlliance]}>
-        {teams.map((team, index) => {
-          const isNumber = /^\d+$/.test(team);
-          const displayName = getTeamDisplayName(team);
-          
-          return (
-            <View key={index} style={styles.teamRow}>
-              <View style={styles.teamInfo}>
+  const renderTeamCell = (teams: any[], isRed: boolean) => (
+    <View style={[
+      styles.teamCell, 
+      isRed ? styles.redAlliance : styles.blueAlliance,
+      isSmallDevice && styles.teamCellSmall
+    ]}>
+      {teams.map((team, index) => {
+        const isNumber = /^\d+$/.test(team);
+        const displayName = getTeamDisplayName(team);
+        return (
+          <View key={index} style={[styles.teamRow, isSmallDevice && styles.teamRowSmall]}>
+            <View style={styles.teamInfo}>
+              <Text style={[
+                styles.teamNumber, 
+                isRed ? styles.redTeamText : styles.blueTeamText,
+                isSmallDevice && styles.teamNumberSmall
+              ]}>
+                {isNumber ? `#${team}` : team}
+              </Text>
+              {!isNumber && displayName !== team && (
                 <Text style={[
-                  styles.teamNumber, 
-                  isRed ? styles.redTeamText : styles.blueTeamText
+                  styles.teamName, 
+                  isRed ? styles.redTeamNameText : styles.blueTeamNameText,
+                  isSmallDevice && styles.teamNameSmall
                 ]}>
-                  {isNumber ? `#${team}` : team}
+                  {displayName}
                 </Text>
-                {!isNumber && displayName !== team && (
-                  <Text style={[
-                    styles.teamName, 
-                    isRed ? styles.redTeamNameText : styles.blueTeamNameText
-                  ]}>
-                    {displayName}
-                  </Text>
-                )}
-              </View>
+              )}
             </View>
-          );
-        })}
-      </View>
-    );
-  };
+          </View>
+        );
+      })}
+    </View>
+  );
 
-  const renderMatchRow = (match: Match, index: number) => {
-    const redWon = match.redScore > match.blueScore;
+  const renderMatchRow = (match: any, index: number) => {
+    const redWon = (match.redScore ?? 0) > (match.blueScore ?? 0);
     const isLastRow = index === matches.length - 1;
-
     return (
-      <View key={index} style={[styles.tableRow, isLastRow && styles.lastRow]}>
-        <View style={styles.matchCell}>
-          <View style={[
-            styles.matchBadge, 
-            redWon ? styles.redMatchBadge : styles.blueMatchBadge
-          ]}>
+      <View key={index} style={[
+        styles.tableRow, 
+        isLastRow && styles.lastRow,
+        isSmallDevice && styles.tableRowSmall
+      ]}>
+        <View style={[styles.matchCell, isSmallDevice && styles.matchCellSmall]}>
+          <View style={[styles.matchBadge, redWon ? styles.redMatchBadge : styles.blueMatchBadge]}>
             <Text style={[
               styles.matchText, 
-              redWon ? styles.redMatchText : styles.blueMatchText
+              redWon ? styles.redMatchText : styles.blueMatchText,
+              isSmallDevice && styles.matchTextSmall
             ]}>
               {match.match}
             </Text>
           </View>
         </View>
-
-        <View style={styles.scoreCell}>
+        <View style={[styles.scoreCell, isSmallDevice && styles.scoreCellSmall]}>
           <View style={styles.scoreContainer}>
             <Text style={[
-              styles.scoreNumber,
-              redWon ? styles.winningScore : styles.losingScore
+              styles.scoreNumber, 
+              redWon ? styles.winningScore : styles.losingScore,
+              isSmallDevice && styles.scoreNumberSmall
             ]}>
               {match.redScore}
             </Text>
-            <Text style={styles.scoreDivider}>-</Text>
+            <Text style={[styles.scoreDivider, isSmallDevice && styles.scoreDividerSmall]}>-</Text>
             <Text style={[
-              styles.scoreNumber,
-              !redWon ? styles.winningScore : styles.losingScore
+              styles.scoreNumber, 
+              !redWon ? styles.winningScore : styles.losingScore,
+              isSmallDevice && styles.scoreNumberSmall
             ]}>
               {match.blueScore}
             </Text>
           </View>
         </View>
-
         {renderTeamCell(match.redTeams, true)}
         {renderTeamCell(match.blueTeams, false)}
       </View>
     );
   };
 
-  // Calculate team stats
   const teamWins = matches.filter(match => {
     const isOnRed = match.redTeams.includes('22') || match.redTeams.includes('100 Scholars');
     const isOnBlue = match.blueTeams.includes('22') || match.blueTeams.includes('100 Scholars');
-    
-    if (isOnRed) return match.redScore > match.blueScore;
-    if (isOnBlue) return match.blueScore > match.redScore;
-    return false;
+    return isOnRed ? match.redScore > match.blueScore : isOnBlue && match.blueScore > match.redScore;
   }).length;
 
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
-        {/* Header Section */}
-        <View style={styles.header}>
+      <View style={[
+        styles.card,
+        isSmallDevice && styles.cardSmall,
+        isLargeDevice && styles.cardLarge
+      ]}>
+        <View style={[styles.header, isSmallDevice && styles.headerSmall]}>
           <View style={styles.titleSection}>
-            <Text style={styles.title}>Douglasville-DCHS League Meet #2</Text>
+            <Text style={[
+              styles.title,
+              isSmallDevice && styles.titleSmall,
+              isLargeDevice && styles.titleLarge
+            ]}>
+              Douglasville-DCHS League Meet #2
+            </Text>
             <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>COMPLETED</Text>
+              <Text style={[styles.statusText, isSmallDevice && styles.statusTextSmall]}>
+                COMPLETED
+              </Text>
             </View>
           </View>
-
           <View style={styles.eventDetails}>
             <View style={styles.detailRow}>
               <View style={styles.iconContainer}>
-                <CalendarIcon width={16} height={16}/>
+                <CalendarIcon width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} />
               </View>
-              <Text style={styles.detailText}>November 23, 2024</Text>
+              <Text style={[styles.detailText, isSmallDevice && styles.detailTextSmall]}>
+                November 23, 2024
+              </Text>
             </View>
-
             <TouchableOpacity onPress={handleWebsitePress} style={styles.locationRow}>
               <View style={styles.iconContainer}>
-                <LocationIcon width={16} height={16}/>
+                <LocationIcon width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} />
               </View>
-              <Text style={[styles.detailText, styles.linkText]}>
+              <Text style={[
+                styles.detailText, 
+                styles.linkText,
+                isSmallDevice && styles.detailTextSmall
+              ]}>
                 Douglas County High School, Douglasville, GA
               </Text>
             </TouchableOpacity>
           </View>
-
-          {/* Performance Summary */}
-          <View style={styles.performanceCard}>
+          <View style={[styles.performanceCard, isSmallDevice && styles.performanceCardSmall]}>
             <View style={styles.performanceHeader}>
-              <Text style={styles.performanceTitle}>Team Performance</Text>
+              <Text style={[
+                styles.performanceTitle,
+                isSmallDevice && styles.performanceTitleSmall
+              ]}>
+                Team Performance
+              </Text>
               <View style={styles.rankBadge}>
-                <TopScore width={16} height={16}/>
-                <Text style={styles.rankText}>9th Place</Text>
+                <TopScore width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} fill='#92400E' />
+                <Text style={[styles.rankText, isSmallDevice && styles.rankTextSmall]}>
+                  9th Place
+                </Text>
               </View>
             </View>
-            
             <View style={styles.statsGrid}>
               <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Record</Text>
-                <Text style={styles.statValue}>{teamWins}-{matches.length - teamWins}-0</Text>
+                <Text style={[styles.statLabel, isSmallDevice && styles.statLabelSmall]}>Record</Text>
+                <Text style={[styles.statValue, isSmallDevice && styles.statValueSmall]}>
+                  {teamWins}-{matches.length - teamWins}-0
+                </Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Win Rate</Text>
-                <Text style={styles.statValue}>{((teamWins / matches.length) * 100).toFixed(0)}%</Text>
+                <Text style={[styles.statLabel, isSmallDevice && styles.statLabelSmall]}>Win Rate</Text>
+                <Text style={[styles.statValue, isSmallDevice && styles.statValueSmall]}>
+                  {((teamWins / matches.length) * 100).toFixed(0)}%
+                </Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={styles.statLabel}>OPR</Text>
-                <Text style={styles.statValue}>13.07</Text>
+                <Text style={[styles.statLabel, isSmallDevice && styles.statLabelSmall]}>OPR</Text>
+                <Text style={[styles.statValue, isSmallDevice && styles.statValueSmall]}>13.07</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Average</Text>
-                <Text style={styles.statValue}>30.20</Text>
+                <Text style={[styles.statLabel, isSmallDevice && styles.statLabelSmall]}>Average</Text>
+                <Text style={[styles.statValue, isSmallDevice && styles.statValueSmall]}>30.20</Text>
               </View>
             </View>
           </View>
         </View>
-
-        {/* Matches Table */}
-        <View style={styles.matchesSection}>
-          <Text style={styles.sectionTitle}>Match Results</Text>
-          
-          <View style={styles.table}>
-            <View style={styles.tableHeader}>
-              <View style={styles.matchHeaderCell}>
-                <Text style={styles.headerText}>Match</Text>
+        <View style={[styles.matchesSection, isSmallDevice && styles.matchesSectionSmall]}>
+          <Text style={[
+            styles.sectionTitle,
+            isSmallDevice && styles.sectionTitleSmall
+          ]}>
+            Match Results
+          </Text>
+          {width < 600 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.table}>
+                <View style={styles.tableHeader}>
+                  <View style={[styles.matchHeaderCell, isSmallDevice && styles.matchHeaderCellSmall]}>
+                  <Text style={[styles.headerText, isSmallDevice && styles.headerTextSmall]}>Match</Text>
+                </View>
+                <View style={[styles.scoreHeaderCell, isSmallDevice && styles.scoreHeaderCellSmall]}>
+                  <Text style={[styles.headerText, isSmallDevice && styles.headerTextSmall]}>Score</Text>
+                </View>
+                <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
+                  <Text style={[styles.headerText, isSmallDevice && styles.headerTextSmall]}>Red Alliance</Text>
+                </View>
+                <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
+                  <Text style={[styles.headerText, isSmallDevice && styles.headerTextSmall]}>Blue Alliance</Text>
+                </View>
+                </View>
+                {matches.map(renderMatchRow)}
               </View>
-              <View style={styles.scoreHeaderCell}>
-                <Text style={styles.headerText}>Final Score</Text>
+            </ScrollView>
+          ) : (
+            <View style={styles.table}>
+              <View style={styles.tableHeader}>
+                <View style={[styles.matchHeaderCell, isSmallDevice && styles.matchHeaderCellSmall]}>
+                  <Text style={[styles.headerText, isSmallDevice && styles.headerTextSmall]}>Match</Text>
+                </View>
+                <View style={[styles.scoreHeaderCell, isSmallDevice && styles.scoreHeaderCellSmall]}>
+                  <Text style={[styles.headerText, isSmallDevice && styles.headerTextSmall]}>Score</Text>
+                </View>
+                <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
+                  <Text style={[styles.headerText, isSmallDevice && styles.headerTextSmall]}>Red Alliance</Text>
+                </View>
+                <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
+                  <Text style={[styles.headerText, isSmallDevice && styles.headerTextSmall]}>Blue Alliance</Text>
+                </View>
               </View>
-              <View style={styles.allianceHeaderCell}>
-                <Text style={styles.headerText}>Red Alliance</Text>
-              </View>
-              <View style={styles.allianceHeaderCell}>
-                <Text style={styles.headerText}>Blue Alliance</Text>
-              </View>
+              {matches.map(renderMatchRow)}
             </View>
-
-            {matches.map(renderMatchRow)}
-          </View>
+          )}
         </View>
       </View>
     </View>
@@ -266,17 +311,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 3,
     borderColor: '#FAFBFC',
-
     borderRadius: 16,
     elevation: 4,
+    maxWidth: 1200,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  cardSmall: {
+    borderRadius: 12,
+    borderWidth: 2,
+  },
+  cardLarge: {
+    borderRadius: 20,
   },
   header: {
     padding: 20,
     backgroundColor: '#FAFBFC',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+  },
+  headerSmall: {
+    padding: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   titleSection: {
     flexDirection: 'row',
@@ -292,6 +351,15 @@ const styles = StyleSheet.create({
     marginRight: 12,
     lineHeight: 28,
   },
+  titleSmall: {
+    fontSize: 18,
+    lineHeight: 24,
+    marginRight: 8,
+  },
+  titleLarge: {
+    fontSize: 26,
+    lineHeight: 32,
+  },
   statusBadge: {
     backgroundColor: '#10B981',
     paddingHorizontal: 8,
@@ -303,6 +371,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     letterSpacing: 0.5,
+  },
+  statusTextSmall: {
+    fontSize: 8,
   },
   eventDetails: {
     marginBottom: 20,
@@ -321,13 +392,13 @@ const styles = StyleSheet.create({
     width: 32,
     alignItems: 'center',
   },
-  detailIcon: {
-    fontSize: 16,
-  },
   detailText: {
     fontSize: 15,
     color: '#374151',
     flex: 1,
+  },
+  detailTextSmall: {
+    fontSize: 13,
   },
   linkText: {
     color: '#2563EB',
@@ -340,6 +411,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
+  performanceCardSmall: {
+    padding: 12,
+    borderRadius: 4,
+  },
   performanceHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -350,6 +425,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#111827',
+  },
+  performanceTitleSmall: {
+    fontSize: 14,
   },
   rankBadge: {
     flexDirection: 'row',
@@ -366,6 +444,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#92400E',
   },
+  rankTextSmall: {
+    fontSize: 10,
+  },
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -380,13 +461,22 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     fontWeight: '500',
   },
+  statLabelSmall: {
+    fontSize: 10,
+  },
   statValue: {
     fontSize: 16,
     fontWeight: '700',
     color: '#111827',
   },
+  statValueSmall: {
+    fontSize: 14,
+  },
   matchesSection: {
     padding: 16,
+  },
+  matchesSectionSmall: {
+    padding: 12,
   },
   sectionTitle: {
     fontSize: 18,
@@ -394,11 +484,17 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 16,
   },
+  sectionTitleSmall: {
+    fontSize: 16,
+    marginBottom: 12,
+  },
   table: {
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     overflow: 'hidden',
+    minWidth: 600,
+    width: '100%',
   },
   tableHeader: {
     flexDirection: 'row',
@@ -412,26 +508,44 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E7EB',
     minHeight: 80,
   },
+  tableRowSmall: {
+    minHeight: 70,
+  },
   lastRow: {
     borderBottomWidth: 0,
   },
   matchHeaderCell: {
     flex: 1,
+    minWidth: 70,
     padding: 16,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  matchHeaderCellSmall: {
+    minWidth: 60,
+    padding: 12,
   },
   scoreHeaderCell: {
     flex: 1.2,
+    minWidth: 80,
     padding: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  scoreHeaderCellSmall: {
+    minWidth: 70,
+    padding: 12,
+  },
   allianceHeaderCell: {
     flex: 2.5,
+    minWidth: 140,
     padding: 16,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  allianceHeaderCellSmall: {
+    minWidth: 120,
+    padding: 12,
   },
   headerText: {
     fontSize: 13,
@@ -441,11 +555,19 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  headerTextSmall: {
+    fontSize: 11,
+  },
   matchCell: {
     flex: 1,
+    minWidth: 70,
     padding: 16,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  matchCellSmall: {
+    minWidth: 60,
+    padding: 12,
   },
   matchBadge: {
     paddingHorizontal: 10,
@@ -465,6 +587,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
+  matchTextSmall: {
+    fontSize: 11,
+  },
   redMatchText: {
     color: '#DC2626',
   },
@@ -473,9 +598,14 @@ const styles = StyleSheet.create({
   },
   scoreCell: {
     flex: 1.2,
+    minWidth: 80,
     padding: 16,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  scoreCellSmall: {
+    minWidth: 70,
+    padding: 12,
   },
   scoreContainer: {
     flexDirection: 'row',
@@ -484,6 +614,9 @@ const styles = StyleSheet.create({
   scoreNumber: {
     fontSize: 18,
     fontWeight: '600',
+  },
+  scoreNumberSmall: {
+    fontSize: 16,
   },
   winningScore: {
     color: '#059669',
@@ -497,10 +630,19 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginHorizontal: 8,
   },
+  scoreDividerSmall: {
+    fontSize: 14,
+    marginHorizontal: 6,
+  },
   teamCell: {
     flex: 2.5,
+    minWidth: 140,
     padding: 12,
     justifyContent: 'center',
+  },
+  teamCellSmall: {
+    minWidth: 120,
+    padding: 8,
   },
   redAlliance: {
     backgroundColor: '#FEF2F2',
@@ -515,6 +657,9 @@ const styles = StyleSheet.create({
   teamRow: {
     marginBottom: 8,
   },
+  teamRowSmall: {
+    marginBottom: 6,
+  },
   teamInfo: {
     flexDirection: 'column',
   },
@@ -522,11 +667,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  teamNumberSmall: {
+    fontSize: 12,
+  },
   teamName: {
     fontSize: 11,
     fontStyle: 'italic',
+    fontWeight: '600',
     marginTop: 2,
     opacity: 0.8,
+  },
+  teamNameSmall: {
+    fontSize: 9,
+    marginTop: 1,
   },
   redTeamText: {
     color: '#DC2626',
@@ -541,5 +694,3 @@ const styles = StyleSheet.create({
     color: '#1D4ED8',
   },
 });
-
-export default EventCard;

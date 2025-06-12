@@ -41,12 +41,9 @@ const EventScores = () => {
             innerRadius={60}
             paddingAngle={2}
             cornerRadius={8}
-            label={false}
-            activeIndex={undefined}
-            activeShape={false}
           >
             {contributionData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              <Cell style={{outline: 'none'}} key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
           <Tooltip

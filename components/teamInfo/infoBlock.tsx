@@ -8,13 +8,16 @@ import CalendarIcon from '@/assets/icons/calendar.svg';
 import ShieldIcon from '@/assets/icons/identification-card.svg';
 import GlobeIcon from '@/assets/icons/link-simple-horizontal.svg';
 
-const 
-InfoBox = () => {
-  return (
+interface InfoSectionProps {
+  screenWidth: number;
+}
+
+const InfoBox = ({ screenWidth }: InfoSectionProps) => {
+  const Inside = () => (
     <View style={styles.container}>
-      <Text style={styles.title}>Team Profile</Text>
+    <Text style={styles.title}>Team Profile</Text>
       <View style={styles.contentContainer}>
-        <View style={{gap: 30}}>
+        <View style={{ gap: 30 }}>
           <InfoRow icon={<ShieldIcon />} label="Team Name" value="Team 1234" />
           <InfoRow icon={<LocationIcon />} label="Location" value="City, Country" />
           <InfoRow icon={<CalendarIcon />} label="Founded" value="2010" />
@@ -24,8 +27,8 @@ InfoBox = () => {
           <InfoRow
             icon={<GlobeIcon />}
             label="Website"
-            value="https://team1234.example.com/very/long/path/that/keeps/going"
-            isLink={true}
+            value="Team 14584"
+            isLink
           />
           <InfoRow
             icon={<UsersIcon />}
@@ -40,6 +43,17 @@ InfoBox = () => {
         </View>
       </View>
     </View>
+  );
+  return (
+    screenWidth < 1400 ? (
+      <View style={[styles.container, { width: 550 }]}>
+        <Inside />
+      </View>
+    ) : (
+      <View style={styles.container}>
+        <Inside />
+      </View>
+    )
   );
 };
 
@@ -76,7 +90,7 @@ const InfoRow = ({
               numberOfLines={1}
               ellipsizeMode="tail"
             >
-              Team 14584
+              {value}
             </Text>
           </Pressable>
         ) : (
@@ -90,9 +104,9 @@ const InfoRow = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#F9FAFB',
-    padding: 20,
+    padding: 10,
+    flex: 1,
     borderRadius: 20,
-    maxWidth: 600,
   },
   title: {
     fontSize: 20,
@@ -105,6 +119,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 30,
+    flexWrap: 'wrap',
   },
   row: {
     flexDirection: 'row',
