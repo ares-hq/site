@@ -12,6 +12,15 @@ export interface TeamInfo {
   website: string;
   sponsors: string;
   achievements: string;
+  overallRank?: number;
+  teleRank?: number;
+  autoRank?: number;
+  endgameRank?: number;
+  teleOPR?: number;
+  autoOPR?: number;
+  endgameOPR?: number;
+  overallOPR?: number;
+  penalties?: string;
 }
 
 /**
@@ -28,7 +37,16 @@ export async function getTeamInfo(teamNumber: number) {
       founded,
       website,
       sponsors,
-      achievements
+      achievements,
+      teleRank,
+      autoRank,
+      endgameRank,
+      overallRank,
+      penalties,
+      autoOPR,
+      teleOPR,
+      endgameOPR,
+      overallOPR
     `)
     .eq('teamNumber', teamNumber)
     .single();
@@ -38,12 +56,55 @@ export async function getTeamInfo(teamNumber: number) {
     return null;
   }
 
-  return {
+    return {
     teamName: `Team ${teamNumber}`,
     location: data.location || 'N/A',
     founded: data.founded?.toString() || 'N/A',
-    website: data.website || '',
+    website: data.website || 'None',
     sponsors: data.sponsors || '',
-    achievements: data.achievements || '',
-  } as TeamInfo;
+    achievements: data.achievements || 'None This Season',
+    overallRank: data.overallRank,
+    teleRank: data.teleRank,
+    autoRank: data.autoRank,
+    endgameRank: data.endgameRank,
+    teleOPR: data.teleOPR,
+    autoOPR: data.autoOPR,
+    endgameOPR: data.endgameOPR,
+    overallOPR: data.overallOPR,
+    penalties: data.penalties,
+    } as TeamInfo;
+}
+
+export async function getAverageOPRs() {
+  const { data, error } = await supabase
+    .from('season_2024')
+    .select('autoOPR, teleOPR, endgameOPR, overallOPR');
+
+  if (error || !data) {
+    console.error('Error fetching all OPRs:', error?.message);
+    return null;
+  }
+
+  const total = {
+    auto: 0,
+    tele: 0,
+    endgame: 0,
+    overall: 0,
+  };
+  let count = 0;
+
+  for (const row of data) {
+    if (row.autoOPR != null) total.auto += row.autoOPR;
+    if (row.teleOPR != null) total.tele += row.teleOPR;
+    if (row.endgameOPR != null) total.endgame += row.endgameOPR;
+    if (row.overallOPR != null) total.overall += row.overallOPR;
+    count++;
+  }
+
+  return {
+    autoOPR: total.auto / count,
+    teleOPR: total.tele / count,
+    endgameOPR: total.endgame / count,
+    overallOPR: total.overall / count,
+  };
 }

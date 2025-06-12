@@ -12,7 +12,7 @@ import EventPerformance from '@/components/graphs/eventPerformace';
 import EventScores from '@/components/graphs/eventScores';
 import InfoBlock from '@/components/teamInfo/infoBlock';
 import EventCard from '@/components/teamInfo/eventCard';
-import { getTeamInfo, TeamInfo } from '@/api/dashboardInfo';
+import { getAverageOPRs, getTeamInfo, TeamInfo } from '@/api/dashboardInfo';
 
 type StatCardProps = {
   title: string;
@@ -33,7 +33,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, change, positive, col
         <Text style={styles.value}>{value}</Text>
         <View style={styles.changeRow}>
           <Text style={[styles.change, { color: textColor }]}>{change}</Text>
-          <Feather name="trending-up" size={11} color={textColor} />
+          <Feather name={positive ? 'trending-up' : 'trending-down'} size={11} color={textColor} />
         </View>
       </View>
     </View>
@@ -43,13 +43,24 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, change, positive, col
 const IntoTheDeep = () => {
   const [containerWidth, setContainerWidth] = useState(0);
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(null);
+  const [averageOPR, setAverageOPR] = useState<{
+    autoOPR: number;
+    teleOPR: number;
+    endgameOPR: number;
+    overallOPR: number;
+  } | null>(null);
 
   useEffect(() => {
     const fetchInfo = async () => {
-      const data = await getTeamInfo(14584);
+      const data = await getTeamInfo(3081);
       if (data) setTeamInfo(data);
     };
     fetchInfo();
+      const fetchAvg = async () => {
+      const avg = await getAverageOPRs();
+      setAverageOPR(avg);
+    };
+    fetchAvg();
   }, []);
 
   const handleLayout = (event: LayoutChangeEvent) => {
@@ -64,14 +75,54 @@ const IntoTheDeep = () => {
       </View>
 
       <View style={styles.cardRow}>
-        <StatCard title="Auto OPR" value="72.65" change="+11.01" positive={true} color="indigo" />
-        <StatCard title="TeleOp OPR" value="36.71" change="-0.03" positive={false} color="blue" />
-        <StatCard title="Endgame OPR" value="15.6" change="+15.03" positive={true} color="indigo" />
-        <StatCard title="Overall OPR" value="230.18" change="+6.08" positive={true} color="blue" />
+        <StatCard 
+          title="Auto OPR" 
+          value={teamInfo?.autoOPR?.toFixed(2) ?? '--'} 
+          change={
+            averageOPR && teamInfo?.autoOPR != null
+              ? `${(teamInfo.autoOPR - averageOPR.autoOPR >= 0 ? '+' : '')}${(teamInfo.autoOPR - averageOPR.autoOPR).toFixed(2)}`
+              : '--'
+          }
+          positive={!!(averageOPR && teamInfo?.autoOPR != null && teamInfo.autoOPR - averageOPR.autoOPR >= 0)}
+          color="indigo" 
+        />
+        <StatCard 
+          title="TeleOp OPR" 
+          value={teamInfo?.teleOPR?.toFixed(2) ?? '--'} 
+          change={
+            averageOPR && teamInfo?.teleOPR != null
+              ? `${(teamInfo.teleOPR - averageOPR.teleOPR >= 0 ? '+' : '')}${(teamInfo.teleOPR - averageOPR.teleOPR).toFixed(2)}`
+              : '--'
+          }
+          positive={!!(averageOPR && teamInfo?.teleOPR != null && teamInfo.teleOPR - averageOPR.teleOPR >= 0)}
+          color="blue" 
+        />
+        <StatCard 
+          title="Endgame OPR" 
+          value={teamInfo?.endgameOPR?.toFixed(2) ?? '--'} 
+          change={
+            averageOPR && teamInfo?.endgameOPR != null
+              ? `${(teamInfo.endgameOPR - averageOPR.endgameOPR >= 0 ? '+' : '')}${(teamInfo.endgameOPR - averageOPR.endgameOPR).toFixed(2)}`
+              : '--'
+          }
+          positive={!!(averageOPR && teamInfo?.endgameOPR != null && teamInfo.endgameOPR - averageOPR.endgameOPR >= 0)}
+          color="indigo" 
+        />
+        <StatCard 
+          title="Overall OPR" 
+          value={teamInfo?.overallOPR?.toFixed(2) ?? '--'} 
+          change={
+            averageOPR && teamInfo?.overallOPR != null
+              ? `${(teamInfo.overallOPR - averageOPR.overallOPR >= 0 ? '+' : '')}${(teamInfo.overallOPR - averageOPR.overallOPR).toFixed(2)}`
+              : '--'
+          }
+          positive={!!(averageOPR && teamInfo?.overallOPR != null && teamInfo.overallOPR - averageOPR.overallOPR >= 0)}
+          color="blue" 
+        />
       </View>
 
-      {containerWidth > 0 && (
-        <UserGraphSection screenWidth={containerWidth} />
+      {containerWidth > 0 && teamInfo &&(
+        <UserGraphSection screenWidth={containerWidth} teamInfo={teamInfo}/>
       )}
 
       <View style={styles.headerRow}>
@@ -85,7 +136,7 @@ const IntoTheDeep = () => {
           contentContainerStyle={styles.chartScrollContainer}
         >
           <EventPerformance />
-          <EventScores />
+          {teamInfo && <EventScores teamInfo={teamInfo} />}
           {teamInfo && (
             <InfoBlock screenWidth={containerWidth} teamInfo={teamInfo} />
           )}
@@ -93,7 +144,7 @@ const IntoTheDeep = () => {
       ) : (
         <View style={styles.chartScrollContainer}>
           <EventPerformance />
-          <EventScores />
+          {teamInfo && <EventScores teamInfo={teamInfo} />}
           {teamInfo && (
             <InfoBlock screenWidth={containerWidth} teamInfo={teamInfo} />
           )}
