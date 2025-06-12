@@ -7,21 +7,23 @@ import UsersIcon from '@/assets/icons/handshake.svg';
 import CalendarIcon from '@/assets/icons/calendar.svg';
 import ShieldIcon from '@/assets/icons/identification-card.svg';
 import GlobeIcon from '@/assets/icons/link-simple-horizontal.svg';
+import { TeamInfo } from '@/api/dashboardInfo';
 
 interface InfoSectionProps {
   screenWidth: number;
+  teamInfo: TeamInfo;
 }
 
-const InfoBox = ({ screenWidth }: InfoSectionProps) => {
+const InfoBox = ({ screenWidth, teamInfo }: InfoSectionProps) => {
   const Inside = () => (
     <View style={styles.container}>
     <Text style={styles.title}>Team Profile</Text>
       <View style={styles.contentContainer}>
         <View style={{ gap: 30 }}>
-          <InfoRow icon={<ShieldIcon />} label="Team Name" value="Team 1234" />
-          <InfoRow icon={<LocationIcon />} label="Location" value="City, Country" />
-          <InfoRow icon={<CalendarIcon />} label="Founded" value="2010" />
-          <InfoRow icon={<TrophyIcon />} label="Highest Score" value="250" />
+          <InfoRow icon={<ShieldIcon />} label="Team Name" value={teamInfo.teamName} />
+          <InfoRow icon={<LocationIcon />} label="Location" value={teamInfo.location} />
+          <InfoRow icon={<CalendarIcon />} label="Founded" value={teamInfo.founded} />
+          <InfoRow icon={<TrophyIcon />} label="Highest Score" value='unset' />
         </View>
         <View style={styles.offsetColumn}>
           <InfoRow
@@ -33,12 +35,12 @@ const InfoBox = ({ screenWidth }: InfoSectionProps) => {
           <InfoRow
             icon={<UsersIcon />}
             label="Sponsors"
-            value="Sponsor A, Sponsor B, Sponsor C, Sponsor D, Sponsor E, Sponsor F"
+            value={teamInfo.sponsors}
           />
           <InfoRow
             icon={<TopScore />}
             label="Achievements"
-            value="Achievement 1 • Achievement 2"
+            value={teamInfo.achievements}
           />
         </View>
       </View>

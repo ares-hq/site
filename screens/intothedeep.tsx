@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import EventPerformance from '@/components/graphs/eventPerformace';
 import EventScores from '@/components/graphs/eventScores';
 import InfoBlock from '@/components/teamInfo/infoBlock';
 import EventCard from '@/components/teamInfo/eventCard';
+import { getTeamInfo, TeamInfo } from '@/api/dashboardInfo';
 
 type StatCardProps = {
   title: string;
@@ -41,6 +42,15 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, change, positive, col
 
 const IntoTheDeep = () => {
   const [containerWidth, setContainerWidth] = useState(0);
+  const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(null);
+
+  useEffect(() => {
+    const fetchInfo = async () => {
+      const data = await getTeamInfo(14584);
+      if (data) setTeamInfo(data);
+    };
+    fetchInfo();
+  }, []);
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const { width } = event.nativeEvent.layout;
@@ -76,13 +86,17 @@ const IntoTheDeep = () => {
         >
           <EventPerformance />
           <EventScores />
-          <InfoBlock screenWidth={containerWidth}/>
+          {teamInfo && (
+            <InfoBlock screenWidth={containerWidth} teamInfo={teamInfo} />
+          )}
         </ScrollView>
       ) : (
         <View style={styles.chartScrollContainer}>
           <EventPerformance />
           <EventScores />
-          <InfoBlock screenWidth={containerWidth}/>
+          {teamInfo && (
+            <InfoBlock screenWidth={containerWidth} teamInfo={teamInfo} />
+          )}
         </View>
       )}
 
