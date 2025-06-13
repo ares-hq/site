@@ -12,9 +12,10 @@ import { TeamInfo } from '@/api/dashboardInfo';
 interface InfoSectionProps {
   screenWidth: number;
   teamInfo: TeamInfo;
+  highScore: number;
 }
 
-const InfoBox = ({ screenWidth, teamInfo }: InfoSectionProps) => {
+const InfoBox = ({ screenWidth, teamInfo, highScore }: InfoSectionProps) => {
   const Inside = () => (
     <View style={styles.container}>
     <Text style={styles.title}>Team Profile</Text>
@@ -23,14 +24,15 @@ const InfoBox = ({ screenWidth, teamInfo }: InfoSectionProps) => {
           <InfoRow icon={<ShieldIcon />} label="Team Name" value={teamInfo.teamName} />
           <InfoRow icon={<LocationIcon />} label="Location" value={teamInfo.location} />
           <InfoRow icon={<CalendarIcon />} label="Founded" value={teamInfo.founded} />
-          <InfoRow icon={<TrophyIcon />} label="Highest Score" value='unset' />
+          <InfoRow icon={<TrophyIcon />} label="Highest Score" value={highScore.toString()} />
         </View>
         <View style={styles.offsetColumn}>
           <InfoRow
             icon={<GlobeIcon />}
             label="Website"
-            value="Team 14584"
+            value={teamInfo.website}
             isLink
+            displayText={teamInfo.teamName}
           />
           <InfoRow
             icon={<UsersIcon />}
@@ -64,11 +66,13 @@ const InfoRow = ({
   label,
   value,
   isLink = false,
+  displayText,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   isLink?: boolean;
+  displayText?: string;
 }) => {
   const openLink = async (url: string) => {
     const prefixed = url.startsWith('http') ? url : `https://${url}`;
@@ -92,7 +96,7 @@ const InfoRow = ({
               numberOfLines={1}
               ellipsizeMode="tail"
             >
-              {value}
+               {displayText || value}
             </Text>
           </Pressable>
         ) : (

@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   LayoutChangeEvent,
+  ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import UserGraphSection from '@/components/graphs/overtimeGraph';
@@ -12,7 +13,7 @@ import EventPerformance from '@/components/graphs/eventPerformace';
 import EventScores from '@/components/graphs/eventScores';
 import InfoBlock from '@/components/teamInfo/infoBlock';
 import EventCard from '@/components/teamInfo/eventCard';
-import { getAverageOPRs, getTeamInfo, TeamInfo } from '@/api/dashboardInfo';
+import { getAverageOPRs, attachHourlyAverages, getMatches, getTeamInfo, MatchInfo, TeamInfo, MatchType, getAverageByMatchType } from '@/api/dashboardInfo';
 
 type StatCardProps = {
   title: string;
@@ -43,6 +44,11 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, change, positive, col
 const IntoTheDeep = () => {
   const [containerWidth, setContainerWidth] = useState(0);
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(null);
+  const [matches, setMatches] = useState<MatchInfo[] | null>(null);
+  const [averages, setAverages] = useState<MatchInfo[] | null>(null);
+  const [matchType, setMatchType] = useState<MatchType | null>(null);
+  const [highestScore, setHighScore] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [averageOPR, setAverageOPR] = useState<{
     autoOPR: number;
     teleOPR: number;
@@ -52,15 +58,27 @@ const IntoTheDeep = () => {
 
   useEffect(() => {
     const fetchInfo = async () => {
-      const data = await getTeamInfo(3081);
-      if (data) setTeamInfo(data);
+      try {
+        const data = await getTeamInfo(14584);
+        const avg = await getAverageOPRs();
+        const match = await getMatches(14584);
+        const hourlyAverages = await attachHourlyAverages(match ?? []);
+        const matchType = await getAverageByMatchType(match ?? []);
+        const highScore = match?.reduce((max, m) => Math.max(max, m.totalPoints), 0) ?? 0;
+
+        if (data) setTeamInfo(data);
+        if (avg) setAverageOPR(avg);
+        if (match) setMatches(match);
+        if (hourlyAverages) setAverages(hourlyAverages);
+        if (matchType) setMatchType(matchType);
+        if (highScore) setHighScore(highScore);
+      } catch (err) {
+        console.error('Error fetching dashboard info', err);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchInfo();
-      const fetchAvg = async () => {
-      const avg = await getAverageOPRs();
-      setAverageOPR(avg);
-    };
-    fetchAvg();
   }, []);
 
   const handleLayout = (event: LayoutChangeEvent) => {
@@ -121,8 +139,8 @@ const IntoTheDeep = () => {
         />
       </View>
 
-      {containerWidth > 0 && teamInfo &&(
-        <UserGraphSection screenWidth={containerWidth} teamInfo={teamInfo}/>
+      {containerWidth > 0 && teamInfo && matches && averages && matchType &&(
+        <UserGraphSection matches={matches} averages={averages} screenWidth={containerWidth} teamInfo={teamInfo}/>
       )}
 
       <View style={styles.headerRow}>
@@ -135,22 +153,21 @@ const IntoTheDeep = () => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chartScrollContainer}
         >
-          <EventPerformance />
+          {matchType && <EventPerformance matchType={matchType}/>}
           {teamInfo && <EventScores teamInfo={teamInfo} />}
           {teamInfo && (
-            <InfoBlock screenWidth={containerWidth} teamInfo={teamInfo} />
+            <InfoBlock screenWidth={containerWidth} teamInfo={teamInfo} highScore={highestScore}/>
           )}
         </ScrollView>
       ) : (
         <View style={styles.chartScrollContainer}>
-          <EventPerformance />
+          {matchType && <EventPerformance matchType={matchType}/>}
           {teamInfo && <EventScores teamInfo={teamInfo} />}
           {teamInfo && (
-            <InfoBlock screenWidth={containerWidth} teamInfo={teamInfo} />
+            <InfoBlock screenWidth={containerWidth} teamInfo={teamInfo} highScore={highestScore}/>
           )}
         </View>
       )}
-
 
       <View style={styles.headerRow}>
         <Text style={styles.header}>Events</Text>
@@ -159,14 +176,20 @@ const IntoTheDeep = () => {
       <View style={styles.eventContainer}>
         <EventCard />
       </View>
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#3B82F6" style={{padding: 150}} />
+        </View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, // ensure layout width can be measured
+    flex: 1,
     paddingHorizontal: 4,
+    position: 'relative',
   },
   headerRow: {
     flexDirection: 'row',
@@ -223,6 +246,15 @@ const styles = StyleSheet.create({
   },
   eventContainer: {
     marginBottom: 10,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    zIndex: 999,
   },
 });
 

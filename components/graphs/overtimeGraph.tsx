@@ -1,17 +1,13 @@
-import { TeamInfo } from '@/api/dashboardInfo';
+import { MatchInfo, TeamInfo } from '@/api/dashboardInfo';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { ComposedChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
-interface ChartDataPoint {
-  name: string;
-  current: number;
-  average: number;
-}
-
 interface UserGraphSectionProps {
   screenWidth: number;
   teamInfo: TeamInfo;
+  matches: MatchInfo[] | null;
+  averages: MatchInfo[];
 }
 
 interface LayoutEvent {
@@ -29,7 +25,7 @@ interface TooltipProps {
   label?: string;
 }
 
-const UserGraphSection = ({ screenWidth, teamInfo }: UserGraphSectionProps) => {
+const UserGraphSection = ({ screenWidth, teamInfo, matches, averages }: UserGraphSectionProps) => {
   const [chartWrapperWidth, setChartWrapperWidth] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<string>('Match Score');
 
@@ -38,15 +34,18 @@ const UserGraphSection = ({ screenWidth, teamInfo }: UserGraphSectionProps) => {
     setChartWrapperWidth(width);
   };
 
-  const chartData: ChartDataPoint[] = [
-    { name: 'Jan', current: 8000, average: 10000 },
-    { name: 'Feb', current: 6000, average: 12000 },
-    { name: 'Mar', current: 13000, average: 15000 },
-    { name: 'Apr', current: 22000, average: 10000 },
-    { name: 'May', current: 17000, average: 14000 },
-    { name: 'Jun', current: 19000, average: 16000 },
-    { name: 'Jul', current: 2200, average: 20000 },
-  ];
+  const matchData = matches
+    ?.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .map((match, index) => {
+      const matchHour = new Date(match.date).toISOString().slice(0, 13);
+      const average = averages.find((a) => a.date.slice(0, 13) === matchHour)?.totalPoints ?? 0;
+
+      return {
+        name: `M${index + 1}`,
+        current: match.totalPoints,
+        average,
+      };
+    }) ?? [];
 
   const tabs: string[] = ['Match Score', 'Overall OPR', 'Penalties'];
 
@@ -54,7 +53,9 @@ const UserGraphSection = ({ screenWidth, teamInfo }: UserGraphSectionProps) => {
     if (active && payload && payload.length) {
       return (
         <View style={styles.tooltip}>
-          <Text style={styles.tooltipLabel}>{label}</Text>
+          <Text style={styles.tooltipLabel}>
+            {`Match ${label ? label.replace(/^M\s*/, '') : ''}`}
+          </Text>
           {payload.map((entry: any, index: number) => (
             <Text key={index} style={[styles.tooltipValue, { color: entry.color }]}>
               {entry.name === 'current' ? 'Current Team' : 'Average'}: {entry.value.toLocaleString()}
@@ -67,8 +68,8 @@ const UserGraphSection = ({ screenWidth, teamInfo }: UserGraphSectionProps) => {
   };
 
   const trafficData = [
-    { name: 'Events Attended', value: 15, total: 20 },
-    { name: 'Matches Played', value: 120, total: 200 },
+    { name: 'Events Attended', value: teamInfo.eventsAttended ?? 0, total: 20 },
+    { name: 'Matches Played', value: matches?.length ?? 0, total: 200 },
     { name: 'Wins', value: 102, total: 120 },
     { name: 'Average Place', value: 3.2, total: 5 },
   ];
@@ -193,7 +194,7 @@ const UserGraphSection = ({ screenWidth, teamInfo }: UserGraphSectionProps) => {
       <View style={styles.chartWrapper} onLayout={onChartWrapperLayout}>
         {chartWrapperWidth > 0 && (
           <ResponsiveContainer width={chartWrapperWidth} height={325}>
-            <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+            <ComposedChart data={matchData} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
               <defs>
                 <linearGradient id="currentGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#000" stopOpacity={0.15} />
@@ -209,8 +210,8 @@ const UserGraphSection = ({ screenWidth, teamInfo }: UserGraphSectionProps) => {
                 axisLine={false}
                 tickLine={false}
                 tick={{ fontSize: 10, fill: '#9ca3af', fontFamily: 'Inter' }}
-                interval={0}
                 tickMargin={15}
+                interval={(matchData.length > 9) ? Math.ceil((matchData.length - 2) / 8) : 0}
               />
               <YAxis
                 axisLine={false}

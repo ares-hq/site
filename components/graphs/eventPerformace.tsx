@@ -1,4 +1,5 @@
 // eventPerformance.tsx
+import { MatchType } from '@/api/dashboardInfo';
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import {
@@ -11,12 +12,34 @@ import {
   Cell,
 } from 'recharts';
 
-const rankData = [
-  { name: 'Qualifier', 'Match Score': 1000, fill: '#9F9FF8' },
-  { name: 'Finals', 'Match Score': 2021, fill: '#96E2D6' },
-];
 
-const EventPerformance = () => {
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length > 0) {
+    const { name, payload: data } = payload[0];
+    const matchScore = data['Match Score'];
+
+    return (
+      <View style={styles.tooltip}>
+        <Text style={styles.tooltipText}>
+          {`${name}: ${matchScore.toFixed(2)}`}
+        </Text>
+      </View>
+    );
+  }
+  return null;
+};
+
+interface UserGraphSectionProps {
+  matchType: MatchType;
+}
+
+
+const EventPerformance = ({ matchType }: UserGraphSectionProps) => {
+  const rankData = [
+    { name: 'Qualifier', 'Match Score': matchType.qual, fill: '#9F9FF8' },
+    { name: 'Finals', 'Match Score': matchType.finals, fill: '#96E2D6' },
+  ];
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Average Match Score</Text>
@@ -40,11 +63,12 @@ const EventPerformance = () => {
           />
           <Tooltip
             cursor={{ fill: 'transparent' }}
-            contentStyle={{ borderRadius: 8, borderColor: '#e5e7eb', fontSize: 12, backgroundColor: 'white', fontFamily: 'Arial' }}
+            // contentStyle={{ borderRadius: 8, borderColor: '#e5e7eb', fontSize: 12, backgroundColor: 'white', fontFamily: 'Arial', marginBottom: -5 }}
+            content={<CustomTooltip />}
           />
           <Bar dataKey="Match Score" radius={6} barSize={30}>
             {rankData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.fill} />
+              <Cell key={`cell-${index}`} fill={entry.fill}/>
             ))}
           </Bar>
         </BarChart>
@@ -57,13 +81,24 @@ const styles = StyleSheet.create({
   container: {
     height: 300,
     width: 250,
-    padding: 20,
+    padding: 16,
     borderRadius: 16,
     backgroundColor: '#f9fafb',
   },
   title: {
     fontSize: 16,
     marginBottom: 22,
+    color: '#000',
+  },
+  tooltip: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 8,
+    borderColor: '#e5e7eb',
+    borderWidth: 1,
+  },
+  tooltipText: {
+    fontSize: 12,
     color: '#000',
   },
 });

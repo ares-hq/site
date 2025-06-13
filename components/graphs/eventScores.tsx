@@ -15,6 +15,7 @@ const COLORS = ['#92BFFF', '#94E9B8', '#a78bfa'];
 interface UserGraphSectionProps {
   teamInfo: TeamInfo;
 }
+
 const EventScores = ({ teamInfo }: UserGraphSectionProps) => {
   const rawData = [
     { name: 'Auto', value: teamInfo.autoOPR ?? 0 },
@@ -22,57 +23,29 @@ const EventScores = ({ teamInfo }: UserGraphSectionProps) => {
     { name: 'Endgame', value: teamInfo.endgameOPR ?? 0 },
   ];
 
-  const MAX_PERCENT = 0.6; // 60%
-  const totalRaw = rawData.reduce((sum, d) => sum + d.value, 0);
+  const MAX_PERCENT = 0.6;
+  const MIN_PERCENT = 0.00001;
 
-  // Prevent division by zero
-  if (totalRaw === 0) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>OPR Contribution by Phase</Text>
-        <Text>No data available</Text>
-      </View>
+  const totalRaw = rawData.reduce((sum, d) => sum + (d.value > 0 ? d.value : 0), 0);
+
+  const contributionData = rawData.map(d => {
+    const clampedRaw = d.value > 0 ? d.value : 0;
+    const percentage = totalRaw > 0 ? clampedRaw / totalRaw : 0;
+    const boundedPercentage = Math.max(
+      Math.min(percentage, MAX_PERCENT),
+      d.value <= 0 ? MIN_PERCENT : 0
     );
-  }
-
-  // Normalize to percentages
-  const percentages = rawData.map(d => ({
-    ...d,
-    percent: d.value / totalRaw,
-  }));
-
-  // Check if any value exceeds the max
-  const exceedsMax = percentages.some(p => p.percent > MAX_PERCENT);
-
-  let adjustedData;
-
-  if (exceedsMax) {
-    // Cap the largest value and scale the rest proportionally
-    const capped = percentages.map(p => ({
-      ...p,
-      capped: Math.min(p.percent, MAX_PERCENT),
-    }));
-
-    const totalCapped = capped.reduce((sum, p) => sum + p.capped, 0);
-
-    // Scale values back to match totalRaw
-    adjustedData = capped.map(p => ({
-      ...p,
-      rawValue: p.value,
-      value: (p.capped / totalCapped) * totalRaw,
-    }));
-  } else {
-    adjustedData = rawData.map(d => ({
+    return {
       ...d,
       rawValue: d.value,
-      value: d.value,
-    }));
-  }
+      value: boundedPercentage * totalRaw,
+    };
+  });
 
-  const total = adjustedData.reduce((sum, d) => sum + d.value, 0);
+  const total = contributionData.reduce((sum, d) => sum + d.value, 0);
 
   const legendFormatter = (value: string) => {
-    const item = adjustedData.find(d => d.name === value);
+    const item = contributionData.find(d => d.name === value);
     const percentage = item ? ((item.value / total) * 100).toFixed(2) + '%' : '';
     return (
       <Text style={{ color: '#6b7280', margin: 5, fontSize: 12 }}>
@@ -103,7 +76,7 @@ const EventScores = ({ teamInfo }: UserGraphSectionProps) => {
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
-            data={adjustedData}
+            data={contributionData}
             dataKey="value"
             nameKey="name"
             outerRadius={90}
@@ -112,8 +85,8 @@ const EventScores = ({ teamInfo }: UserGraphSectionProps) => {
             cornerRadius={8}
             minAngle={20}
           >
-            {adjustedData.map((entry, index) => (
-              <Cell key={`cell-${Math.min(index, .8)}`} fill={COLORS[index % COLORS.length]} />
+            {contributionData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} style={{outline: 'none'}}/>
             ))}
           </Pie>
           <Tooltip content={<CustomTooltip />} />

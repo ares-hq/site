@@ -10,6 +10,8 @@ export interface TeamInfo {
   founded: string;
   highestScore: string;
   website: string;
+  eventsAttended?: number;
+  averagePlace?: number;
   sponsors: string;
   achievements: string;
   overallRank?: number;
@@ -21,6 +23,17 @@ export interface TeamInfo {
   endgameOPR?: number;
   overallOPR?: number;
   penalties?: string;
+}
+
+export interface MatchInfo {
+    date: string;
+    totalPoints: number;
+    matchType: 'QUALIFICATION' | 'PLAYOFF';
+}
+
+export interface MatchType {
+    qual: number;
+    finals: number;
 }
 
 /**
@@ -46,7 +59,11 @@ export async function getTeamInfo(teamNumber: number) {
       autoOPR,
       teleOPR,
       endgameOPR,
-      overallOPR
+      overallOPR,
+      founded, 
+      website, 
+      eventsAttended, 
+      averagePlace
     `)
     .eq('teamNumber', teamNumber)
     .single();
@@ -60,6 +77,7 @@ export async function getTeamInfo(teamNumber: number) {
     teamName: `Team ${teamNumber}`,
     location: data.location || 'N/A',
     founded: data.founded?.toString() || 'N/A',
+    eventsAttended: data.eventsAttended || 0,
     website: data.website || 'None',
     sponsors: data.sponsors || '',
     achievements: data.achievements || 'None This Season',
@@ -106,5 +124,102 @@ export async function getAverageOPRs() {
     teleOPR: total.tele / count,
     endgameOPR: total.endgame / count,
     overallOPR: total.overall / count,
+  };
+}
+
+export async function getMatches(teamNumber: number): Promise<MatchInfo[] | null> {
+  const { data, error } = await supabase
+    .from('matches_2024')
+    .select('date, totalPoints, matchType')
+    .or(`team_1.eq.${teamNumber},team_2.eq.${teamNumber}`);
+
+  if (error) {
+    console.error('Error fetching matches:', error.message);
+    return null;
+  }
+
+  return data as MatchInfo[];
+}
+
+function getHourWindow(date: string): { start: string; end: string } {
+  const d = new Date(date);
+  d.setMinutes(0, 0, 0);
+  const start = d.toISOString();
+  const endDate = new Date(d);
+  endDate.setHours(endDate.getHours() + 1);
+  const end = endDate.toISOString();
+  return { start, end };
+}
+
+export async function attachHourlyAverages(matches: MatchInfo[]): Promise<MatchInfo[]> {
+  const hourWindows = matches.map(match => getHourWindow(match.date));
+  const uniqueWindows = Array.from(
+    new Map(hourWindows.map(hw => [`${hw.start}-${hw.end}`, hw])).values()
+  );
+  
+  const allStarts = uniqueWindows.map(hw => hw.start);
+  const allEnds = uniqueWindows.map(hw => hw.end);
+  const minDate = new Date(Math.min(...allStarts.map(d => new Date(d).getTime())));
+  const maxDate = new Date(Math.max(...allEnds.map(d => new Date(d).getTime())));
+  
+  console.log(`Fetching all data from ${minDate.toISOString()} to ${maxDate.toISOString()}`);
+  
+  const { data, error } = await supabase
+    .from('matches_2024')
+    .select('date, totalPoints, matchType')
+    .gte('date', minDate.toISOString())
+    .lt('date', maxDate.toISOString())
+    .order('date');
+  
+  if (error) {
+    console.error('Error fetching data:', error.message);
+    return matches.map(match => ({ date: match.date, totalPoints: 0, matchType: 'QUALIFICATION' }));
+  }
+  
+  const hourlyAverages = new Map<string, number>();
+  
+  for (const window of uniqueWindows) {
+    const windowData = data?.filter(row => 
+      row.date >= window.start && row.date < window.end
+    ) || [];
+    
+    const totalPoints = windowData.reduce((sum, row) => sum + row.totalPoints, 0);
+    const average = windowData.length > 0 ? totalPoints / windowData.length : 0;
+    const windowKey = `${window.start}-${window.end}`;
+    hourlyAverages.set(windowKey, Number(average.toFixed(2)));
+  }
+  
+  return matches.map(match => {
+    const window = getHourWindow(match.date);
+    const windowKey = `${window.start}-${window.end}`;
+    const average = hourlyAverages.get(windowKey) || 0;
+    
+    return {
+      date: match.date,
+      totalPoints: average,
+      matchType: match.matchType || 'QUALIFICATION',
+    };
+  });
+}
+
+export function getAverageByMatchType(matches: MatchInfo[]): MatchType {
+  let qualTotal = 0;
+  let finalsTotal = 0;
+  let qualCount = 0;
+  let finalsCount = 0;
+
+  for (const match of matches) {
+    if (match.matchType === 'QUALIFICATION') {
+      qualTotal += match.totalPoints;
+      qualCount++;
+    } else if (match.matchType === 'PLAYOFF') {
+      finalsTotal += match.totalPoints;
+      finalsCount++;
+    }
+  }
+
+  return {
+    qual: qualCount > 0 ? Number((qualTotal / qualCount).toFixed(2)) : 0,
+    finals: finalsCount > 0 ? Number((finalsTotal / finalsCount).toFixed(2)) : 0,
   };
 }
