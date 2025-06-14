@@ -8,6 +8,7 @@ interface UserGraphSectionProps {
   teamInfo: TeamInfo;
   matches: MatchInfo[] | null;
   averages: MatchInfo[];
+  wins: number;
 }
 
 interface LayoutEvent {
@@ -25,7 +26,7 @@ interface TooltipProps {
   label?: string;
 }
 
-const UserGraphSection = ({ screenWidth, teamInfo, matches, averages }: UserGraphSectionProps) => {
+const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: UserGraphSectionProps) => {
   const [chartWrapperWidth, setChartWrapperWidth] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<string>('Match Score');
 
@@ -34,20 +35,28 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages }: UserGrap
     setChartWrapperWidth(width);
   };
 
+  const tabKeyMap: Record<string, keyof MatchInfo> = {
+    'Match Score': 'totalPoints',
+    'Driver Period': 'tele',
+    'Penalties': 'penalty',
+  };
+
   const matchData = matches
     ?.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .map((match, index) => {
       const matchHour = new Date(match.date).toISOString().slice(0, 13);
-      const average = averages.find((a) => a.date.slice(0, 13) === matchHour)?.totalPoints ?? 0;
+      const averageMatch = averages.find((a) => a.date.slice(0, 13) === matchHour);
+
+      const activeKey = tabKeyMap[activeTab];
 
       return {
         name: `M${index + 1}`,
-        current: match.totalPoints,
-        average,
+        current: match[activeKey] ?? 0,
+        average: averageMatch?.[activeKey] ?? 0,
       };
     }) ?? [];
 
-  const tabs: string[] = ['Match Score', 'Overall OPR', 'Penalties'];
+  const tabs: string[] = ['Match Score', 'Driver Period', 'Penalties'];
 
   const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
@@ -68,9 +77,14 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages }: UserGrap
   };
 
   const trafficData = [
-    { name: 'Events Attended', value: teamInfo.eventsAttended ?? 0, total: 20 },
+    {
+      name: 'Events Attended',
+      value: (teamInfo.eventsAttended as string | undefined)?.replace(/[\[\]\s]/g, '')
+        .split(',').filter(Boolean).length ?? 0,
+      total: 20
+    },
     { name: 'Matches Played', value: matches?.length ?? 0, total: 200 },
-    { name: 'Wins', value: 102, total: 120 },
+    { name: 'Wins', value: wins, total: matches?.length ?? 0},
     { name: 'Average Place', value: 3.2, total: 5 },
   ];
 

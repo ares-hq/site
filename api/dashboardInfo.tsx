@@ -29,6 +29,9 @@ export interface MatchInfo {
     date: string;
     totalPoints: number;
     matchType: 'QUALIFICATION' | 'PLAYOFF';
+    win: boolean;
+    tele: number;
+    penalty: number;
 }
 
 export interface MatchType {
@@ -77,7 +80,7 @@ export async function getTeamInfo(teamNumber: number) {
     teamName: `Team ${teamNumber}`,
     location: data.location || 'N/A',
     founded: data.founded?.toString() || 'N/A',
-    eventsAttended: data.eventsAttended || 0,
+    eventsAttended: data.eventsAttended || '',
     website: data.website || 'None',
     sponsors: data.sponsors || '',
     achievements: data.achievements || 'None This Season',
@@ -130,7 +133,7 @@ export async function getAverageOPRs() {
 export async function getMatches(teamNumber: number): Promise<MatchInfo[] | null> {
   const { data, error } = await supabase
     .from('matches_2024')
-    .select('date, totalPoints, matchType')
+    .select('date, totalPoints, matchType, win, tele, penalty')
     .or(`team_1.eq.${teamNumber},team_2.eq.${teamNumber}`);
 
   if (error) {
@@ -166,14 +169,14 @@ export async function attachHourlyAverages(matches: MatchInfo[]): Promise<MatchI
   
   const { data, error } = await supabase
     .from('matches_2024')
-    .select('date, totalPoints, matchType')
+    .select('date, totalPoints, matchType, tele, penalty')
     .gte('date', minDate.toISOString())
     .lt('date', maxDate.toISOString())
     .order('date');
   
   if (error) {
     console.error('Error fetching data:', error.message);
-    return matches.map(match => ({ date: match.date, totalPoints: 0, matchType: 'QUALIFICATION' }));
+    return matches.map(match => ({ date: match.date, totalPoints: 0, matchType: 'QUALIFICATION', win: false, tele: 0, penalty: 0 }));
   }
   
   const hourlyAverages = new Map<string, number>();
@@ -198,6 +201,9 @@ export async function attachHourlyAverages(matches: MatchInfo[]): Promise<MatchI
       date: match.date,
       totalPoints: average,
       matchType: match.matchType || 'QUALIFICATION',
+      win: match.win || false,
+      tele: match.tele || 0,
+      penalty: match.penalty || 0,
     };
   });
 }
@@ -222,4 +228,10 @@ export function getAverageByMatchType(matches: MatchInfo[]): MatchType {
     qual: qualCount > 0 ? Number((qualTotal / qualCount).toFixed(2)) : 0,
     finals: finalsCount > 0 ? Number((finalsTotal / finalsCount).toFixed(2)) : 0,
   };
+}
+
+export function getWins(matches: MatchInfo[]): number {
+  return matches.reduce((count, match) => {
+    return count + (match.win ? 1 : 0);
+  }, 0);
 }

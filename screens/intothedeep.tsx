@@ -13,7 +13,7 @@ import EventPerformance from '@/components/graphs/eventPerformace';
 import EventScores from '@/components/graphs/eventScores';
 import InfoBlock from '@/components/teamInfo/infoBlock';
 import EventCard from '@/components/teamInfo/eventCard';
-import { getAverageOPRs, attachHourlyAverages, getMatches, getTeamInfo, MatchInfo, TeamInfo, MatchType, getAverageByMatchType } from '@/api/dashboardInfo';
+import { getAverageOPRs, attachHourlyAverages, getMatches, getTeamInfo, MatchInfo, TeamInfo, MatchType, getAverageByMatchType, getWins } from '@/api/dashboardInfo';
 
 type StatCardProps = {
   title: string;
@@ -45,7 +45,10 @@ const IntoTheDeep = () => {
   const [containerWidth, setContainerWidth] = useState(0);
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(null);
   const [matches, setMatches] = useState<MatchInfo[] | null>(null);
+  const [penalties, setPenalties] = useState<MatchInfo[] | null>(null);
+  const [tele, setTele] = useState<MatchInfo[] | null>(null);
   const [averages, setAverages] = useState<MatchInfo[] | null>(null);
+  const [wins, setWins] = useState<number | null>(0);
   const [matchType, setMatchType] = useState<MatchType | null>(null);
   const [highestScore, setHighScore] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -59,12 +62,13 @@ const IntoTheDeep = () => {
   useEffect(() => {
     const fetchInfo = async () => {
       try {
-        const data = await getTeamInfo(14584);
+        const data = await getTeamInfo(3081);
         const avg = await getAverageOPRs();
         const match = await getMatches(14584);
         const hourlyAverages = await attachHourlyAverages(match ?? []);
         const matchType = await getAverageByMatchType(match ?? []);
         const highScore = match?.reduce((max, m) => Math.max(max, m.totalPoints), 0) ?? 0;
+        const wins = await getWins(match ?? []);
 
         if (data) setTeamInfo(data);
         if (avg) setAverageOPR(avg);
@@ -72,6 +76,7 @@ const IntoTheDeep = () => {
         if (hourlyAverages) setAverages(hourlyAverages);
         if (matchType) setMatchType(matchType);
         if (highScore) setHighScore(highScore);
+        if (wins) setWins(wins);
       } catch (err) {
         console.error('Error fetching dashboard info', err);
       } finally {
@@ -139,8 +144,8 @@ const IntoTheDeep = () => {
         />
       </View>
 
-      {containerWidth > 0 && teamInfo && matches && averages && matchType &&(
-        <UserGraphSection matches={matches} averages={averages} screenWidth={containerWidth} teamInfo={teamInfo}/>
+      {containerWidth > 0 && teamInfo && matches && averages && matchType && wins &&(
+        <UserGraphSection matches={matches} averages={averages} screenWidth={containerWidth} teamInfo={teamInfo} wins={wins}/>
       )}
 
       <View style={styles.headerRow}>
