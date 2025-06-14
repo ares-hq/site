@@ -62,7 +62,7 @@ const IntoTheDeep = () => {
   useEffect(() => {
     const fetchInfo = async () => {
       try {
-        const data = await getTeamInfo(3081);
+        const data = await getTeamInfo(14584);
         const avg = await getAverageOPRs();
         const match = await getMatches(14584);
         const hourlyAverages = await attachHourlyAverages(match ?? []);
