@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, Linking, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
 
-const Footer = () => {
-  const router = useRouter();
+type SidebarProps = {
+  navigateToPage: (page: string) => void;
+};
 
+const Footer = ({ navigateToPage }: SidebarProps) => {
   const handleLinkPress = (url: string) => {
     Linking.openURL(url);
   };
@@ -24,7 +25,7 @@ const Footer = () => {
 
         <Text style={styles.separator}>|</Text>
 
-        <Pressable onPress={() => router.push('/status')}>
+        <Pressable onPress={() => navigateToPage('Status')}>
           <Text style={styles.link}>Systems Status</Text>
         </Pressable>
       </View>

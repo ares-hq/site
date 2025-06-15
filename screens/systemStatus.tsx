@@ -1,132 +1,389 @@
-import React, { useEffect, useState } from 'react';
+// StatusScreen.tsx (Enhanced with real API monitoring)
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  Linking,
+  Pressable,
 } from 'react-native';
 
 interface ServiceStatus {
   name: string;
   url?: string;
-  status: 'Checking...' | 'Operational' | 'Down';
-  uptime: number; // simulate 100%
+  status: 'Checking...' | 'Operational' | 'Degraded' | 'Down';
+  uptime: number;
+  responseTime: number | null;
   lastChecked: string;
+  errorMessage?: string;
+  statusHistory: boolean[]; // Last 24 checks for timeline
 }
 
-const services = [
-  { name: 'ARES Frontend', url: 'https://ares-bot.com' },
-  { name: 'ARES API (Query)', url: 'https://api.ares-bot.com' },
-  { name: 'ARES API (Studio)', url: 'https://studio.ares-bot.com' },
-  { name: 'Cloudflare', url: 'https://www.cloudflarestatus.com/api/v2/status.json' },
+interface ServiceConfig {
+  name: string;
+  url: string;
+  checkType: 'HEAD' | 'GET' | 'POST' | 'API_HEALTH';
+  healthEndpoint?: string;
+  expectedStatus?: number;
+  timeout?: number;
+}
+
+const services: ServiceConfig[] = [
+  { 
+    name: 'ARES Frontend', 
+    url: 'https://ares-bot.com',
+    checkType: 'HEAD',
+    timeout: 10000
+  },
+  { 
+    name: 'ARES API (Query)', 
+    url: 'https://api.ares-bot.com',
+    checkType: 'HEAD',
+    healthEndpoint: 'https://api.ares-bot.com/',
+    timeout: 8000
+  },
+  { 
+    name: 'ARES API (Studio)', 
+    url: 'https://studio.ares-bot.com',
+    checkType: 'GET',
+    timeout: 8000
+  },
+  { 
+    name: 'Cloudflare', 
+    url: 'https://www.cloudflarestatus.com/api',
+    checkType: 'GET',
+    timeout: 5000
+  },
 ];
 
 const REFRESH_INTERVAL = 120000;
+const MAX_HISTORY_LENGTH = 24;
 
 const StatusScreen = () => {
   const [statuses, setStatuses] = useState<ServiceStatus[]>([]);
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL / 1000);
-
-  const fetchStatus = async () => {
-    const now = new Date().toLocaleTimeString();
-
-    const updated = await Promise.all(
-      services.map(async (s) => {
-        if (s.name === 'Cloudflare') {
-          try {
-            const res = await fetch(s.url!, { cache: 'no-store' });
-            const json = await res.json();
-            const status: 'Operational' | 'Down' =
-              json.status?.indicator === 'none' ? 'Operational' : 'Down';
-            return {
-              ...s,
-              status,
-              uptime: 100,
-              lastChecked: now,
-            } as ServiceStatus;
-          } catch {
-            return { ...s, status: 'Down' as const, uptime: 0, lastChecked: now };
-          }
-        } else {
-          try {
-            const res = await fetch(s.url!, { method: 'HEAD', cache: 'no-store' });
-            const status: 'Operational' | 'Down' = res.ok ? 'Operational' : 'Down';
-            return {
-              ...s,
-              status,
-              uptime: res.ok ? 100 : 0,
-              lastChecked: now,
-            } as ServiceStatus;
-          } catch {
-            return { ...s, status: 'Down' as const, uptime: 0, lastChecked: now };
-          }
-        }
-      })
-    );
-
-    setStatuses(updated);
-    setCountdown(REFRESH_INTERVAL / 1000);
-  };
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
 
   useEffect(() => {
-    fetchStatus();
-    const refreshTimer = setInterval(fetchStatus, REFRESH_INTERVAL);
-    const countDownTimer = setInterval(() => {
-      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    const initialStatuses: ServiceStatus[] = services.map(service => ({
+      name: service.name,
+      url: service.url,
+      status: 'Checking...',
+      uptime: 0,
+      responseTime: null,
+      lastChecked: 'Never',
+      statusHistory: []
+    }));
+    setStatuses(initialStatuses);
+  }, []);
+
+  const checkServiceHealth = async (service: ServiceConfig): Promise<Partial<ServiceStatus>> => {
+    const startTime = performance.now();
+    
+    try {
+      let response: Response;
+      
+      switch (service.checkType) {
+        case 'HEAD':
+          response = await fetch(service.url, {
+            method: 'HEAD',
+            cache: 'no-store',
+            signal: AbortSignal.timeout(service.timeout || 10000)
+          });
+          break;
+          
+        case 'GET':
+          response = await fetch(service.url, {
+            method: 'GET',
+            redirect: 'manual',
+            cache: 'no-store',
+            signal: AbortSignal.timeout(service.timeout || 10000)
+          });
+          break;
+          
+        default:
+          response = await fetch(service.url, {
+            method: 'GET',
+            cache: 'no-store',
+            signal: AbortSignal.timeout(service.timeout || 10000)
+          });
+      }
+
+      const responseTime = Math.round(performance.now() - startTime);
+      
+      if (response.ok || response.status === 401 || response.status === 0) {
+        return {
+          status: 'Operational',
+          responseTime,
+          uptime: 100
+        };
+      } else if (response.status >= 200 && response.status < 400) {
+        return {
+          status: 'Operational',
+          responseTime,
+          uptime: 100
+        };
+      } else if (response.status === 401 || response.status === 403) {
+        return {
+          status: 'Operational',
+          responseTime,
+          uptime: 100,
+          errorMessage: `Auth required (${response.status})`
+        };
+      } else if (response.status >= 400 && response.status < 500) {
+        return {
+          status: 'Degraded',
+          responseTime,
+          uptime: 75,
+          errorMessage: `HTTP ${response.status}`
+        };
+      } else if (response.status >= 500) {
+        return {
+          status: 'Down',
+          responseTime,
+          uptime: 0,
+          errorMessage: `HTTP ${response.status}`
+        };
+      } else {
+        return {
+          status: 'Degraded',
+          responseTime,
+          uptime: 50,
+          errorMessage: `HTTP ${response.status}`
+        };
+      }
+      
+    } catch (error) {
+      const responseTime = Math.round(performance.now() - startTime);
+      let errorMessage = 'Network error';
+      
+      if (error instanceof Error) {
+        if (error.name === 'TimeoutError') {
+          errorMessage = 'Request timeout';
+        } else if (error.message.includes('Failed to fetch')) {
+          errorMessage = 'Connection failed';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      return {
+        status: 'Down',
+        responseTime: responseTime > 0 ? responseTime : null,
+        uptime: 0,
+        errorMessage
+      };
+    }
+  };
+
+  const fetchAllStatuses = useCallback(async () => {
+    setIsRefreshing(true);
+    const now = new Date();
+    const timeString = now.toLocaleTimeString();
+
+    try {
+      const statusChecks = services.map(async (service) => {
+        const result = await checkServiceHealth(service);
+        
+        return (prevStatus: ServiceStatus) => {
+          if (prevStatus.name !== service.name) return prevStatus;
+          
+          const newHistory = [...prevStatus.statusHistory];
+          newHistory.push(result.status === 'Operational');
+          if (newHistory.length > MAX_HISTORY_LENGTH) {
+            newHistory.shift();
+          }
+          
+          return {
+            ...prevStatus,
+            ...result,
+            lastChecked: timeString,
+            statusHistory: newHistory
+          };
+        };
+      });
+
+      const updates = await Promise.all(statusChecks);
+      
+      setStatuses(prev => 
+        prev.map(status => {
+          const update = updates.find(u => {
+            const testResult = u(status);
+            return testResult !== status;
+          });
+          return update ? update(status) : status;
+        })
+      );
+
+      setLastUpdateTime(now);
+      setCountdown(REFRESH_INTERVAL / 1000);
+      
+    } catch (error) {
+      console.error('Error fetching statuses:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAllStatuses();
+    
+    const refreshTimer = setInterval(fetchAllStatuses, REFRESH_INTERVAL);
+    const countdownTimer = setInterval(() => {
+      setCountdown(prev => prev > 0 ? prev - 1 : 0);
     }, 1000);
 
     return () => {
       clearInterval(refreshTimer);
-      clearInterval(countDownTimer);
+      clearInterval(countdownTimer);
     };
-  }, []);
+  }, [fetchAllStatuses]);
+
+  const getOverallStatus = (): { status: string; color: string } => {
+    const operationalCount = statuses.filter(s => s.status === 'Operational').length;
+    const degradedCount = statuses.filter(s => s.status === 'Degraded').length;
+    const downCount = statuses.filter(s => s.status === 'Down').length;
+    
+    if (downCount > 0) {
+      return { status: 'Service Disruption', color: '#B91C1C' };
+    } else if (degradedCount > 0) {
+      return { status: 'Partial Outage', color: '#D97706' };
+    } else if (operationalCount === statuses.length && statuses.length > 0) {
+      return { status: 'All Systems Operational', color: '#15803D' };
+    } else {
+      return { status: 'Checking Systems...', color: '#6B7280' };
+    }
+  };
+
+  const formatResponseTime = (time: number | null): string => {
+    if (time === null) return 'N/A';
+    if (time < 1000) return `${time}ms`;
+    return `${(time / 1000).toFixed(1)}s`;
+  };
+
+  const overallStatus = getOverallStatus();
+
+  const HoverLink = ({ name, url }: { name: string; url?: string }) => {
+    const [hovered, setHovered] = useState(false);
+
+    return (
+      <Pressable
+        onPress={() => Linking.openURL(url || '#')}
+        onHoverIn={() => setHovered(true)}
+        onHoverOut={() => setHovered(false)}
+      >
+        <Text style={[styles.link, hovered && styles.linkHover]}>
+          {name}
+        </Text>
+      </Pressable>
+    );
+  };
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>FTCScout Status</Text>
-      <View style={styles.statusBox}>
-        <Text style={styles.statusIcon}>✅</Text>
-        <Text style={styles.statusText}>All Systems Operational</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>System Status</Text>
+        {isRefreshing && <ActivityIndicator size="small" color="#3B82F6" />}
       </View>
 
-      <Text style={styles.sectionHeader}>Services</Text>
+      <View style={[styles.overallBox]}>
+        <Text style={[styles.overallStatus, { color: overallStatus.color }]}>
+          {overallStatus.status}
+        </Text>
+      </View>
 
       {statuses.map((service) => (
-        <View key={service.name} style={styles.serviceCard}>
-          <View style={styles.serviceHeader}>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>100%</Text>
+        <View key={service.name} style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>
+              <HoverLink name={service.name} url={service.url} />
+            </Text>
+            <View
+              style={[
+                styles.statusBadge,
+                {
+                  backgroundColor:
+                    service.status === 'Operational' ? '#DCFCE7' :
+                    service.status === 'Degraded' ? '#FEF3C7' : '#FEE2E2',
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  color: 
+                    service.status === 'Operational' ? '#15803D' :
+                    service.status === 'Degraded' ? '#D97706' : '#B91C1C',
+                  fontWeight: '600',
+                  fontSize: 12,
+                }}
+              >
+                {service.status}
+              </Text>
             </View>
-            <Text style={styles.serviceName}>{service.name}</Text>
           </View>
-          <View style={styles.uptimeBar}>
-            {Array.from({ length: 30 }).map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.uptimeBarBlock,
-                  { backgroundColor: service.status === 'Operational' ? '#22c55e' : '#ef4444' },
-                ]}
-              />
-            ))}
-          </View>
-          <View style={styles.times}>
-            <Text style={styles.timeText}>{service.lastChecked}</Text>
-            <Text style={styles.timeText}>now</Text>
+
+          {service.status !== 'Checking...' && (
+            <>
+              <View style={styles.metricsRow}>
+                <Text style={styles.metricText}>
+                  Response: {formatResponseTime(service.responseTime)}
+                </Text>
+                <Text style={styles.metricText}>
+                  Uptime: {service.uptime}%
+                </Text>
+              </View>
+
+              {service.errorMessage && (
+                <Text style={styles.errorText}>
+                  Error: {service.errorMessage}
+                </Text>
+              )}
+
+              {/* {renderStatusTimeline(service.statusHistory)} */}
+            </>
+          )}
+
+          <View style={styles.footerRow}>
+            <Text style={styles.footerText}>
+              Last checked: {service.lastChecked}
+            </Text>
           </View>
         </View>
       ))}
 
-      <Text style={styles.cloudflare}>
-        Additional detail about Cloudflare status available at{' '}
-        <Text style={{ color: '#3b82f6' }}>cloudflarestatus.com</Text>
+      <Text style={styles.note}>
+        Status history shows the last 12 checks. Green = operational, Red = down.
       </Text>
 
-      <Text style={styles.footer}>Last Updated: {new Date().toLocaleString()}</Text>
-      <Text style={styles.footer}>Refresh in: {countdown}s</Text>
-      <TouchableOpacity style={styles.button} onPress={fetchStatus}>
-        <Text style={styles.buttonText}>🔄 Refresh now</Text>
+      <Text style={styles.note}>
+        Additional Cloudflare status details at{' '}
+        <TouchableOpacity onPress={() => Linking.openURL('https://www.cloudflarestatus.com')}>
+          <Text style={styles.link}>cloudflarestatus.com</Text>
+        </TouchableOpacity>
+      </Text>
+
+      {lastUpdateTime && (
+        <Text style={styles.timestamp}>
+          Last Updated: {lastUpdateTime.toLocaleString()}
+        </Text>
+      )}
+      
+      <Text style={styles.timestamp}>
+        Next refresh in: {countdown}s
+      </Text>
+
+      <TouchableOpacity 
+        style={[styles.refreshButton, isRefreshing && styles.refreshButtonDisabled]} 
+        onPress={fetchAllStatuses}
+        disabled={isRefreshing}
+      >
+        <Text style={styles.refreshText}>
+          {isRefreshing ? 'Refreshing...' : 'Refresh now'}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -134,109 +391,121 @@ const StatusScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#111827',
     padding: 16,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   title: {
     fontSize: 24,
-    color: '#f9fafb',
     fontWeight: '700',
-    marginBottom: 12,
+    color: '#111827',
   },
-  statusBox: {
-    flexDirection: 'row',
-    backgroundColor: '#1f2937',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  statusIcon: {
-    fontSize: 20,
-    marginRight: 8,
-    color: '#22c55e',
-  },
-  statusText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#d1fae5',
-  },
-  sectionHeader: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#f3f4f6',
-    marginBottom: 8,
-  },
-  serviceCard: {
-    backgroundColor: '#1f2937',
+  overallBox: {
+    backgroundColor: '#F1F5F9',
     padding: 12,
     borderRadius: 10,
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  serviceHeader: {
+  overallStatus: {
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  cardHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
   },
-  badge: {
-    backgroundColor: '#22c55e',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  badgeText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  serviceName: {
-    color: '#e5e7eb',
-    fontSize: 14,
+  cardTitle: {
     fontWeight: '600',
+    fontSize: 15,
+    color: '#1F2937',
   },
-  uptimeBar: {
-    flexDirection: 'row',
-    gap: 2,
-    flexWrap: 'wrap',
-    marginBottom: 6,
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
   },
-  uptimeBarBlock: {
-    width: 4,
-    height: 12,
-    borderRadius: 1,
-  },
-  times: {
+  metricsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 8,
   },
-  timeText: {
-    color: '#9ca3af',
+  metricText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  linkHover: {
+    textDecorationLine: 'underline',
+  },
+  errorText: {
     fontSize: 11,
+    color: '#EF4444',
+    fontStyle: 'italic',
+    marginBottom: 6,
   },
-  cloudflare: {
-    color: '#9ca3af',
-    fontSize: 12,
-    marginTop: 8,
+  timeline: {
+    flexDirection: 'row',
+    marginVertical: 8,
+    gap: 2,
   },
-  footer: {
+  timelineBar: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginTop: 4,
-    color: '#6b7280',
+  },
+  footerText: {
+    fontSize: 11,
+    color: '#9CA3AF',
+  },
+  note: {
     fontSize: 12,
+    color: '#6B7280',
+    marginTop: 8,
+    lineHeight: 16,
   },
-  button: {
-    marginTop: 10,
+  link: {
+    color: '#3B82F6',
+    textDecorationLine: 'none',
+  },
+  timestamp: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 4,
+  },
+  refreshButton: {
+    marginTop: 12,
+    backgroundColor: '#E5E7EB',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#374151',
-    borderRadius: 6,
   },
-  buttonText: {
-    color: '#d1d5db',
+  refreshButtonDisabled: {
+    opacity: 0.6,
+  },
+  refreshText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '500',
+    color: '#1F2937',
   },
 });
 

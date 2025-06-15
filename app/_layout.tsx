@@ -18,6 +18,7 @@ import App from '@/screens/app';
 import Discord from '@/screens/discord';
 import ScoutSheet from '@/screens/scoutSheet';
 import Cancel from '../assets/icons/x-circle.svg';
+import StatusScreen from '@/screens/systemStatus';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [fontsLoaded] = useFonts({
@@ -97,6 +98,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         return <Discord />;
       case 'ScoutSheet':
         return <ScoutSheet />;
+      case 'Status':
+        return <StatusScreen />;
       default:
         return <TRanks />;
     }
@@ -121,7 +124,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               {renderPage()}
               {children}
             </View>
-            <Footer />
+            <Footer navigateToPage={setActivePage}/>
           </ScrollView>
         </View>
       </View>
@@ -141,7 +144,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {renderPage()}
             {children}
           </View>
-          <Footer />
+          <Footer navigateToPage={setActivePage}/>
         </ScrollView>
       </View>
 
