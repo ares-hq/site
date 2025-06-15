@@ -1,7 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, Linking, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
 
 const Footer = () => {
+  const router = useRouter();
+
   const handleLinkPress = (url: string) => {
     Linking.openURL(url);
   };
@@ -21,7 +24,7 @@ const Footer = () => {
 
         <Text style={styles.separator}>|</Text>
 
-        <Pressable onPress={() => handleLinkPress('https://ares-bot.com/tac')}>
+        <Pressable onPress={() => router.push('/status')}>
           <Text style={styles.link}>Systems Status</Text>
         </Pressable>
       </View>
