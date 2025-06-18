@@ -6,6 +6,7 @@ import {
   ScrollView,
   LayoutChangeEvent,
   ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import UserGraphSection from '@/components/graphs/overtimeGraph';
@@ -104,6 +105,17 @@ const IntoTheDeep = ({teamNumber} : IntoTheDeepProps) => {
     setContainerWidth(width);
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingOverlay} onLayout={handleLayout}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container} onLayout={handleLayout}>
       <View style={styles.headerRow}>
@@ -196,18 +208,10 @@ const IntoTheDeep = ({teamNumber} : IntoTheDeepProps) => {
       <View style={styles.eventContainer}>
         {eventData && eventData.map((event, index) => (
           <View key={index} style={{ marginBottom: 5, flexShrink: 0 }}>
-            <EventCard key={index} eventData={event} teamNumber={teamNumber}/>
+            <EventCard eventData={event} teamNumber={teamNumber} />
           </View>
         ))}
       </View>
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#3B82F6" />
-            <Text style={styles.loadingText}>Loading...</Text>
-          </View>
-        </View>
-      )}
     </View>
   );
 };
@@ -272,16 +276,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   eventContainer: {
-    marginBottom: 10,
+    marginBottom: -20,
   },
   loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    zIndex: 999,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
   },
   loadingContainer: {
     padding: 24,

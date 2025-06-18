@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import LocationIcon from '@/assets/icons/map-pin.svg';
 import CalendarIcon from '@/assets/icons/calendar.svg';
 import TopScore from '@/assets/icons/ranking.svg';
 import { AllianceInfo, EventInfo, MatchInfo } from '@/api/types';
+import { re } from 'mathjs';
 
 interface UserGraphSectionProps {
   eventData: EventInfo;
@@ -677,9 +678,9 @@ const styles = StyleSheet.create({
   },
   teamName: {
     fontSize: 11,
-    fontStyle: 'italic',
+    // fontStyle: 'italic',
     marginTop: 2,
-    opacity: 0.8,
+    // opacity: 0.8,
   },
   teamNameSmall: {
     fontSize: 9,

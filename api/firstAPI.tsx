@@ -49,48 +49,50 @@ export const getFirstAPI = async (events: string[], team: number): Promise<Event
     const matchData = await matchRes.json();
 
     // --- Filter & Format Matches with the Team ---
-    const matches: MatchInfo[] = (matchData.matches || [])
-      .filter((match: any) => match.teams.some((t: any) => t.teamNumber === team))
-      .map((match: any): MatchInfo => {
-        const redTeams = match.teams.filter((t: any) => t.station.toLowerCase().includes('red'));
-        const blueTeams = match.teams.filter((t: any) => t.station.toLowerCase().includes('blue'));
+    const matches: MatchInfo[] = await Promise.all(
+      (matchData.matches || [])
+        .filter((match: any) => match.teams.some((t: any) => t.teamNumber === team))
+        .map(async (match: any): Promise<MatchInfo> => {
+          const redTeams = match.teams.filter((t: any) => t.station.toLowerCase().includes('red'));
+          const blueTeams = match.teams.filter((t: any) => t.station.toLowerCase().includes('blue'));
 
-        const redScore = match.scoreRedFinal || 0;
-        const blueScore = match.scoreBlueFinal || 0;
+          const redScore = match.scoreRedFinal || 0;
+          const blueScore = match.scoreBlueFinal || 0;
 
-        const createTeam = (teamData: any): TeamInfoSimple => ({
-          teamName: teamData?.teamName || fetchTeamName(teamData?.teamNumber || 0),
-          teamNumber: teamData?.teamNumber || 0,
-        });
+          const createTeam = async (teamData: any): Promise<TeamInfoSimple> => ({
+            teamName: await fetchTeamName(teamData?.teamNumber || 0) || 'none',
+            teamNumber: teamData?.teamNumber || 0,
+          });
 
-        return {
-          matchType: match.tournamentLevel === 'Playoff' ? 'PLAYOFF' : 'QUALIFICATION',
-          matchNumber: match.tournamentLevel === 'PLAYOFF' ? 'P-' + match.series : 'Q-' + match.matchNumber,
-          date: match.actualStartTime ?? match.postResultTime,
-          redAlliance: {
-            totalPoints: redScore,
-            tele: Math.max(0, redScore - (match.scoreRedAuto || 0)),
-            penalty: match.scoreRedFoul || 0,
-            win: redScore > blueScore,
-            team_1: createTeam(redTeams[0]),
-            team_2: createTeam(redTeams[1]),
-            date: match.actualStartTime ?? match.postResultTime,
-            alliance: 'red',
+          return {
             matchType: match.tournamentLevel === 'Playoff' ? 'PLAYOFF' : 'QUALIFICATION',
-          },
-          blueAlliance: {
-            totalPoints: blueScore,
-            tele: Math.max(0, blueScore - (match.scoreBlueAuto || 0)),
-            penalty: match.scoreBlueFoul || 0,
-            win: blueScore > redScore,
-            team_1: createTeam(blueTeams[0]),
-            team_2: createTeam(blueTeams[1]),
+            matchNumber: match.tournamentLevel === 'PLAYOFF' ? 'P-' + match.series : 'Q-' + match.matchNumber,
             date: match.actualStartTime ?? match.postResultTime,
-            alliance: 'blue',
-            matchType: match.tournamentLevel === 'Playoff' ? 'PLAYOFF' : 'QUALIFICATION',
-          },
-        };
-      });
+            redAlliance: {
+              totalPoints: redScore,
+              tele: Math.max(0, redScore - (match.scoreRedAuto || 0)),
+              penalty: match.scoreRedFoul || 0,
+              win: redScore > blueScore,
+              team_1: await createTeam(redTeams[0]),
+              team_2: await createTeam(redTeams[1]),
+              date: match.actualStartTime ?? match.postResultTime,
+              alliance: 'red',
+              matchType: match.tournamentLevel === 'Playoff' ? 'PLAYOFF' : 'QUALIFICATION',
+            },
+            blueAlliance: {
+              totalPoints: blueScore,
+              tele: Math.max(0, blueScore - (match.scoreBlueAuto || 0)),
+              penalty: match.scoreBlueFoul || 0,
+              win: blueScore > redScore,
+              team_1: await createTeam(blueTeams[0]),
+              team_2: await createTeam(blueTeams[1]),
+              date: match.actualStartTime ?? match.postResultTime,
+              alliance: 'blue',
+              matchType: match.tournamentLevel === 'Playoff' ? 'PLAYOFF' : 'QUALIFICATION',
+            },
+          };
+        })
+    );
 
     const allmatches: MatchInfo[] = (matchData.matches || [])
       .filter((match: any) => match.tournamentLevel === "QUALIFICATION")

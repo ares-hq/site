@@ -195,8 +195,9 @@ export const getAwards = (events: EventInfo[]): string => {
   const uniqueAwards = new Set<string>();
 
   for (const event of events) {
-    if (event.achievements && event.achievements !== 'No Awards Received') {
-        uniqueAwards.add(event.achievements);
+    const awards = event.achievements?.trim();
+    if (awards && awards !== 'No Awards Received') {
+      uniqueAwards.add(awards);
     }
   }
 

@@ -65,6 +65,25 @@ export async function getTeamInfo(teamNumber: number): Promise<TeamInfo | null> 
   } as TeamInfo;
 }
 
+export async function getAllTeams() {
+  const { data, error } = await supabase
+    .from('season_2024')
+    .select('teamName, teamNumber, overallOPR, overallRank, location')
+
+  if (error || !data) {
+    console.error('Error fetching all OPRs:', error?.message);
+    return null;
+  }
+
+  return data.map(row => ({
+    teamName: row.teamName || `Team ${row.teamNumber}`,
+    teamNumber: row.teamNumber,
+    overallOPR: row.overallOPR || 0,
+    overallRank: row.overallRank || 0,
+    location: row.location || 'N/A',
+  })) as TeamInfo[];
+}
+
 export async function getAverageOPRs() {
   const { data, error } = await supabase
     .from('season_2024')

@@ -19,8 +19,6 @@ import Discord from '@/screens/discord';
 import ScoutSheet from '@/screens/scoutSheet';
 import Cancel from '../assets/icons/x-circle.svg';
 import StatusScreen from '@/screens/systemStatus';
-import { MatchInfo } from '@/api/types';
-import { calculateTeamOPR } from '@/api/calcOPR';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [fontsLoaded] = useFonts({
