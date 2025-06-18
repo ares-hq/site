@@ -8,7 +8,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useFonts } from 'expo-font';
-import { Slot } from 'expo-router';
+import { Slot, usePathname } from 'expo-router';
 import LeftSidebar from '@/components/leftSidebar';
 import HeaderBar from '@/components/header';
 import Footer from '@/components/footer';
@@ -21,6 +21,23 @@ export default function Layout() {
 
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+  const pathname = usePathname();
+  const routeLabels: Record<string, string> = {
+    age: 'AGE',
+    intothedeep: 'DIVE',
+    discord: 'Discord',
+    app: 'App',
+    ScoutSheet: 'ScoutSheet',
+    tranks: 'Teams',
+    tauto: 'Auto',
+    ttele: 'TeleOp',
+    tendgame: 'Endgame',
+    mranks: 'Matches',
+    qual: 'Qualifiers',
+    finals: 'Finals',
+    premier: 'Premier',
+  };
+  var currentPage = routeLabels[pathname?.split('/').pop() || ''] || '';
   
   const sidebarTranslateX = useRef(new Animated.Value(sidebarVisible ? 0 : -209)).current;
   const overlayOpacity = useRef(new Animated.Value(sidebarVisible ? 1 : 0)).current;
@@ -73,7 +90,7 @@ export default function Layout() {
         </Animated.View>
 
         <View style={styles2.contentArea}>
-          <HeaderBar toggleSidebar={() => setSidebarVisible(!sidebarVisible)}/>
+          <HeaderBar toggleSidebar={() => setSidebarVisible(!sidebarVisible)} currentPage={currentPage}/>
           <ScrollView contentContainerStyle={styles2.scrollContent}>
             <View style={styles2.pageContent}>
               <Slot />
@@ -88,7 +105,7 @@ export default function Layout() {
   return (
     <View style={styles.container}>
       <View style={styles.contentArea}>
-        <HeaderBar toggleSidebar={() => setSidebarVisible(!sidebarVisible)} showRoute={false}/>
+        <HeaderBar toggleSidebar={() => setSidebarVisible(!sidebarVisible)} currentPage={currentPage}/>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.pageContent}>
             <Slot />

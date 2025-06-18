@@ -29,7 +29,7 @@ const Platforms = ({ close }: PlatformsProps) => {
         }
         onPress={() => {
           router.push('/platforms/discord');
-          close?.();
+          // close?.();
         }}
       />
 
@@ -42,7 +42,7 @@ const Platforms = ({ close }: PlatformsProps) => {
         }
         onPress={() => {
           router.push('/platforms/app');
-          close?.();
+          // close?.();
         }}
       />
     </View>

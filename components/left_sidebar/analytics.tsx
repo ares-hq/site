@@ -50,7 +50,7 @@ const Analytics = ({ close }: AnalyticsProps) => {
 
   const go = (path: string) => {
     router.push(path as any);
-    close?.();
+    // close?.();
   };
 
 

@@ -16,8 +16,8 @@ const Scouting = ({ close }: ScoutingProps) => {
   const router = useRouter();
 
   const handleNavigate = () => {
-    router.push('/scouting/scoutSheet');
-    close?.();
+    router.push('/scouting/ScoutSheet');
+    // close?.();
   };
 
   return (
@@ -25,7 +25,7 @@ const Scouting = ({ close }: ScoutingProps) => {
       <Text style={styles.sectionTitle}>Scouting</Text>
 
       <SidebarItem
-        label="Scout Sheet"
+        label="ScoutSheet"
         icon={
           <View style={styles.teamIcons}>
             <Binoculars width={18} height={18} />

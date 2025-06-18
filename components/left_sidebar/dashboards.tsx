@@ -29,7 +29,7 @@ const Dashboards = ({ close }: DashboardsProps) => {
         }
         onPress={() => 
           {router.push('/dashboards/intothedeep');
-          close?.();
+          // close?.();
           }}
       />
 
@@ -42,7 +42,7 @@ const Dashboards = ({ close }: DashboardsProps) => {
         }
         onPress={() => {
           router.push('/dashboards/age')
-          close?.();
+          // close?.();
         }}
       />
     </View>

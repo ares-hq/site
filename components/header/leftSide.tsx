@@ -32,6 +32,22 @@ const HoverIcon = ({
 };
 
 const LeftSide = ({ toggleSidebar, pageTitle, showRoute }: LeftSideProps) => {
+  let routeLabel: string | null = null;
+
+  if (pageTitle === 'AGE' || pageTitle === 'DIVE') {
+    routeLabel = 'Dashboards';
+  } else if (pageTitle === 'Discord' || pageTitle === 'App') {
+    routeLabel = 'Platforms';
+  } else if (pageTitle === 'ScoutSheet') {
+    routeLabel = 'Scouting';
+  } else if (
+    pageTitle === 'Teams' || pageTitle === 'Auto' || pageTitle === 'TeleOp' || pageTitle === 'Endgame' ||
+    pageTitle === 'Matches' || pageTitle === 'Qualifiers' || pageTitle === 'Finals' || pageTitle === 'Premier'
+  ) {
+    routeLabel = 'Analytics';
+  } else {
+    routeLabel = null;
+  }
   return (
     <View style={styles.container}>
       {/* Icons */}
@@ -46,7 +62,7 @@ const LeftSide = ({ toggleSidebar, pageTitle, showRoute }: LeftSideProps) => {
       </View>
 
       {/* Labels */}
-      {showRoute && (
+      {showRoute && pageTitle !== '' && (
         <>
           <Text style={styles.faded}>
           {pageTitle === 'AGE' || pageTitle === 'DIVE' ? 'Dashboards' : pageTitle === 'Discord' || pageTitle === 'App' ? 'Platforms' : pageTitle === 'ScoutSheet' ? 'Scouting' : 'Analytics'}

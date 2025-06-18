@@ -37,7 +37,7 @@ const UsedTabs = ({ close }: UsedTabsProps) => {
 
     const handlePress = () => {
       router.push(item as any);
-      close?.();
+      // close?.();
     };
 
     return (
