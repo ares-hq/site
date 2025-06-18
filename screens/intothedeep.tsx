@@ -202,7 +202,10 @@ const IntoTheDeep = ({teamNumber} : IntoTheDeepProps) => {
       </View>
       {loading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#3B82F6" style={{padding: 150}} />
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#3B82F6" />
+            <Text style={styles.loadingText}>Loading...</Text>
+          </View>
         </View>
       )}
     </View>
@@ -279,6 +282,17 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(255,255,255,0.9)',
     zIndex: 999,
+  },
+  loadingContainer: {
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#3B82F6',
+    fontWeight: '600',
   },
 });
 
