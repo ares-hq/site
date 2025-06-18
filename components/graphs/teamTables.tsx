@@ -1,5 +1,9 @@
 import { TeamInfo } from '@/api/types';
 import React, { useMemo, useState } from 'react';
+import UpDown from '@/assets/icons/caret-up-down.svg';
+import Down from '@/assets/icons/caret-down.svg';
+import Check from '@/assets/icons/check-circle.svg';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -9,37 +13,108 @@ import {
   StyleSheet,
   Pressable,
 } from 'react-native';
+import { filterTeams } from '@/api/algorithms/filter';
 
 const ITEMS_PER_PAGE = 20;
+const router = useRouter();
 
 type DataTableProps = {
   teams: TeamInfo[];
+  data: 'overall' | 'auto' | 'teleop' | 'endgame';
 };
 
-export default function DataTable({ teams }: DataTableProps) {
+export default function DataTable({ teams, data}: DataTableProps) {
   const [query, setQuery] = useState('');
   const [sortAsc, setSortAsc] = useState(true);
   const [page, setPage] = useState(0);
-  const [sortColumn, setSortColumn] = useState<keyof TeamInfo>('teamName');
-  const [sortDropdownVisible, setSortDropdownVisible] = useState(false);
+  const [sortColumn, setSortColumn] = useState<any>('overallRank');
+  const [columnDropdownVisible, setColumnDropdownVisible] = useState(false);
+  const allColumns = [
+    { label: 'Team Number', value: 'teamNumber' },
+    { label: 'Team Name', value: 'teamName' },
+    { label: 'OPR', value: 'opr' },
+    { label: 'Rank', value: 'rank' },
+    { label: 'Location', value: 'location' },
+    ];
 
-  const filtered = useMemo(() => {
-    const base = teams.filter((team) =>
-      team.teamName.toLowerCase().includes(query.toLowerCase())
+  const [visibleColumns, setVisibleColumns] = useState<string[]>([
+    'teamNumber',
+    'teamName',
+    'opr',
+    'rank',
+    'location',
+  ]);
+
+    const renderDropdown = () => (
+    <View style={styles.dropdownMenu}>
+        {allColumns.map(({ label, value }) => {
+        const isVisible = visibleColumns.includes(value);
+
+        return (
+            <TouchableOpacity
+            key={value}
+            onPress={() => {
+                const next = isVisible
+                ? visibleColumns.filter((v) => v !== value)
+                : [...visibleColumns, value];
+ 
+                const hasNameOrNumber = next.includes('teamName') || next.includes('teamNumber');
+                const hasOneStatColumn = ['opr', 'rank', 'location'].some(col => next.includes(col));
+
+                if (hasNameOrNumber && hasOneStatColumn) {
+                setVisibleColumns(next);
+                }
+            }}
+            style={styles.dropdownItem}
+            >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ fontWeight: isVisible ? 'bold' : 'normal' }}>{label}</Text>
+                {isVisible && <Check height={14} width={14} />}
+            </View>
+            </TouchableOpacity>
+        );
+        })}
+    </View>
     );
-    return base.sort((a, b) => {
-    const aVal = a[sortColumn];
-    const bVal = b[sortColumn];
 
-    if (typeof aVal === 'number' && typeof bVal === 'number') {
+    const filtered = useMemo(() => {
+    const isSearching = query.trim().length > 0;
+
+    const base = isSearching ? filterTeams(teams, query) : [...teams];
+
+    if (isSearching) return base;
+
+    const sortField = ((): keyof TeamInfo => {
+        if (sortColumn === 'overallOPR') {
+        if (data === 'auto') return 'autoOPR';
+        if (data === 'teleop') return 'teleOPR';
+        if (data === 'endgame') return 'endgameOPR';
+        return 'overallOPR';
+        }
+
+        if (sortColumn === 'overallRank') {
+        if (data === 'auto') return 'autoRank';
+        if (data === 'teleop') return 'teleRank';
+        if (data === 'endgame') return 'endgameRank';
+        return 'overallRank';
+        }
+
+        return sortColumn;
+    })();
+
+    return base.sort((a, b) => {
+        const aVal = a[sortField];
+        const bVal = b[sortField];
+
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
         return sortAsc ? aVal - bVal : bVal - aVal;
-    } else {
+        } else {
         return sortAsc
-        ? String(aVal).localeCompare(String(bVal))
-        : String(bVal).localeCompare(String(aVal));
-    }
+            ? String(aVal).localeCompare(String(bVal))
+            : String(bVal).localeCompare(String(aVal));
+        }
     });
-  }, [query, sortAsc, teams]);
+    }, [query, sortAsc, sortColumn, data, teams]);
 
   const paginated = filtered.slice(
     page * ITEMS_PER_PAGE,
@@ -53,19 +128,52 @@ export default function DataTable({ teams }: DataTableProps) {
       setSortColumn(column);
       setSortAsc(true);
     }
-  };
+};
 
-  const renderItem = ({ item }: { item: TeamInfo }) => (
-    <View style={styles.row}>
-      <Text style={[styles.cell]}>{item.teamNumber}</Text>
-      <Text style={[styles.cell, styles.name]}>{item.teamName}</Text>
-      <Text style={[styles.cell, styles.opr]}>{item.overallOPR?.toFixed(2)}</Text>
-      <Text style={[styles.cell, styles.opr]}>{item.overallRank}</Text>
-      <Text style={[styles.cell, styles.location]}>
-        {item.location.split(',').slice(-2).join(', ').trim()}
-      </Text>
-    </View>
-  );
+    const renderItem = ({ item }: { item: TeamInfo }) => (
+    <Pressable
+    onPress={() => router.push(`/dashboards/intothedeep?teamnumber=${item.teamNumber}`)}
+    style={({ hovered }) => [styles.row, { flex: 1 }, hovered && styles.rowHovered]}
+    >
+    {visibleColumns.includes('teamNumber') && (
+        <Text style={styles.cell}>{item.teamNumber}</Text>
+    )}
+    {visibleColumns.includes('teamName') && (
+        <Text style={[styles.cell, styles.name]}>{item.teamName}</Text>
+    )}
+    {visibleColumns.includes('opr') && (
+        <Text style={[styles.cell, styles.opr]}>
+        {data === 'overall'
+            ? item.overallOPR?.toFixed(2)
+            : data === 'auto'
+            ? item.autoOPR?.toFixed(2)
+            : data === 'teleop'
+            ? item.teleOPR?.toFixed(2)
+            : data === 'endgame'
+            ? item.endgameOPR?.toFixed(2)
+            : '—'}
+        </Text>
+    )}
+    {visibleColumns.includes('rank') && (
+        <Text style={[styles.cell, styles.opr]}>
+        {data === 'overall'
+            ? item.overallRank
+            : data === 'auto'
+            ? item.autoRank
+            : data === 'teleop'
+            ? item.teleRank
+            : data === 'endgame'
+            ? item.endgameRank
+            : '—'}
+        </Text>
+    )}
+    {visibleColumns.includes('location') && (
+        <Text style={[styles.cell, styles.location]}>
+        {item.location?.split(',').slice(-2).join(', ').trim()}
+        </Text>
+    )}
+    </Pressable>
+    );
 
   return (
     <View style={styles.container}>
@@ -79,103 +187,64 @@ export default function DataTable({ teams }: DataTableProps) {
             />
             <View style={{ flexDirection: 'row' }}>
                 <View style={styles.dropdownWrapper}>
-                    <TouchableOpacity
-                    onPress={() => setSortDropdownVisible((prev) => !prev)}
+                <Pressable
+                    onPress={() => setColumnDropdownVisible((prev) => !prev)}
                     style={styles.dropdown}
-                    >
-                    <Text>Columns ▾</Text>
-                    </TouchableOpacity>
-                    {sortDropdownVisible && (
-                    <View style={styles.dropdownMenu}>
-                        {[
-                        { label: 'Team Number', value: 'teamNumber' },
-                        { label: 'Team Name', value: 'teamName' },
-                        { label: 'OPR', value: 'overallOPR' },
-                        { label: 'Rank', value: 'overallRank' },
-                        { label: 'Location', value: 'location' },
-                        ].map(({ label, value }) => (
-                        <TouchableOpacity
-                            key={value}
-                            onPress={() => {
-                            setSortColumn(value as keyof TeamInfo);
-                            setSortDropdownVisible(false);
-                            }}
-                            style={styles.dropdownItem}
-                        >
-                            <Text style={{ fontWeight: sortColumn === value ? 'bold' : 'normal' }}>
-                            {label} {sortColumn === value ? (sortAsc ? '↑' : '↓') : ''}
-                            </Text>
-                        </TouchableOpacity>
-                        ))}
-                        <View style={styles.dropdownDivider} />
-                        <TouchableOpacity onPress={() => setSortAsc((prev) => !prev)} style={styles.dropdownItem}>
-                        <Text>Toggle Order</Text>
-                        </TouchableOpacity>
+                >
+                    <View style={styles.dropdownLabel}>
+                    <Text style={styles.dropdownText}>Columns</Text>
+                    <Down height={14} width={14} />
                     </View>
-                    )}
-                </View>
-                <View style={styles.dropdownWrapper}>
-                    <TouchableOpacity
-                    onPress={() => setSortDropdownVisible((prev) => !prev)}
-                    style={styles.dropdown}
-                    >
-                    <Text>Sort By ▾</Text>
-                    </TouchableOpacity>
-                    {sortDropdownVisible && (
-                    <View style={styles.dropdownMenu}>
-                        {[
-                        { label: 'Team Number', value: 'teamNumber' },
-                        { label: 'Team Name', value: 'teamName' },
-                        { label: 'OPR', value: 'overallOPR' },
-                        { label: 'Rank', value: 'overallRank' },
-                        { label: 'Location', value: 'location' },
-                        ].map(({ label, value }) => (
-                        <TouchableOpacity
-                            key={value}
-                            onPress={() => {
-                            setSortColumn(value as keyof TeamInfo);
-                            setSortDropdownVisible(false);
-                            }}
-                            style={styles.dropdownItem}
-                        >
-                            <Text style={{ fontWeight: sortColumn === value ? 'bold' : 'normal' }}>
-                            {label} {sortColumn === value ? (sortAsc ? '↑' : '↓') : ''}
-                            </Text>
-                        </TouchableOpacity>
-                        ))}
-                        <View style={styles.dropdownDivider} />
-                        <TouchableOpacity onPress={() => setSortAsc((prev) => !prev)} style={styles.dropdownItem}>
-                        <Text>Toggle Order</Text>
-                        </TouchableOpacity>
-                    </View>
-                    )}
+                </Pressable>
                 </View>
             </View>
         </View>
 
+        {columnDropdownVisible && renderDropdown()}
+
       {/* Table Header */}
-      <View style={[styles.row, styles.headerRow]}>
-        <Pressable onPress={() => handleSort('teamNumber')} style={styles.cell}>
-          <Text style={styles.headerText}>Team # {sortColumn === 'teamNumber' && (sortAsc ? '↑' : '↓')}</Text>
-        </Pressable>
-        <Pressable onPress={() => handleSort('teamName')} style={[styles.cell, styles.name]}>
-          <Text style={styles.headerText}>Team Name {sortColumn === 'teamName' && (sortAsc ? '↑' : '↓')}</Text>
-        </Pressable>
-        <Pressable onPress={() => handleSort('overallOPR')} style={[styles.cell]}>
-          <Text style={[styles.headerText, styles.opr]}>OPR {sortColumn === 'overallOPR' && (sortAsc ? '↑' : '↓')}</Text>
-        </Pressable>
-        <Pressable onPress={() => handleSort('overallRank')} style={[styles.cell]}>
-          <Text style={[styles.headerText, styles.opr]}>Rank {sortColumn === 'overallRank' && (sortAsc ? '↑' : '↓')}</Text>
-        </Pressable>
-        <Pressable onPress={() => handleSort('location')} style={[styles.cell, styles.location]}>
-          <Text style={[styles.headerText, styles.opr]}>Location {sortColumn === 'location' && (sortAsc ? '↑' : '↓')}</Text>
-        </Pressable>
-      </View>
+    <View style={[styles.row, styles.headerRow]}>
+        {visibleColumns.includes('teamNumber') && (
+            <Pressable onPress={() => handleSort('teamNumber')} style={styles.cell}>
+            <Text style={styles.headerText}>
+                Team # {sortColumn === 'teamNumber' && <UpDown height={14} width={14} />}
+            </Text>
+            </Pressable>
+        )}
+        {visibleColumns.includes('teamName') && (
+            <Pressable onPress={() => handleSort('teamName')} style={[styles.cell, styles.name]}>
+            <Text style={styles.headerText}>
+                Team Name {sortColumn === 'teamName' && <UpDown height={14} width={14} />}
+            </Text>
+            </Pressable>
+        )}
+        {visibleColumns.includes('opr') && (
+            <Pressable onPress={() => handleSort('overallOPR')} style={styles.cell}>
+            <Text style={[styles.headerText, styles.opr]}>
+                {sortColumn === 'overallOPR' && <UpDown height={14} width={14} />} OPR
+            </Text>
+            </Pressable>
+        )}
+        {visibleColumns.includes('rank') && (
+            <Pressable onPress={() => handleSort('overallRank')} style={styles.cell}>
+            <Text style={[styles.headerText, styles.opr]}>
+                {sortColumn === 'overallRank' && <UpDown height={14} width={14} />} Rank
+            </Text>
+            </Pressable>
+        )}
+        {visibleColumns.includes('location') && (
+            <Pressable onPress={() => handleSort('location')} style={[styles.cell, styles.location]}>
+            <Text style={[styles.headerText, styles.opr]}>
+                {sortColumn === 'location' && <UpDown height={14} width={14} />} Location
+            </Text>
+            </Pressable>
+        )}
+    </View>
 
       {/* Table Body */}
       <FlatList
         data={paginated}
-        keyExtractor={(item) => item.teamNumber.toString()}
+        keyExtractor={(item) => item.teamNumber && item.teamNumber.toString() || 'No Number Found'}
         renderItem={renderItem}
         ListEmptyComponent={<Text style={{ textAlign: 'center', padding: 20 }}>No results.</Text>}
       />
@@ -218,15 +287,19 @@ const styles = StyleSheet.create({
     width: '100%',
     minHeight: 800,
   },
+  rowHovered: {
+    backgroundColor: '#e5e7eb', 
+    borderRadius: 8,
+  },
   input: {
     borderWidth: 1,
     borderColor: '#e5e7eb',
     padding: 10,
     borderRadius: 8,
     flex: 1,
-    maxWidth: 500,
   },
   dropdown: {
+    alignItems: 'center',
     marginLeft: 12,
     padding: 10,
     backgroundColor: '#f3f4f6',
@@ -322,5 +395,14 @@ const styles = StyleSheet.create({
     dropdownWrapper: {
     position: 'relative',
     zIndex: 10,
+    },
+    dropdownLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4, // if supported, or use marginLeft
+    },
+    dropdownText: {
+    fontSize: 14,
+    marginRight: 4, // fallback if gap doesn't work
     },
 });

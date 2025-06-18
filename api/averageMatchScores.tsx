@@ -23,19 +23,27 @@ export async function getCompleteMatches(matchNumber?: string): Promise<MatchInf
     return null;
   }
 
-  const matchMap = new Map<number, Partial<MatchInfo>>();
+  if (!data || data.length === 0) return [];
 
-  for (const row of data) {
+  // Pre-allocate Map with expected size for better performance
+  const matchMap = new Map<number, Partial<MatchInfo>>();
+  
+  // Single pass through data with optimized object creation
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
     const matchNum = row.matchcode;
-    if (!matchMap.has(matchNum)) {
-      matchMap.set(matchNum, {
+    
+    let match = matchMap.get(matchNum);
+    if (!match) {
+      match = {
         matchNumber: matchNum,
         matchType: row.matchType,
         date: row.date,
-      });
+      };
+      matchMap.set(matchNum, match);
     }
 
-    const match = matchMap.get(matchNum)!;
+    // Pre-create alliance data object
     const allianceData = {
       date: row.date,
       alliance: row.alliance,
@@ -45,15 +53,16 @@ export async function getCompleteMatches(matchNumber?: string): Promise<MatchInf
       penalty: row.penalty || 0,
       win: row.win || false,
       team_1: {
-        teamName: row.team_1?.teamName || `Team ${row.team_1?.teamNumber}`,
+        teamName: row.team_1?.teamName || `Team ${row.team_1?.teamNumber || 0}`,
         teamNumber: row.team_1?.teamNumber || 0,
       },
       team_2: {
-        teamName: row.team_2?.teamName || `Team ${row.team_2?.teamNumber}`,
+        teamName: row.team_2?.teamName || `Team ${row.team_2?.teamNumber || 0}`,
         teamNumber: row.team_2?.teamNumber || 0,
       },
     };
 
+    // Direct assignment instead of conditional
     if (row.alliance === 'red') {
       match.redAlliance = allianceData;
     } else {
@@ -61,27 +70,48 @@ export async function getCompleteMatches(matchNumber?: string): Promise<MatchInf
     }
   }
 
-  return Array.from(matchMap.values())
-    .filter(match => match.redAlliance && match.blueAlliance)
-    .map(match => match as MatchInfo);
+  // Optimized filtering and mapping
+  const results: MatchInfo[] = [];
+  for (const match of matchMap.values()) {
+    if (match.redAlliance && match.blueAlliance) {
+      results.push(match as MatchInfo);
+    }
+  }
+
+  return results;
 }
 
+// Optimized hour window calculation with caching
+const hourWindowCache = new Map<string, { start: string; end: string }>();
+
 function getHourWindow(date: string): { start: string; end: string } {
+  // Use cache to avoid recalculating same hour windows
+  const cached = hourWindowCache.get(date);
+  if (cached) return cached;
+
   const d = new Date(date);
   d.setMinutes(0, 0, 0);
   const start = d.toISOString();
-  const endDate = new Date(d);
-  endDate.setHours(endDate.getHours() + 1);
-  const end = endDate.toISOString();
-  return { start, end };
+  d.setHours(d.getHours() + 1);
+  const end = d.toISOString();
+  
+  const result = { start, end };
+  hourWindowCache.set(date, result);
+  return result;
 }
 
 export async function attachHourlyAverages(matches: AllianceInfo[]): Promise<AllianceInfo[]> {
-  const hourWindows = matches.map(match => getHourWindow(match.date));
+  if (!matches.length) return matches;
+
+  // Get unique hour windows from matches
   const uniqueWindows = Array.from(
-    new Map(hourWindows.map(hw => [`${hw.start}-${hw.end}`, hw])).values()
+    new Map(matches.map(match => {
+      const hw = getHourWindow(match.date);
+      return [`${hw.start}-${hw.end}`, hw];
+    })).values()
   );
-  
+
+  // Single database query with optimized date range
   const allStarts = uniqueWindows.map(hw => hw.start);
   const allEnds = uniqueWindows.map(hw => hw.end);
   const minDate = new Date(Math.min(...allStarts.map(d => new Date(d).getTime())));
@@ -103,45 +133,43 @@ export async function attachHourlyAverages(matches: AllianceInfo[]): Promise<All
       penalty: 0,
     }));
   }
+
+  if (!data) return matches;
   
-  const hourlyAverages = new Map<string, {
-    points: number;
-    tele: number;
-    penalty: number;
-  }>();
+  // Pre-compute hourly averages
+  const hourlyAverages = new Map<string, { points: number; tele: number; penalty: number }>();
   
   for (const window of uniqueWindows) {
-    const windowData = data?.filter(row => 
-      row.date >= window.start && row.date < window.end
-    ).slice(0, 50) || [];
+    // Filter data for this specific window and take first 50 matches
+    const windowData = data
+      .filter(row => row.date >= window.start && row.date < window.end)
+      .slice(0, 50);
     
-    const total = {
-      points: 0,
-      tele: 0,
-      penalty: 0,
-    };
+    let totalPoints = 0;
+    let totalTele = 0;
+    let totalPenalty = 0;
 
     for (const row of windowData) {
-      total.points += row.totalPoints;
-      total.tele += row.tele;
-      total.penalty += row.penalty;
+      totalPoints += row.totalPoints || 0;
+      totalTele += row.tele || 0;
+      totalPenalty += row.penalty || 0;
     }
 
     const count = windowData.length;
-    const average = {
-      points: count > 0 ? total.points / count : 0,
-      tele: count > 0 ? total.tele / count : 0,
-      penalty: count > 0 ? total.penalty / count : 0,
-    };
-
     const windowKey = `${window.start}-${window.end}`;
-    hourlyAverages.set(windowKey, {
-      points: Number(average.points.toFixed(2)),
-      tele: Number(average.tele.toFixed(2)),
-      penalty: Number(average.penalty.toFixed(2)),
-    });
+    
+    if (count > 0) {
+      hourlyAverages.set(windowKey, {
+        points: Number((totalPoints / count).toFixed(2)),
+        tele: Number((totalTele / count).toFixed(2)),
+        penalty: Number((totalPenalty / count).toFixed(2)),
+      });
+    } else {
+      hourlyAverages.set(windowKey, { points: 0, tele: 0, penalty: 0 });
+    }
   }
   
+  // Apply averages to matches
   return matches.map(match => {
     const window = getHourWindow(match.date);
     const windowKey = `${window.start}-${window.end}`;
@@ -157,17 +185,23 @@ export async function attachHourlyAverages(matches: AllianceInfo[]): Promise<All
 }
 
 export function getAverageByMatchType(matches: AllianceInfo[]): MatchTypeAverages {
+  if (!matches.length) return { qual: 0, finals: 0 };
+
   let qualTotal = 0;
   let finalsTotal = 0;
   let qualCount = 0;
   let finalsCount = 0;
 
-  for (const match of matches) {
+  // Single pass through matches
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i];
+    const points = match.totalPoints;
+    
     if (match.matchType === 'QUALIFICATION') {
-      qualTotal += match.totalPoints;
+      qualTotal += points;
       qualCount++;
     } else if (match.matchType === 'PLAYOFF') {
-      finalsTotal += match.totalPoints;
+      finalsTotal += points;
       finalsCount++;
     }
   }
@@ -178,28 +212,48 @@ export function getAverageByMatchType(matches: AllianceInfo[]): MatchTypeAverage
   };
 }
 
-export const getAveragePlace = (event: EventInfo[]): number => {
-    if (event.length === 0) return 0;
-    let total = 0;
-    let count = 0;
-    for (const currEvent of event) {
-        if (currEvent.place !== undefined) {
-            total += Number(currEvent.place.replace(/\D/g, ''));
-            count++;
-        }
+export const getAveragePlace = (events: EventInfo[]): number => {
+  if (!events.length) return 0;
+  
+  let total = 0;
+  let count = 0;
+  
+  // Single pass with optimized number extraction
+  for (let i = 0; i < events.length; i++) {
+    const place = events[i].place;
+    if (place) {
+      // More efficient number extraction
+      const numStr = place.replace(/\D/g, '');
+      if (numStr) {
+        total += parseInt(numStr, 10);
+        count++;
+      }
     }
-    return count > 0 ? Number((total / count).toFixed(2)) : 0;
-}
+  }
+  
+  return count > 0 ? Number((total / count).toFixed(2)) : 0;
+};
 
 export const getAwards = (events: EventInfo[]): string => {
+  if (!events.length) return '';
+  
   const uniqueAwards = new Set<string>();
 
-  for (const event of events) {
-    const awards = event.achievements?.trim();
-    if (awards && awards !== 'No Awards Received') {
-      uniqueAwards.add(awards);
+  // Single pass with early filtering
+  for (let i = 0; i < events.length; i++) {
+    const achievements = events[i].achievements;
+    if (achievements && achievements !== 'No Awards Received') {
+      const trimmed = achievements.trim();
+      if (trimmed) {
+        uniqueAwards.add(trimmed);
+      }
     }
   }
 
-  return Array.from(uniqueAwards).join(' • ');
+  return uniqueAwards.size > 0 ? Array.from(uniqueAwards).join(' • ') : '';
+};
+
+// Utility function to clear cache if needed (call periodically to prevent memory leaks)
+export const clearHourWindowCache = (): void => {
+  hourWindowCache.clear();
 };

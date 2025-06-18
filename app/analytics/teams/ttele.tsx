@@ -4,7 +4,7 @@ import type { TeamInfo } from '@/api/types';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 
-const TRanks = () => {
+const TTele = () => {
   const [teams, setTeams] = useState<TeamInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,7 +31,7 @@ const TRanks = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.text}>Team Ranks</Text>
-      <DataTable teams={teams} />
+      <DataTable teams={teams} data='teleop'/>
     </View>
   );
 };
@@ -63,4 +63,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TRanks;
+export default TTele;

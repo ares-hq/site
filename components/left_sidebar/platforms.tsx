@@ -7,12 +7,15 @@ import {
 } from 'react-native';
 import App from '../../assets/icons/app-store-logo.svg';
 import Robot from '../../assets/icons/robot.svg';
+import { useRouter } from 'expo-router';
 
-type DashboardProps = {
-  navigateToPage: (page: string) => void;
+type PlatformsProps = {
+  close?: () => void;
 };
 
-const Platforms = ({ navigateToPage }: DashboardProps) => {
+const Platforms = ({ close }: PlatformsProps) => {
+  const router = useRouter();
+
   return (
     <View style={styles.sidebar}>
       <Text style={styles.sectionTitle}>Platforms</Text>
@@ -24,7 +27,10 @@ const Platforms = ({ navigateToPage }: DashboardProps) => {
             <Robot width={18} height={18} />
           </View>
         }
-        onPress={() => navigateToPage('Discord')}
+        onPress={() => {
+          router.push('/platforms/discord');
+          close?.();
+        }}
       />
 
     <SidebarItem
@@ -34,7 +40,10 @@ const Platforms = ({ navigateToPage }: DashboardProps) => {
             <App width={18} height={18} />
           </View>
         }
-        onPress={() => navigateToPage('App')}
+        onPress={() => {
+          router.push('/platforms/app');
+          close?.();
+        }}
       />
     </View>
   );

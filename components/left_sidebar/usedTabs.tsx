@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, FlatList, Animated } from 'react-native';
 
@@ -5,17 +6,17 @@ const favorites = ['Overview', 'Projects'];
 const recently = ['Dashboard', 'Tasks'];
 
 type UsedTabsProps = {
-  navigateToPage: (page: string) => void;
+  close?: () => void;
 };
 
-const UsedTabs = ({ navigateToPage }: UsedTabsProps) => {
+const UsedTabs = ({ close }: UsedTabsProps) => {
   const [selectedTab, setSelectedTab] = useState<'Favorites' | 'Recently'>('Favorites');
 
   const items = selectedTab === 'Favorites' ? favorites : recently;
   const [hoveredF, setHoveredF] = useState(false);
   const [hoveredR, setHoveredR] = useState(false);
 
-    const UsedTabsItem = ({ item }: { item: string }) => {
+  const UsedTabsItem = ({ item }: { item: (typeof items)[number] }) => {
     const translateAnim = useRef(new Animated.Value(0)).current;
 
     const handleHoverIn = () => {
@@ -34,11 +35,16 @@ const UsedTabs = ({ navigateToPage }: UsedTabsProps) => {
         }).start();
     };
 
+    const handlePress = () => {
+      router.push(item as any);
+      close?.();
+    };
+
     return (
         <Pressable
         onHoverIn={handleHoverIn}
         onHoverOut={handleHoverOut}
-        onPress={() => console.log(`Pressed ${item}`)}
+        onPress={handlePress}
         style={styles.itemRow}
         >
         <View style={styles.dot} />

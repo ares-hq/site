@@ -7,12 +7,15 @@ import {
 } from 'react-native';
 import Chart from '../../assets/icons/chart-pie-slice-fill.svg';
 import Graph from '../../assets/icons/chart-line-fill.svg';
+import { useRouter } from 'expo-router';
 
-type DashboardProps = {
-  navigateToPage: (page: string) => void;
+type DashboardsProps = {
+  close?: () => void;
 };
 
-const Dashboards = ({ navigateToPage }: DashboardProps) => {
+const Dashboards = ({ close }: DashboardsProps) => {
+  const router = useRouter();
+
   return (
     <View style={styles.sidebar}>
       <Text style={styles.sectionTitle}>Dashboards</Text>
@@ -24,7 +27,10 @@ const Dashboards = ({ navigateToPage }: DashboardProps) => {
             <Chart width={18} height={18} />
           </View>
         }
-        onPress={() => navigateToPage('DIVE')}
+        onPress={() => 
+          {router.push('/dashboards/intothedeep');
+          close?.();
+          }}
       />
 
     <SidebarItem
@@ -34,7 +40,10 @@ const Dashboards = ({ navigateToPage }: DashboardProps) => {
             <Graph width={18} height={18} />
           </View>
         }
-        onPress={() => navigateToPage('AGE')}
+        onPress={() => {
+          router.push('/dashboards/age')
+          close?.();
+        }}
       />
     </View>
   );

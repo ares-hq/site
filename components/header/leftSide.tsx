@@ -7,6 +7,7 @@ import Star from '../../assets/icons/star.svg';
 type LeftSideProps = {
   toggleSidebar: () => void;
   pageTitle: string;
+  showRoute: boolean;
 };
 
 const HoverIcon = ({
@@ -30,7 +31,7 @@ const HoverIcon = ({
   );
 };
 
-const LeftSide = ({ toggleSidebar, pageTitle }: LeftSideProps) => {
+const LeftSide = ({ toggleSidebar, pageTitle, showRoute }: LeftSideProps) => {
   return (
     <View style={styles.container}>
       {/* Icons */}
@@ -45,11 +46,15 @@ const LeftSide = ({ toggleSidebar, pageTitle }: LeftSideProps) => {
       </View>
 
       {/* Labels */}
-      <Text style={styles.faded}>
-       {pageTitle === 'AGE' || pageTitle === 'DIVE' ? 'Dashboards' : pageTitle === 'Discord' || pageTitle === 'App' ? 'Platforms' : pageTitle === 'ScoutSheet' ? 'Scouting' : 'Analytics'}
-      </Text>
-      <Text style={styles.separator}> / </Text>
-      <Text style={styles.active}>{pageTitle}</Text>
+      {showRoute && (
+        <>
+          <Text style={styles.faded}>
+          {pageTitle === 'AGE' || pageTitle === 'DIVE' ? 'Dashboards' : pageTitle === 'Discord' || pageTitle === 'App' ? 'Platforms' : pageTitle === 'ScoutSheet' ? 'Scouting' : 'Analytics'}
+          </Text>
+          <Text style={styles.separator}> / </Text>
+          <Text style={styles.active}>{pageTitle}</Text>
+        </>
+      )}
     </View>
   );
 };

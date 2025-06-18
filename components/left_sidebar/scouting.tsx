@@ -6,12 +6,20 @@ import {
   Pressable,
 } from 'react-native';
 import Binoculars from '../../assets/icons/binoculars.svg';
+import { useRouter } from 'expo-router';
 
-type DashboardProps = {
-  navigateToPage: (page: string) => void;
+type ScoutingProps = {
+  close?: () => void;
 };
 
-const Scouting = ({ navigateToPage }: DashboardProps) => {
+const Scouting = ({ close }: ScoutingProps) => {
+  const router = useRouter();
+
+  const handleNavigate = () => {
+    router.push('/scouting/scoutSheet');
+    close?.();
+  };
+
   return (
     <View style={styles.sidebar}>
       <Text style={styles.sectionTitle}>Scouting</Text>
@@ -23,7 +31,7 @@ const Scouting = ({ navigateToPage }: DashboardProps) => {
             <Binoculars width={18} height={18} />
           </View>
         }
-        onPress={() => navigateToPage('ScoutSheet')}
+        onPress={handleNavigate}
       />
     </View>
   );

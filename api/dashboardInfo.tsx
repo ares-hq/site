@@ -3,50 +3,69 @@ import { AllianceInfo, TeamInfo } from './types';
 
 const supabaseUrl = 'https://api.ares-bot.com';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-/**
- * Fetches team dashboard info from the `season_2024` table.
- * @param teamNumber The team number (e.g. 1234)
- * @returns An object with the team profile info or null if not found.
- */
+// ------------------- CACHE -------------------
+const allTeamsCache: { data: TeamInfo[] | null } = { data: null };
+const teamInfoCache = new Map<number, TeamInfo>();
+const teamMatchesCache = new Map<number, AllianceInfo[]>();
+const teamNameCache = new Map<number, string>();
+let averageOPRsCache: any | null = null;
+
+// ------------------- TEAMS -------------------
+export async function getAllTeams(): Promise<TeamInfo[] | null> {
+  if (allTeamsCache.data) return allTeamsCache.data;
+
+  const { data } = await supabase
+    .from('season_2024')
+    .select('teamName, teamNumber, overallOPR, overallRank, location, autoOPR, teleOPR, endgameOPR, autoRank, teleRank, endgameRank')
+    .order('overallRank', { ascending: true })
+    .throwOnError();
+
+  const result = data.map(row => ({
+    teamName: row.teamName || `Team ${row.teamNumber}`,
+    teamNumber: row.teamNumber,
+    overallOPR: row.overallOPR || 0,
+    overallRank: row.overallRank || 0,
+    location: row.location || 'N/A',
+    autoOPR: row.autoOPR || 0,
+    teleOPR: row.teleOPR || 0,
+    endgameOPR: row.endgameOPR || 0,
+    autoRank: row.autoRank || 0,
+    teleRank: row.teleRank || 0,
+    endgameRank: row.endgameRank || 0,
+    founded: 'N/A',
+    highestScore: '',
+    website: 'None',
+    sponsors: '',
+    achievements: 'None This Season',
+  }));
+
+  allTeamsCache.data = result;
+  return result;
+}
+
 export async function getTeamInfo(teamNumber: number): Promise<TeamInfo | null> {
-  const { data, error } = await supabase
+  if (teamInfoCache.has(teamNumber)) return teamInfoCache.get(teamNumber)!;
+
+  const { data } = await supabase
     .from('season_2024')
     .select(`
-      teamName,
-      location,
-      founded,
-      website,
-      sponsors,
-      achievements,
-      teleRank,
-      autoRank,
-      endgameRank,
-      overallRank,
-      penalties,
-      autoOPR,
-      teleOPR,
-      endgameOPR,
-      overallOPR,
-      founded, 
-      website, 
-      averagePlace,
-      eventsAttended
+      teamName, location, founded, website, sponsors, achievements,
+      overallRank, teleRank, autoRank, endgameRank,
+      autoOPR, teleOPR, endgameOPR, overallOPR, penalties,
+      averagePlace, eventsAttended
     `)
     .eq('teamNumber', teamNumber)
-    .single();
+    .single()
+    .throwOnError();
 
-  if (error) {
-    console.error(`Error fetching team ${teamNumber}:`, error.message);
-    return null;
-  }
-
-  return {
+  const team: TeamInfo = {
     teamName: data.teamName || `Team ${teamNumber}`,
     location: data.location || 'N/A',
     founded: data.founded?.toString() || 'N/A',
-    teamNumber: teamNumber,
+    teamNumber,
     eventsAttended: data.eventsAttended || 0,
     events: JSON.parse(data.eventsAttended || '[]') || [],
     website: data.website || 'None',
@@ -62,81 +81,24 @@ export async function getTeamInfo(teamNumber: number): Promise<TeamInfo | null> 
     overallOPR: data.overallOPR,
     penalties: data.penalties,
     averagePlace: data.averagePlace || 0,
-  } as TeamInfo;
-}
-
-export async function getAllTeams() {
-  const { data, error } = await supabase
-    .from('season_2024')
-    .select('teamName, teamNumber, overallOPR, overallRank, location')
-
-  if (error || !data) {
-    console.error('Error fetching all OPRs:', error?.message);
-    return null;
-  }
-
-  return data.map(row => ({
-    teamName: row.teamName || `Team ${row.teamNumber}`,
-    teamNumber: row.teamNumber,
-    overallOPR: row.overallOPR || 0,
-    overallRank: row.overallRank || 0,
-    location: row.location || 'N/A',
-  })) as TeamInfo[];
-}
-
-export async function getAverageOPRs() {
-  const { data, error } = await supabase
-    .from('season_2024')
-    .select('autoOPR, teleOPR, endgameOPR, overallOPR')
-    .limit(500);
-
-  if (error || !data) {
-    console.error('Error fetching all OPRs:', error?.message);
-    return null;
-  }
-
-  const total = {
-    auto: 0,
-    tele: 0,
-    endgame: 0,
-    overall: 0,
   };
-  let count = 0;
 
-  for (const row of data) {
-    if (row.autoOPR != null) total.auto += row.autoOPR;
-    if (row.teleOPR != null) total.tele += row.teleOPR;
-    if (row.endgameOPR != null) total.endgame += row.endgameOPR;
-    if (row.overallOPR != null) total.overall += row.overallOPR;
-    count++;
-  }
-
-  return {
-    autoOPR: total.auto / count,
-    teleOPR: total.tele / count,
-    endgameOPR: total.endgame / count,
-    overallOPR: total.overall / count,
-  };
+  teamInfoCache.set(teamNumber, team);
+  return team;
 }
 
-/**
- * Fetches all match records for a specific team
- * @param teamNumber The team number to fetch matches for
- * @returns Array of AllianceInfo records or null if error
- */
+// ------------------- MATCHES -------------------
 export async function getTeamMatches(teamNumber: number): Promise<AllianceInfo[] | null> {
-  const { data, error } = await supabase
+  if (teamMatchesCache.has(teamNumber)) return teamMatchesCache.get(teamNumber)!;
+
+  const { data } = await supabase
     .from('matches_2024')
     .select('date, totalPoints, matchType, win, tele, penalty, alliance, team_1, team_2, matchcode')
     .or(`team_1.eq.${teamNumber},team_2.eq.${teamNumber}`)
-    .order('date');
+    .order('date')
+    .throwOnError();
 
-  if (error) {
-    console.error('Error fetching matches:', error.message);
-    return null;
-  }
-
-  return data.map(row => ({
+  const mapped = data.map(row => ({
     date: row.date,
     totalPoints: row.totalPoints ?? 0,
     win: row.win || false,
@@ -153,26 +115,62 @@ export async function getTeamMatches(teamNumber: number): Promise<AllianceInfo[]
       teamName: row.team_2.teamName || `Team ${row.team_2.teamNumber}`,
       teamNumber: row.team_2.teamNumber || 0,
     } : undefined,
-  })) as AllianceInfo[];
+  }));
+
+  teamMatchesCache.set(teamNumber, mapped);
+  return mapped;
 }
 
+// ------------------- STATS -------------------
+export async function getAverageOPRs() {
+  if (averageOPRsCache) return averageOPRsCache;
+
+  const { data } = await supabase
+    .from('season_2024')
+    .select('autoOPR, teleOPR, endgameOPR, overallOPR')
+    .limit(500)
+    .throwOnError();
+
+  const total = { auto: 0, tele: 0, endgame: 0, overall: 0 };
+  let count = 0;
+
+  for (const row of data) {
+    if (row.autoOPR != null) total.auto += row.autoOPR;
+    if (row.teleOPR != null) total.tele += row.teleOPR;
+    if (row.endgameOPR != null) total.endgame += row.endgameOPR;
+    if (row.overallOPR != null) total.overall += row.overallOPR;
+    count++;
+  }
+
+  averageOPRsCache = {
+    autoOPR: total.auto / count,
+    teleOPR: total.tele / count,
+    endgameOPR: total.endgame / count,
+    overallOPR: total.overall / count,
+  };
+
+  return averageOPRsCache;
+}
+
+// ------------------- UTIL -------------------
 export function getWins(matches: AllianceInfo[]): number {
-  return matches.reduce((count, match) => {
-    return count + (match.win ? 1 : 0);
-  }, 0);
+  return matches.reduce((count, match) => count + (match.win ? 1 : 0), 0);
 }
 
-export function getTeamRecord(matches: AllianceInfo[]): { wins: number; losses: number; winRate: number } {
+export function getTeamRecord(matches: AllianceInfo[]): {
+  wins: number;
+  losses: number;
+  winRate: number;
+} {
   const wins = getWins(matches);
   const losses = matches.length - wins;
   const winRate = matches.length > 0 ? Number((wins / matches.length * 100).toFixed(1)) : 0;
-  
   return { wins, losses, winRate };
 }
 
-export function getMatchesByType(matches: AllianceInfo[]): { 
-  qualificationMatches: AllianceInfo[]; 
-  playoffMatches: AllianceInfo[]; 
+export function getMatchesByType(matches: AllianceInfo[]): {
+  qualificationMatches: AllianceInfo[];
+  playoffMatches: AllianceInfo[];
 } {
   return {
     qualificationMatches: matches.filter(m => m.matchType === 'QUALIFICATION'),
@@ -180,12 +178,17 @@ export function getMatchesByType(matches: AllianceInfo[]): {
   };
 }
 
-export const fetchTeamName = async (teamNumber: number): Promise<string> => {
-  const { data, error } = await supabase
+export async function fetchTeamName(teamNumber: number): Promise<string | undefined> {
+  if (teamNameCache.has(teamNumber)) return teamNameCache.get(teamNumber);
+
+  const { data } = await supabase
     .from('season_2024')
     .select('teamName')
     .eq('teamNumber', teamNumber)
-    .single();
+    .single()
+    .throwOnError();
 
-  return data?.teamName;
-};
+  const name = data?.teamName;
+  if (name) teamNameCache.set(teamNumber, name);
+  return name;
+}

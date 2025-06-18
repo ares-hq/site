@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -13,10 +13,10 @@ import Platforms from './left_sidebar/platforms';
 import Scouting from './left_sidebar/scouting';
 
 type SidebarProps = {
-  navigateToPage: (page: string) => void;
+  close?: () => void; // optional close callback for mobile view
 };
 
-export default function Sidebar({ navigateToPage }: SidebarProps) {
+export default function Sidebar({ close }: SidebarProps) {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -30,20 +30,19 @@ export default function Sidebar({ navigateToPage }: SidebarProps) {
         </View>
 
         {/* Favorites & Recents */}
-        <UsedTabs navigateToPage={navigateToPage}/>
+        <UsedTabs close={close} />
 
         {/* Dashboards */}
-        <Dashboards navigateToPage={navigateToPage}/>
+        <Dashboards close={close} />
 
         {/* Analytics */}
-        <Analytics navigateToPage={navigateToPage}/>
+        <Analytics close={close} />
 
         {/* Platforms */}
-        <Platforms navigateToPage={navigateToPage}/>
+        <Platforms close={close} />
         
         {/* Scouting */}
-        <Scouting navigateToPage={navigateToPage}/>
-        
+        <Scouting close={close} />
       </ScrollView>
 
       {/* Footer */}

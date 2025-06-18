@@ -9,12 +9,14 @@ import {
 import IdentificationBadge from '../../assets/icons/identification-badge.svg';
 import CaretRight from '../../assets/icons/caret-right.svg';
 import Controller from '../../assets/icons/game-controller.svg';
+import { useRouter } from 'expo-router';
 
 type AnalyticsProps = {
-  navigateToPage: (page: string) => void;
+  close?: () => void;
 };
 
-const Analytics = ({ navigateToPage }: AnalyticsProps) => {
+const Analytics = ({ close }: AnalyticsProps) => {
+  const router = useRouter();
   const [teamsExpanded, setTeamsExpanded] = useState(false);
   const [matchesExpanded, setMatchesExpanded] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -41,11 +43,16 @@ const Analytics = ({ navigateToPage }: AnalyticsProps) => {
     outputRange: ['0deg', '90deg'],
   });
 
-
   const rotateMatch = fadeAnimMatch.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '90deg'],
   });
+
+  const go = (path: string) => {
+    router.push(path as any);
+    close?.();
+  };
+
 
   return (
     <View style={styles.sidebar}>
@@ -68,10 +75,10 @@ const Analytics = ({ navigateToPage }: AnalyticsProps) => {
 
       {teamsExpanded && (
         <>
-          <SidebarItem label="Ranks" onPress={() => navigateToPage('Teams')}/>
-          <SidebarItem label="Auto" onPress={() => navigateToPage('Auto')}/>
-          <SidebarItem label="TeleOp" onPress={() => navigateToPage('TeleOp')}/>
-          <SidebarItem label="Endgame" onPress={() => navigateToPage('Endgame')}/>
+          <SidebarItem label="Ranks" onPress={() => go('/analytics/teams/tranks')} />
+          <SidebarItem label="Auto" onPress={() => go('/analytics/teams/tauto')} />
+          <SidebarItem label="TeleOp" onPress={() => go('/analytics/teams/ttele')} />
+          <SidebarItem label="Endgame" onPress={() => go('/analytics/teams/tendgame')} />
         </>
       )}
 
@@ -93,10 +100,10 @@ const Analytics = ({ navigateToPage }: AnalyticsProps) => {
 
       {matchesExpanded && (
         <>
-          <SidebarItem label="Ranks" onPress={() => navigateToPage('Matches')}/>
-          <SidebarItem label="Qualifiers" onPress={() => navigateToPage('Qualifiers')}/>
-          <SidebarItem label="Finals" onPress={() => navigateToPage('Finals')} />
-          <SidebarItem label="Premier" onPress={() => navigateToPage('Premier')}/>
+          <SidebarItem label="Ranks" onPress={() => go('/analytics/matches/mranks')} />
+          <SidebarItem label="Qualifiers" onPress={() => go('/analytics/matches/qual')} />
+          <SidebarItem label="Finals" onPress={() => go('/analytics/matches/finals')} />
+          <SidebarItem label="Premier" onPress={() => go('/analytics/matches/premier')} />
         </>
       )}
     </View>

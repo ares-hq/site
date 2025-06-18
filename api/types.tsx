@@ -1,14 +1,14 @@
 export interface TeamInfo {
-  teamName: string;
-  teamNumber: number;
-  location: string;
-  founded: string;
-  highestScore: string;
-  website: string;
+  teamName?: string;
+  teamNumber?: number;
+  location?: string;
+  founded?: string;
+  highestScore?: string;
+  website?: string;
   eventsAttended?: number;
   averagePlace?: number;
-  sponsors: string;
-  achievements: string;
+  sponsors?: string;
+  achievements?: string;
   overallRank?: number;
   teleRank?: number;
   autoRank?: number;

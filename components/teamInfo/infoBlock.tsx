@@ -21,28 +21,28 @@ const InfoBox = ({ screenWidth, teamInfo, highScore }: InfoSectionProps) => {
     <Text style={styles.title}>Team Profile</Text>
       <View style={styles.contentContainer}>
         <View style={{ gap: 30 }}>
-          <InfoRow icon={<ShieldIcon />} label="Team Name" value={teamInfo.teamName} />
-          <InfoRow icon={<LocationIcon />} label="Location" value={teamInfo.location} />
-          <InfoRow icon={<CalendarIcon />} label="Founded" value={teamInfo.founded} />
+          <InfoRow icon={<ShieldIcon />} label="Team Name" value={teamInfo.teamName || 'N/A'} />
+          <InfoRow icon={<LocationIcon />} label="Location" value={teamInfo.location || 'N/A'} />
+          <InfoRow icon={<CalendarIcon />} label="Founded" value={teamInfo.founded || 'N/A'} />
           <InfoRow icon={<TrophyIcon />} label="Highest Score" value={highScore.toString()} />
         </View>
         <View style={styles.offsetColumn}>
           <InfoRow
             icon={<GlobeIcon />}
             label="Website"
-            value={teamInfo.website}
+            value={teamInfo.website || 'N/A'}
             isLink
-            displayText={'Team ' + teamInfo.teamNumber.toString()}
+            displayText={'Team ' + (teamInfo.teamNumber && teamInfo.teamNumber.toString())}
           />
           <InfoRow
             icon={<UsersIcon />}
             label="Sponsors"
-            value={teamInfo.sponsors}
+            value={teamInfo.sponsors || 'N/A'}
           />
           <InfoRow
             icon={<TopScore />}
             label="Achievements"
-            value={teamInfo.achievements}
+            value={teamInfo.achievements || 'N/A'}
           />
         </View>
       </View>

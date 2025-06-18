@@ -18,7 +18,7 @@ import { getAverageOPRs, getTeamInfo, getTeamMatches, getWins } from '@/api/dash
 import { getFirstAPI } from '@/api/firstAPI';
 import { AllianceInfo, EventInfo, MatchInfo, MatchTypeAverages, TeamInfo } from '@/api/types';
 import { attachHourlyAverages, getAverageByMatchType, getAveragePlace, getAwards } from '@/api/averageMatchScores';
-import { calculateTeamOPR } from '@/api/calcOPR';
+import { useLocalSearchParams } from 'expo-router';
 
 type StatCardProps = {
   title: string;
@@ -50,7 +50,11 @@ const StatCard = ({ title, value, change, positive, color }: StatCardProps) => {
   );
 };
 
-const IntoTheDeep = ({teamNumber} : IntoTheDeepProps) => {
+const IntoTheDeep = () => {
+  const teamnumber = Number(useLocalSearchParams());
+  if (isNaN(teamnumber)) {
+    return <Text>Invalid or missing team number</Text>;
+  }
   const [containerWidth, setContainerWidth] = useState(0);
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(null);
   const [matches, setMatches] = useState<AllianceInfo[] | null>(null);
@@ -70,14 +74,14 @@ const IntoTheDeep = ({teamNumber} : IntoTheDeepProps) => {
   useEffect(() => {
     const fetchInfo = async () => {
       try {
-        const data = await getTeamInfo(teamNumber);
+        const data = await getTeamInfo(teamnumber);
         const avg = await getAverageOPRs();
-        const match = await getTeamMatches(teamNumber);
+        const match = await getTeamMatches(teamnumber);
         const hourlyAverages = await attachHourlyAverages(match ?? []);
         const matchType = await getAverageByMatchType(match ?? []);
         const highScore = match?.reduce((max, m) => Math.max(max, m.totalPoints), 0) ?? 0;
         const wins = await getWins(match ?? []);
-        const eventData = await getFirstAPI(data?.events ?? [''], teamNumber);
+        const eventData = await getFirstAPI(data?.events ?? [''], teamnumber);
 
         if (data) {
           data.averagePlace = getAveragePlace(eventData ?? []);
@@ -208,7 +212,7 @@ const IntoTheDeep = ({teamNumber} : IntoTheDeepProps) => {
       <View style={styles.eventContainer}>
         {eventData && eventData.map((event, index) => (
           <View key={index} style={{ marginBottom: 5, flexShrink: 0 }}>
-            <EventCard eventData={event} teamNumber={teamNumber} />
+            <EventCard eventData={event} teamNumber={teamnumber} />
           </View>
         ))}
       </View>

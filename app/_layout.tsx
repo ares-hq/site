@@ -1,32 +1,25 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, Animated, ScrollView, TouchableOpacity, Text, Dimensions } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  StyleSheet,
+  Animated,
+  ScrollView,
+  TouchableOpacity,
+  Dimensions,
+} from 'react-native';
+import { useFonts } from 'expo-font';
+import { Slot } from 'expo-router';
 import LeftSidebar from '@/components/leftSidebar';
 import HeaderBar from '@/components/header';
-import { useFonts } from 'expo-font';
-import TRanks from '@/screens/tranks';
-import TAuto from '@/screens/tauto';
-import TTele from '@/screens/ttele';
-import TEndgame from '@/screens/tendgame';
-import MRanks from '@/screens/mranks';
-import Qual from '@/screens/qual';
-import Age from '@/screens/age';
-import IntoTheDeep from '@/screens/intothedeep';
-import Premier from '@/screens/premier';
-import Finals from '@/screens/finals';
 import Footer from '@/components/footer';
-import App from '@/screens/app';
-import Discord from '@/screens/discord';
-import ScoutSheet from '@/screens/scoutSheet';
 import Cancel from '../assets/icons/x-circle.svg';
-import StatusScreen from '@/screens/systemStatus';
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default function Layout() {
   const [fontsLoaded] = useFonts({
     InterRegular: require('@/assets/fonts/Inter/static/Inter_18pt-Thin.ttf'),
   });
 
   const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [activePage, setActivePage] = useState('DIVE');
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   
   const sidebarTranslateX = useRef(new Animated.Value(sidebarVisible ? 0 : -209)).current;
@@ -70,61 +63,22 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     }
   }, [sidebarVisible, isDesktop, sidebarTranslateX, overlayOpacity]);
 
-  const renderPage = () => {
-    switch (activePage) {
-      case 'Teams':
-        return <TRanks />;
-      case 'Matches':
-        return <MRanks />;
-      case 'Auto':
-        return <TAuto />;
-      case 'TeleOP':
-        return <TTele />;
-      case 'Endgame':
-        return <TEndgame />;
-      case 'Qualifiers':
-        return <Qual />;
-      case 'Premier':
-        return <Premier />;
-      case 'Finals':
-        return <Finals />;
-      case 'AGE':
-        return <Age />;
-      case 'DIVE':
-        return <IntoTheDeep teamNumber={14584}/>;
-      case 'App':
-        return <App />;
-      case 'Discord':
-        return <Discord />;
-      case 'ScoutSheet':
-        return <ScoutSheet />;
-      case 'Status':
-        return <StatusScreen />;
-      default:
-        return <TRanks />;
-    }
-  };
-
   if (!fontsLoaded) return null;
 
   if (isDesktop) {
     return (
       <View style={styles2.container}>
         <Animated.View style={[styles2.sidebar, { width: sidebarWidth }]}>
-          {sidebarVisible && <LeftSidebar navigateToPage={setActivePage} />}
+          {sidebarVisible && <LeftSidebar close={() => setSidebarVisible(false)} />}
         </Animated.View>
 
         <View style={styles2.contentArea}>
-          <HeaderBar 
-            toggleSidebar={() => setSidebarVisible(!sidebarVisible)} 
-            currentPage={activePage}
-          />
+          <HeaderBar toggleSidebar={() => setSidebarVisible(!sidebarVisible)}/>
           <ScrollView contentContainerStyle={styles2.scrollContent}>
             <View style={styles2.pageContent}>
-              {renderPage()}
-              {children}
+              <Slot />
             </View>
-            <Footer navigateToPage={setActivePage}/>
+            <Footer />
           </ScrollView>
         </View>
       </View>
@@ -133,55 +87,26 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <View style={styles.container}>
-      {/* Main content area */}
       <View style={styles.contentArea}>
-        <HeaderBar 
-          toggleSidebar={() => setSidebarVisible(!sidebarVisible)} 
-          currentPage={activePage}
-        />
+        <HeaderBar toggleSidebar={() => setSidebarVisible(!sidebarVisible)} showRoute={false}/>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.pageContent}>
-            {renderPage()}
-            {children}
+            <Slot />
           </View>
-          <Footer navigateToPage={setActivePage}/>
+          <Footer />
         </ScrollView>
       </View>
 
-      {/* Blur overlay - only visible when sidebar is open */}
       {sidebarVisible && (
-        <Animated.View 
-          style={[
-            styles.blurOverlay, 
-            { opacity: overlayOpacity }
-          ]} 
-          pointerEvents={sidebarVisible ? 'auto' : 'none'}
-        />
+        <Animated.View style={[styles.blurOverlay, { opacity: overlayOpacity }]} />
       )}
 
-      {/* Sidebar - positioned absolutely to overlay content */}
-      <Animated.View 
-        style={[
-          styles.sidebar, 
-          { transform: [{ translateX: sidebarTranslateX }] }
-        ]}
-      >
-        <LeftSidebar navigateToPage={setActivePage} />
-        
-        {/* Floating close button */}
+      <Animated.View style={[styles.sidebar, { transform: [{ translateX: sidebarTranslateX }] }]}>
+        <LeftSidebar close={() => setSidebarVisible(false)} />
         {sidebarVisible && (
-          <Animated.View 
-            style={[
-              styles.closeButton,
-              { opacity: overlayOpacity }
-            ]}
-          >
-            <TouchableOpacity
-              style={styles.closeButtonTouch}
-              onPress={() => setSidebarVisible(false)}
-              activeOpacity={0.7}
-            >
-              <Cancel width={16} height={16}/>
+          <Animated.View style={[styles.closeButton, { opacity: overlayOpacity }]}>
+            <TouchableOpacity style={styles.closeButtonTouch} onPress={() => setSidebarVisible(false)}>
+              <Cancel width={16} height={16} />
             </TouchableOpacity>
           </Animated.View>
         )}

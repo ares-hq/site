@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
 import LeftSide from './header/leftSide';
 import RightSide from './header/rightSide';
@@ -10,18 +10,20 @@ type HeaderBarProps = {
 };
 
 const TopNavbar = ({ toggleSidebar, currentPage, onLayout }: HeaderBarProps) => {
+  const [showRoute, setShowRoute] = useState(true);
   const handleLayout = (event: LayoutChangeEvent) => {
-    const { width } = event.nativeEvent.layout;
+    const { height, width } = event.nativeEvent.layout;
     if (onLayout) {
       onLayout(width);
     }
+    setShowRoute(height <= 200);
   };
   
   return (
     <View style={styles.wrapper} onLayout={handleLayout}>
       <View style={styles.container}>
         <View style={styles.leftSide}>
-          <LeftSide toggleSidebar={toggleSidebar} pageTitle={currentPage ?? ''} />
+          <LeftSide toggleSidebar={toggleSidebar} pageTitle={currentPage ?? ''} showRoute={showRoute}/>
         </View>
         <View style={styles.rightSide}>
           <RightSide />
