@@ -1,4 +1,4 @@
-import { MatchInfo, TeamInfo } from '@/api/dashboardInfo';
+import { AllianceInfo, MatchInfo, TeamInfo } from '@/api/types';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { ComposedChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
@@ -6,8 +6,8 @@ import { ComposedChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 
 interface UserGraphSectionProps {
   screenWidth: number;
   teamInfo: TeamInfo;
-  matches: MatchInfo[] | null;
-  averages: MatchInfo[];
+  matches: AllianceInfo[] | null;
+  averages: AllianceInfo[];
   wins: number;
 }
 
@@ -30,12 +30,20 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
   const [chartWrapperWidth, setChartWrapperWidth] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<string>('Match Score');
 
+  function getBarColor(): string {
+    if (teamInfo.averagePlace == null) return '#9ca3af'; // gray for no data
+    if (teamInfo.averagePlace <= 5) return '#10b981'; // green
+    if (teamInfo.averagePlace <= 10) return '#facc15'; // yellow
+    if (teamInfo.averagePlace <= 20) return '#f97316'; // orange
+    return '#ef4444'; // red
+  }
+
   const onChartWrapperLayout = (event: LayoutEvent): void => {
     const { width } = event.nativeEvent.layout;
     setChartWrapperWidth(width);
   };
 
-  const tabKeyMap: Record<string, keyof MatchInfo> = {
+  const tabKeyMap: Record<string, keyof AllianceInfo> = {
     'Match Score': 'totalPoints',
     'Driver Period': 'tele',
     'Penalties': 'penalty',
@@ -46,7 +54,7 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
     .map((match, index) => {
       const matchHour = new Date(match.date).toISOString().slice(0, 13);
       const averageMatch = averages.find((a) => a.date.slice(0, 13) === matchHour);
-
+      
       const activeKey = tabKeyMap[activeTab];
 
       return {
@@ -85,7 +93,11 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
     },
     { name: 'Matches Played', value: matches?.length ?? 0, total: 200 },
     { name: 'Wins', value: wins, total: matches?.length ?? 0},
-    { name: 'Average Place', value: 3.2, total: 5 },
+    { 
+      name: 'Average Place', 
+      value: teamInfo.averagePlace ? teamInfo.averagePlace <= 5 ? 10 : teamInfo.averagePlace <= 10 ? 7.5 : teamInfo.averagePlace <= 20 ? 5 : 2.5 : 0.01,
+      total: 10,
+    },
   ];
 
   const TeamData = () => (
@@ -116,7 +128,7 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
               <Text style={styles.metricName}>{trafficData[2].name}</Text>
               <View style={styles.metricValue}>
                 <Text style={styles.valueText}>{trafficData[2].value}</Text>
-                <Text style={styles.totalText}>/ {trafficData[2].total}</Text> {/* only for Wins */}
+                <Text style={styles.totalText}>/ {trafficData[2].total}</Text>
               </View>
               <View style={styles.barContainer}>
                 <View
@@ -132,25 +144,24 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
               </View>
             </View>
 
-            <View style={styles.metricCard}>
-              <Text style={styles.metricName}>{trafficData[3].name}</Text>
-              <View style={styles.metricValue}>
-                <Text style={styles.valueText}>{trafficData[3].value.toFixed(1)}</Text>
-                <Text style={styles.totalText}>/ {trafficData[3].total}</Text>
-              </View>
-              <View style={styles.barContainer}>
-                <View
-                  style={[
-                    styles.barFilled,
-                    {
-                      width: `${(trafficData[3].value / trafficData[3].total) * 100}%`,
-                      backgroundColor: '#10b981',
-                    },
-                  ]}
-                />
-                <View style={styles.barEmpty} />
-              </View>
+          <View style={styles.metricCard}>
+            <Text style={styles.metricName}>{trafficData[3].name}</Text>
+            <View style={styles.metricValue}>
+              <Text style={styles.valueText}>{teamInfo.averagePlace}</Text>
             </View>
+            <View style={styles.barContainer}>
+              <View
+                style={[
+                  styles.barFilled,
+                  {
+                    width: trafficData[3].value /  trafficData[3].total * 100,
+                    backgroundColor: getBarColor(),
+                  },
+                ]}
+              />
+              <View style={styles.barEmpty} />
+            </View>
+          </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
             <Text style={{ fontSize: 12, color: '#374151', fontWeight: '500' }}>Penalties OPR</Text>

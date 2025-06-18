@@ -13,7 +13,11 @@ import EventPerformance from '@/components/graphs/eventPerformace';
 import EventScores from '@/components/graphs/eventScores';
 import InfoBlock from '@/components/teamInfo/infoBlock';
 import EventCard from '@/components/teamInfo/eventCard';
-import { getAverageOPRs, attachHourlyAverages, getMatches, getTeamInfo, MatchInfo, TeamInfo, MatchType, getAverageByMatchType, getWins } from '@/api/dashboardInfo';
+import { getAverageOPRs, getTeamInfo, getTeamMatches, getWins } from '@/api/dashboardInfo';
+import { getFirstAPI } from '@/api/firstAPI';
+import { AllianceInfo, EventInfo, MatchInfo, MatchTypeAverages, TeamInfo } from '@/api/types';
+import { attachHourlyAverages, getAverageByMatchType, getAveragePlace, getAwards } from '@/api/averageMatchScores';
+import { calculateTeamOPR } from '@/api/calcOPR';
 
 type StatCardProps = {
   title: string;
@@ -23,7 +27,11 @@ type StatCardProps = {
   color: 'blue' | 'indigo';
 };
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, change, positive, color }) => {
+type IntoTheDeepProps = {
+  teamNumber: number;
+};
+
+const StatCard = ({ title, value, change, positive, color }: StatCardProps) => {
   const backgroundColor = color === 'blue' ? '#E6F1FD' : '#EDEEFC';
   const textColor = positive ? '#16a34a' : '#dc2626';
 
@@ -41,15 +49,14 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, change, positive, col
   );
 };
 
-const IntoTheDeep = () => {
+const IntoTheDeep = ({teamNumber} : IntoTheDeepProps) => {
   const [containerWidth, setContainerWidth] = useState(0);
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(null);
-  const [matches, setMatches] = useState<MatchInfo[] | null>(null);
-  const [penalties, setPenalties] = useState<MatchInfo[] | null>(null);
-  const [tele, setTele] = useState<MatchInfo[] | null>(null);
-  const [averages, setAverages] = useState<MatchInfo[] | null>(null);
+  const [matches, setMatches] = useState<AllianceInfo[] | null>(null);
+  const [eventData, setEventData] = useState<EventInfo[] | null>(null);
+  const [averages, setAverages] = useState<AllianceInfo[] | null>(null);
+  const [matchTypeAverages, setMatchTypeAverages] = useState<MatchTypeAverages | null>(null);
   const [wins, setWins] = useState<number | null>(0);
-  const [matchType, setMatchType] = useState<MatchType | null>(null);
   const [highestScore, setHighScore] = useState(0);
   const [loading, setLoading] = useState(true);
   const [averageOPR, setAverageOPR] = useState<{
@@ -62,21 +69,27 @@ const IntoTheDeep = () => {
   useEffect(() => {
     const fetchInfo = async () => {
       try {
-        const data = await getTeamInfo(14584);
+        const data = await getTeamInfo(teamNumber);
         const avg = await getAverageOPRs();
-        const match = await getMatches(14584);
+        const match = await getTeamMatches(teamNumber);
         const hourlyAverages = await attachHourlyAverages(match ?? []);
         const matchType = await getAverageByMatchType(match ?? []);
         const highScore = match?.reduce((max, m) => Math.max(max, m.totalPoints), 0) ?? 0;
         const wins = await getWins(match ?? []);
+        const eventData = await getFirstAPI(data?.events ?? [''], teamNumber);
 
-        if (data) setTeamInfo(data);
+        if (data) {
+          data.averagePlace = getAveragePlace(eventData ?? []);
+          data.achievements = getAwards(eventData ?? []);
+          setTeamInfo(data);
+        }
         if (avg) setAverageOPR(avg);
         if (match) setMatches(match);
         if (hourlyAverages) setAverages(hourlyAverages);
-        if (matchType) setMatchType(matchType);
         if (highScore) setHighScore(highScore);
         if (wins) setWins(wins);
+        if (eventData) setEventData(eventData);
+        if (matchType) setMatchTypeAverages(matchType);
       } catch (err) {
         console.error('Error fetching dashboard info', err);
       } finally {
@@ -99,7 +112,7 @@ const IntoTheDeep = () => {
 
       <View style={styles.cardRow}>
         <StatCard 
-          title="Auto OPR" 
+          title={`Auto OPR`}
           value={teamInfo?.autoOPR?.toFixed(2) ?? '--'} 
           change={
             averageOPR && teamInfo?.autoOPR != null
@@ -144,7 +157,7 @@ const IntoTheDeep = () => {
         />
       </View>
 
-      {containerWidth > 0 && teamInfo && matches && averages && matchType && wins &&(
+      {containerWidth > 0 && teamInfo && matches && averages && wins &&(
         <UserGraphSection matches={matches} averages={averages} screenWidth={containerWidth} teamInfo={teamInfo} wins={wins}/>
       )}
 
@@ -158,15 +171,17 @@ const IntoTheDeep = () => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chartScrollContainer}
         >
-          {matchType && <EventPerformance matchType={matchType}/>}
+          {matchTypeAverages && <EventPerformance matchType={matchTypeAverages}/>}
           {teamInfo && <EventScores teamInfo={teamInfo} />}
           {teamInfo && (
-            <InfoBlock screenWidth={containerWidth} teamInfo={teamInfo} highScore={highestScore}/>
+            <View style={{ minWidth: 550, flexShrink: 0 }}>
+              <InfoBlock screenWidth={containerWidth} teamInfo={teamInfo} highScore={highestScore}/>
+            </View>
           )}
         </ScrollView>
       ) : (
         <View style={styles.chartScrollContainer}>
-          {matchType && <EventPerformance matchType={matchType}/>}
+          {matchTypeAverages && <EventPerformance matchType={matchTypeAverages}/>}
           {teamInfo && <EventScores teamInfo={teamInfo} />}
           {teamInfo && (
             <InfoBlock screenWidth={containerWidth} teamInfo={teamInfo} highScore={highestScore}/>
@@ -179,7 +194,11 @@ const IntoTheDeep = () => {
       </View>
       
       <View style={styles.eventContainer}>
-        <EventCard />
+        {eventData && eventData.map((event, index) => (
+          <View key={index} style={{ marginBottom: 5, flexShrink: 0 }}>
+            <EventCard key={index} eventData={event} teamNumber={teamNumber}/>
+          </View>
+        ))}
       </View>
       {loading && (
         <View style={styles.loadingOverlay}>

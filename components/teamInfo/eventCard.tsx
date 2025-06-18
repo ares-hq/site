@@ -8,56 +8,44 @@ import {
   ScrollView,
   useWindowDimensions,
 } from 'react-native';
-import TopScore from '@/assets/icons/trophy.svg';
+import TrophyIcon from '@/assets/icons/trophy.svg';
 import LocationIcon from '@/assets/icons/map-pin.svg';
 import CalendarIcon from '@/assets/icons/calendar.svg';
+import TopScore from '@/assets/icons/ranking.svg';
+import { AllianceInfo, EventInfo, MatchInfo } from '@/api/types';
 
-const matches = [
-  {
-    match: 'Q-2',
-    redScore: 10,
-    blueScore: 7,
-    redTeams: ['14750', 'ATOM', '26418', 'Flying Nuggets'],
-    blueTeams: ['22', '100 Scholars', '7482', 'Java Beans']
-  },
-  {
-    match: 'Q-5',
-    redScore: 31,
-    blueScore: 46,
-    redTeams: ['26507', 'Geneton', '22', '100 Scholars'],
-    blueTeams: ['17005', 'SAE Dragonbots', '12769', 'Rebellion Engineering']
-  },
-  {
-    match: 'Q-7',
-    redScore: 121,
-    blueScore: 37,
-    redTeams: ['22', '100 Scholars', '17005', 'SAE Dragonbots'],
-    blueTeams: ['7482', 'Java Beans', '23509', 'RoboRibbits']
-  },
-  {
-    match: 'Q-10',
-    redScore: 92,
-    blueScore: 46,
-    redTeams: ['11127', 'Whitefield Robotics', '26507', 'Geneton'],
-    blueTeams: ['21915', 'SMA Bobcats', '22', '100 Scholars']
-  },
-  {
-    match: 'Q-11',
-    redScore: 76,
-    blueScore: 11,
-    redTeams: ['23509', 'RoboRibbits', '21915', 'SMA Bobcats'],
-    blueTeams: ['22', '100 Scholars', '26418', 'Flying Nuggets']
-  }
-];
+interface UserGraphSectionProps {
+  eventData: EventInfo;
+  teamNumber: number;
+}
 
-export default function EventCard() {
+export default function EventCard({ eventData, teamNumber }: UserGraphSectionProps) {
   const { width } = useWindowDimensions();
+
+  const getEventStatus = (dateStr?: string) => {
+    if (!dateStr) return { label: 'Unknown', color: '#9CA3AF' };
+
+    const eventDate = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (eventDate < today) {
+      return { label: 'Completed', color: '#34C759' }; // green
+    } else if (eventDate.toDateString() === today.toDateString()) {
+      return { label: 'Ongoing', color: '#F59E0B' }; // orange
+    } else {
+      return { label: 'Not Yet Occurred', color: '#EF4444' }; // red
+    }
+  };
+
+  const status = getEventStatus(eventData.date);
   
   const isSmallDevice = width < 380;
   const isLargeDevice = width >= 768;
+  const matches = eventData.matches || [];
 
   const handleWebsitePress = async () => {
-    const url = 'https://www.douglascountyschools.com/robotics';
+    const url = 'https://www.google.com/search?q=' + eventData.location.replace(/\s+/g, '+');
     try {
       await Linking.openURL(url);
     } catch (error) {
@@ -65,119 +53,108 @@ export default function EventCard() {
     }
   };
 
-  const getTeamDisplayName = (team: string) => {
-    const knownNames: { [key: string]: string } = {
-      'ATOM': 'ATOM',
-      '100 Scholars': '100 Scholars',
-      'Geneton': 'Geneton',
-      'SAE Dragonbots': 'SAE Dragonbots',
-      'Java Beans': 'Java Beans',
-      'Whitefield Robotics': 'Whitefield Robotics',
-      'RoboRibbits': 'RoboRibbits',
-      'Flying Nuggets': 'Flying Nuggets',
-      'Rebellion Engineering': 'Rebellion Engineering',
-      'SMA Bobcats': 'SMA Bobcats'
-    };
-    return knownNames[team] || team;
-  };
+  const renderTeamCell = (team: AllianceInfo | undefined) => {
+    if (!team) return null;
 
-  const renderTeamCell = (teams: any[], isRed: boolean) => (
-    <View style={[
-      styles.teamCell, 
-      isRed ? styles.redAlliance : styles.blueAlliance,
-      isSmallDevice && styles.teamCellSmall
-    ]}>
-      {teams.map((team, index) => {
-        const isNumber = /^\d+$/.test(team);
-        const displayName = getTeamDisplayName(team);
-        return (
-          <View key={index} style={[styles.teamRow, isSmallDevice && styles.teamRowSmall]}>
+    const isRedAlliance = team.alliance === 'red';
+    const teams = [team.team_1, team.team_2].filter(Boolean);
+
+    return (
+      <View
+        style={[
+          styles.teamCell,
+          isRedAlliance ? styles.redAlliance : styles.blueAlliance,
+          isSmallDevice && styles.teamCellSmall,
+        ]}
+      >
+        {teams.map((t, index) => (
+          <View
+            key={index}
+            style={[styles.teamRow, isSmallDevice && styles.teamRowSmall]}
+          >
             <View style={styles.teamInfo}>
-              {isNumber ? (
-                <>
-                  <Text style={[
-                    styles.teamNumber, 
-                    isRed ? styles.redTeamText : styles.blueTeamText,
-                    isSmallDevice && styles.teamNumberSmall
-                  ]}>
-                    Team {team}
-                  </Text>
-                  {displayName !== team && (
-                    <Text style={[
-                      styles.teamName, 
-                      isRed ? styles.redTeamNameText : styles.blueTeamNameText,
-                      isSmallDevice && styles.teamNameSmall
-                    ]}>
-                      {displayName}
-                    </Text>
-                  )}
-                </>
-              ) : (
-                <Text style={[
-                  styles.teamName, 
-                  isRed ? styles.redTeamNameText : styles.blueTeamNameText,
-                  isSmallDevice && styles.teamNameSmall
-                ]}>
-                  {team}
-                </Text>
-              )}
+              <Text
+                style={[
+                  styles.teamNumber,
+                  isRedAlliance ? styles.redTeamText : styles.blueTeamText,
+                  isSmallDevice && styles.teamNumberSmall,
+                ]}
+              >
+                Team {t?.teamNumber}
+              </Text>
+              <Text
+                style={[
+                  styles.teamName,
+                  isRedAlliance ? styles.redTeamNameText : styles.blueTeamNameText,
+                  isSmallDevice && styles.teamNameSmall,
+                ]}
+              >
+                {t?.teamName}
+              </Text>
             </View>
           </View>
-        );
-      })}
-    </View>
-  );
-
-  const renderMatchRow = (match: any, index: number) => {
-    const redWon = (match.redScore ?? 0) > (match.blueScore ?? 0);
-    const isLastRow = index === matches.length - 1;
-    return (
-      <View key={index} style={[
-        styles.tableRow, 
-        isLastRow && styles.lastRow,
-        isSmallDevice && styles.tableRowSmall
-      ]}>
-        <View style={[styles.matchCell, isSmallDevice && styles.matchCellSmall]}>
-          <View style={[styles.matchBadge, redWon ? styles.redMatchBadge : styles.blueMatchBadge]}>
-            <Text style={[
-              styles.matchText, 
-              redWon ? styles.redMatchText : styles.blueMatchText,
-              isSmallDevice && styles.matchTextSmall
-            ]}>
-              {match.match}
-            </Text>
-          </View>
-        </View>
-        <View style={[styles.scoreCell, isSmallDevice && styles.scoreCellSmall]}>
-          <View style={styles.scoreContainer}>
-            <Text style={[
-              styles.scoreNumber, 
-              redWon ? styles.winningScore : styles.losingScore,
-              isSmallDevice && styles.scoreNumberSmall
-            ]}>
-              {match.redScore}
-            </Text>
-            <Text style={[styles.scoreDivider, isSmallDevice && styles.scoreDividerSmall]}>-</Text>
-            <Text style={[
-              styles.scoreNumber, 
-              !redWon ? styles.winningScore : styles.losingScore,
-              isSmallDevice && styles.scoreNumberSmall
-            ]}>
-              {match.blueScore}
-            </Text>
-          </View>
-        </View>
-        {renderTeamCell(match.redTeams, true)}
-        {renderTeamCell(match.blueTeams, false)}
+        ))}
       </View>
     );
   };
 
-  const teamWins = matches.filter(match => {
-    const isOnRed = match.redTeams.includes('22') || match.redTeams.includes('100 Scholars');
-    const isOnBlue = match.blueTeams.includes('22') || match.blueTeams.includes('100 Scholars');
-    return isOnRed ? match.redScore > match.blueScore : isOnBlue && match.blueScore > match.redScore;
-  }).length;
+  const renderMatchRow = (match: MatchInfo, index: number) => {
+    const isLastRow = index === matches.length - 1;
+
+    const teamRed = match.redAlliance;
+    const teamBlue = match.blueAlliance;
+    const teamOnRed = teamRed.team_1 && teamRed.team_1.teamNumber == teamNumber || teamRed.team_2 && teamRed.team_2.teamNumber == teamNumber;
+
+    const redScore = match.redAlliance.totalPoints;
+    const blueScore = match.blueAlliance.totalPoints;
+
+    const teamColor = teamOnRed ? 'red' : 'blue';
+    const badgeStyle = teamColor === 'red' ? styles.redMatchBadge : styles.blueMatchBadge;
+    const badgeTextStyle = teamColor === 'red' ? styles.redMatchText : styles.blueMatchText;
+
+    return (
+      <View key={index} style={[
+        styles.tableRow,
+        isLastRow && styles.lastRow,
+        isSmallDevice && styles.tableRowSmall
+      ]}>
+        <View style={[styles.matchCell, isSmallDevice && styles.matchCellSmall]}>
+          <View style={[styles.matchBadge, badgeStyle]}>
+            <Text style={[
+              styles.matchText,
+              badgeTextStyle,
+              isSmallDevice && styles.matchTextSmall
+            ]}>
+              {match.matchNumber}
+            </Text>
+          </View>
+        </View>
+
+        <View style={[styles.scoreCell, isSmallDevice && styles.scoreCellSmall]}>
+          <View style={styles.scoreContainer}>
+            <Text style={[
+              styles.scoreNumber,
+              match.redAlliance.win ? styles.winningScore : styles.losingScore,
+              isSmallDevice && styles.scoreNumberSmall
+            ]}>
+              {redScore}
+            </Text>
+            <Text style={[styles.scoreDivider, isSmallDevice && styles.scoreDividerSmall]}>-</Text>
+            <Text style={[
+              styles.scoreNumber,
+              match.blueAlliance.win ? styles.winningScore : styles.losingScore,
+              isSmallDevice && styles.scoreNumberSmall
+            ]}>
+              {blueScore}
+            </Text>
+          </View>
+        </View>
+
+        {renderTeamCell(teamRed)}
+        {renderTeamCell(teamBlue)}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -188,18 +165,24 @@ export default function EventCard() {
       ]}>
         <View style={[styles.header, isSmallDevice && styles.headerSmall]}>
           <View style={styles.titleSection}>
+          {eventData && (
             <Text style={[
               styles.title,
-              isSmallDevice && styles.titleSmall,
-              isLargeDevice && styles.titleLarge
+              isSmallDevice ? styles.titleSmall : isLargeDevice ? styles.titleLarge : null
             ]}>
-              Douglasville-DCHS League Meet #2
+              {eventData.name}
             </Text>
-            <View style={styles.statusBadge}>
-              <Text style={[styles.statusText, isSmallDevice && styles.statusTextSmall]}>
-                COMPLETED
+          )}
+            <View style={[styles.statusBadge]}>
+              <Text style={[styles.statusText, { color: status.color }]}>
+                {status.label}
               </Text>
             </View>
+            {(status.label !== 'Completed' && matches.length === 0) && (
+              <Text style={{ marginTop: 4, color: '#9CA3AF', fontSize: 12 }}>
+                No info yet
+              </Text>
+            )}
           </View>
           <View style={styles.eventDetails}>
             <View style={styles.detailRow}>
@@ -207,7 +190,7 @@ export default function EventCard() {
                 <CalendarIcon width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} />
               </View>
               <Text style={[styles.detailText, isSmallDevice && styles.detailTextSmall]}>
-                November 23, 2024
+                {eventData.date}
               </Text>
             </View>
             <TouchableOpacity onPress={handleWebsitePress} style={styles.locationRow}>
@@ -219,9 +202,17 @@ export default function EventCard() {
                 styles.linkText,
                 isSmallDevice && styles.detailTextSmall
               ]}>
-                Douglas County High School, Douglasville, GA
+                {eventData.location}
               </Text>
             </TouchableOpacity>
+            <View style={styles.detailRow}>
+              <View style={styles.iconContainer}>
+                <TrophyIcon width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} />
+              </View>
+              <Text style={[styles.detailText, isSmallDevice && styles.detailTextSmall]}>
+                {eventData.achievements}
+              </Text>
+            </View>
           </View>
           <View style={[styles.performanceCard, isSmallDevice && styles.performanceCardSmall]}>
             <View style={styles.performanceHeader}>
@@ -234,7 +225,7 @@ export default function EventCard() {
               <View style={styles.rankBadge}>
                 <TopScore width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} fill='#92400E' />
                 <Text style={[styles.rankText, isSmallDevice && styles.rankTextSmall]}>
-                  9th Place
+                  {eventData.place} Place
                 </Text>
               </View>
             </View>
@@ -242,22 +233,22 @@ export default function EventCard() {
               <View style={styles.statItem}>
                 <Text style={[styles.statLabel, isSmallDevice && styles.statLabelSmall]}>Record</Text>
                 <Text style={[styles.statValue, isSmallDevice && styles.statValueSmall]}>
-                  {teamWins}-{matches.length - teamWins}-0
+                  {eventData.record}
                 </Text>
               </View>
               <View style={styles.statItem}>
                 <Text style={[styles.statLabel, isSmallDevice && styles.statLabelSmall]}>Win Rate</Text>
                 <Text style={[styles.statValue, isSmallDevice && styles.statValueSmall]}>
-                  {((teamWins / matches.length) * 100).toFixed(0)}%
+                  {eventData.winRate}%
                 </Text>
               </View>
               <View style={styles.statItem}>
                 <Text style={[styles.statLabel, isSmallDevice && styles.statLabelSmall]}>OPR</Text>
-                <Text style={[styles.statValue, isSmallDevice && styles.statValueSmall]}>13.07</Text>
+                <Text style={[styles.statValue, isSmallDevice && styles.statValueSmall]}>{eventData.OPR}</Text>
               </View>
               <View style={styles.statItem}>
                 <Text style={[styles.statLabel, isSmallDevice && styles.statLabelSmall]}>Average</Text>
-                <Text style={[styles.statValue, isSmallDevice && styles.statValueSmall]}>30.20</Text>
+                <Text style={[styles.statValue, isSmallDevice && styles.statValueSmall]}>{eventData.averageScore}</Text>
               </View>
             </View>
           </View>
@@ -318,6 +309,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+    marginBottom: 20,
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -475,8 +467,8 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   statValue: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '500',
     color: '#111827',
   },
   statValueSmall: {
@@ -502,6 +494,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   table: {
+    flex: 1,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#E5E7EB',
@@ -625,8 +618,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scoreNumber: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
   },
   scoreNumberSmall: {
     fontSize: 16,
@@ -634,7 +626,6 @@ const styles = StyleSheet.create({
   winningScore: {
     // color: '#059669',
     color: '#34C759',
-    fontWeight: '700',
   },
   losingScore: {
     color: '#6B7280',
@@ -687,7 +678,6 @@ const styles = StyleSheet.create({
   teamName: {
     fontSize: 11,
     fontStyle: 'italic',
-    fontWeight: '600',
     marginTop: 2,
     opacity: 0.8,
   },

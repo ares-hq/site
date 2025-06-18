@@ -1,5 +1,5 @@
 // eventPerformance.tsx
-import { MatchType } from '@/api/dashboardInfo';
+import { MatchTypeAverages } from '@/api/types';
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import {
@@ -11,7 +11,6 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-
 
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length > 0) {
@@ -30,9 +29,8 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 interface UserGraphSectionProps {
-  matchType: MatchType;
+  matchType: MatchTypeAverages;
 }
-
 
 const EventPerformance = ({ matchType }: UserGraphSectionProps) => {
   const rankData = [

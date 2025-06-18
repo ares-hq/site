@@ -1,4 +1,4 @@
-import { TeamInfo } from '@/api/dashboardInfo';
+import { TeamInfo } from '@/api/types';
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import {

@@ -7,7 +7,7 @@ import UsersIcon from '@/assets/icons/handshake.svg';
 import CalendarIcon from '@/assets/icons/calendar.svg';
 import ShieldIcon from '@/assets/icons/identification-card.svg';
 import GlobeIcon from '@/assets/icons/link-simple-horizontal.svg';
-import { TeamInfo } from '@/api/dashboardInfo';
+import { TeamInfo } from '@/api/types';
 
 interface InfoSectionProps {
   screenWidth: number;
@@ -32,7 +32,7 @@ const InfoBox = ({ screenWidth, teamInfo, highScore }: InfoSectionProps) => {
             label="Website"
             value={teamInfo.website}
             isLink
-            displayText={teamInfo.teamName}
+            displayText={'Team ' + teamInfo.teamNumber.toString()}
           />
           <InfoRow
             icon={<UsersIcon />}
@@ -60,6 +60,8 @@ const InfoBox = ({ screenWidth, teamInfo, highScore }: InfoSectionProps) => {
     )
   );
 };
+
+import { ScrollView } from 'react-native'; // ← Make sure this is imported
 
 const InfoRow = ({
   icon,
@@ -96,7 +98,7 @@ const InfoRow = ({
               numberOfLines={1}
               ellipsizeMode="tail"
             >
-               {displayText || value}
+              {displayText || value}
             </Text>
           </Pressable>
         ) : (
@@ -113,6 +115,7 @@ const styles = StyleSheet.create({
     padding: 10,
     paddingTop: 8,
     flex: 1,
+    maxHeight: 300,
     borderRadius: 16,
   },
   title: {
@@ -140,7 +143,7 @@ const styles = StyleSheet.create({
   offsetColumn: {
     flex: 1,
     minWidth: 150,
-    gap: 30,
+    gap: 10,
   },
   textContainer: {
     flex: 1,
