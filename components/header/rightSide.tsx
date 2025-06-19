@@ -7,6 +7,7 @@ import House from '../../assets/icons/house.svg';
 import Refresh from '../../assets/icons/arrow-clockwise.svg';
 import Sun from '../../assets/icons/sun.svg';
 import { usePathname, useRouter, useGlobalSearchParams } from 'expo-router';
+import { useDarkMode } from '@/context/DarkModeContext';
 
 const HoverIcon = ({
   children,
@@ -29,8 +30,8 @@ const HoverIcon = ({
   );
 };
 
-
 const RightSide = () => {
+  const { isDarkMode, setIsDarkMode } = useDarkMode();
   const router = useRouter();
   const pathname = usePathname();
   const params = useGlobalSearchParams();
@@ -40,17 +41,19 @@ const RightSide = () => {
   if (!isNaN(teamnumber ?? NaN)) {
     fullPath = `${pathname}?teamnumber=${teamnumber}`;
   }
+  const handleToggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
   return (
     <View style={styles.container}>
         <View style={styles.search}>
             <Search />
         </View>
 
-      <Pressable>
-        <HoverIcon>
+        <HoverIcon onPress={() => setIsDarkMode(!isDarkMode)}>
             <Sun width={15} height={15} />
         </HoverIcon>
-      </Pressable>
 
       {/* Refresh button to reload the screen not the entire page*/}
         <HoverIcon onPress={() => router.replace(fullPath as any)}>

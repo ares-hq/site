@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
+import { Dimensions } from 'react-native';
 import LeftSide from './header/leftSide';
 import RightSide from './header/rightSide';
 
@@ -16,7 +17,7 @@ const TopNavbar = ({ toggleSidebar, currentPage, onLayout }: HeaderBarProps) => 
     if (onLayout) {
       onLayout(width);
     }
-    setShowRoute(height <= 200);
+    setShowRoute(width >= 550);
   };
   
   return (
@@ -26,7 +27,7 @@ const TopNavbar = ({ toggleSidebar, currentPage, onLayout }: HeaderBarProps) => 
           <LeftSide toggleSidebar={toggleSidebar} pageTitle={currentPage ?? ''} showRoute={showRoute}/>
         </View>
         <View style={styles.rightSide}>
-          <RightSide/>
+          <RightSide />
         </View>
       </View>
     </View>

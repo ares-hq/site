@@ -1,13 +1,15 @@
 import * as SplashScreen from 'expo-splash-screen';
 import { View, StyleSheet } from 'react-native';
 import LandingPage from '@/components/welcome';
+import { useDarkMode } from '@/context/DarkModeContext';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function Index() {
+  const { isDarkMode } = useDarkMode();
   return (
     <View style={styles.container}>
-      <LandingPage darkMode={false}/>
+      <LandingPage darkMode={isDarkMode}/>
     </View>
   );
 }

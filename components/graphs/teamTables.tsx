@@ -143,6 +143,10 @@ export default function DataTable({ teams, data}: DataTableProps) {
   );
 
   const handleSort = (column: keyof TeamInfo) => {
+    if (isSmallScreen && (column === 'teamName' || column === 'teamNumber')) {
+      return;
+    }
+
     if (sortColumn === column) {
       setSortAsc(!sortAsc);
     } else {
@@ -392,7 +396,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   selectionText: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#6b7280',
   },
   textRight: {

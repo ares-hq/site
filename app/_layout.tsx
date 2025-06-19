@@ -14,9 +14,19 @@ import HeaderBar from '@/components/header';
 import Footer from '@/components/footer';
 import Cancel from '../assets/icons/x-circle.svg';
 import { RefreshControl } from 'react-native';
+import { DarkModeProvider, useDarkMode } from '@/context/DarkModeContext';
 
 export default function Layout() {
-  const [fontsLoaded] = useFonts({
+  return (
+    <DarkModeProvider>
+      <InnerLayout />
+    </DarkModeProvider>
+  );
+}
+
+function InnerLayout() {
+ const { isDarkMode, setIsDarkMode } = useDarkMode();
+ const [fontsLoaded] = useFonts({
     InterRegular: require('@/assets/fonts/Inter/static/Inter_18pt-Thin.ttf'),
   });
 
@@ -99,7 +109,11 @@ export default function Layout() {
 
         <View style={styles2.contentArea}>
           <HeaderBar toggleSidebar={() => setSidebarVisible(!sidebarVisible)} currentPage={currentPage}/>
-          <ScrollView contentContainerStyle={styles2.scrollContent}>
+          <ScrollView 
+            refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          contentContainerStyle={styles2.scrollContent}>
             <View style={styles2.pageContent}>
               <Slot />
             </View>
