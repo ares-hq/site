@@ -243,6 +243,7 @@ export default function DataTable({ teams, data}: DataTableProps) {
 
       {/* Table Body */}
       <FlatList
+        scrollEnabled={false}
         data={paginated}
         keyExtractor={(item) => item.teamNumber && item.teamNumber.toString() || 'No Number Found'}
         renderItem={renderItem}
@@ -285,7 +286,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     flex: 1,
     width: '100%',
-    minHeight: 800,
   },
   rowHovered: {
     backgroundColor: '#e5e7eb', 
@@ -314,14 +314,17 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
     paddingVertical: 5,
     paddingHorizontal: 10,
-    minHeight: 60,
+    minHeight: 50,
+    marginBottom: 8,
   },
   headerRow: {
-    backgroundColor: '#f3f4f6',
+    marginTop: -8,
+    marginBottom: -8,
+    backgroundColor: 'none',
     borderRadius: 8,
     borderBottomWidth: 0,
   },
