@@ -8,11 +8,12 @@ import {
   Dimensions,
 } from 'react-native';
 import { useFonts } from 'expo-font';
-import { Slot, usePathname } from 'expo-router';
+import { router, Slot, usePathname } from 'expo-router';
 import LeftSidebar from '@/components/leftSidebar';
 import HeaderBar from '@/components/header';
 import Footer from '@/components/footer';
 import Cancel from '../assets/icons/x-circle.svg';
+import { RefreshControl } from 'react-native';
 
 export default function Layout() {
   const [fontsLoaded] = useFonts({
@@ -22,6 +23,7 @@ export default function Layout() {
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const pathname = usePathname();
+  const [refreshing, setRefreshing] = useState(false);
   const routeLabels: Record<string, string> = {
     age: 'AGE',
     intothedeep: 'DIVE',
@@ -44,6 +46,12 @@ export default function Layout() {
   const sidebarWidth = useRef(new Animated.Value(180)).current;
 
   const isDesktop = screenWidth > 800;
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    router.replace(usePathname() as any);
+    setRefreshing(false);
+  };
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
@@ -106,7 +114,11 @@ export default function Layout() {
     <View style={styles.container}>
       <View style={styles.contentArea}>
         <HeaderBar toggleSidebar={() => setSidebarVisible(!sidebarVisible)} currentPage={currentPage}/>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView 
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        contentContainerStyle={styles.scrollContent}>
           <View style={styles.pageContent}>
             <Slot />
           </View>
@@ -204,7 +216,7 @@ const styles2 = StyleSheet.create({
     flex: 1,
     flexDirection: 'column',
   },
-  pageContent: {
+   pageContent: {
     flex: 1,
     padding: 20,
     backgroundColor: '#fff',

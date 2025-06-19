@@ -26,7 +26,7 @@ const TopNavbar = ({ toggleSidebar, currentPage, onLayout }: HeaderBarProps) => 
           <LeftSide toggleSidebar={toggleSidebar} pageTitle={currentPage ?? ''} showRoute={showRoute}/>
         </View>
         <View style={styles.rightSide}>
-          <RightSide />
+          <RightSide/>
         </View>
       </View>
     </View>

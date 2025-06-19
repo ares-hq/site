@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react"
-import { View, Text, StyleSheet, Pressable, Linking, Image, ScrollView } from "react-native"
+import { View, Text, StyleSheet, Pressable, Linking, Image, ActivityIndicator } from "react-native"
 import { useRouter } from "expo-router"
 import { Feather } from "@expo/vector-icons"
 import { getAllTeams, getAverageOPRs, getTeamMatchCount } from "@/api/dashboardInfo"
+import DataTable from "./graphs/teamTables"
+import { TeamInfo } from "@/api/types"
 
-export default function LandingPage() {
+export default function LandingPage({ darkMode = false }: { darkMode?: boolean }) {
   const router = useRouter()
   const [stats, setStats] = useState({
     totalTeams: 0,
@@ -20,8 +22,8 @@ export default function LandingPage() {
   useEffect(() => {
     const fetchStats = async () => {
       const teams = await getAllTeams()
-      const avg = await getAverageOPRs();
-      const matches = await getTeamMatchCount();
+      const avg = await getAverageOPRs()
+      const matches = await getTeamMatchCount()
       const fetchedStats = {
         totalTeams: teams ? teams.length : 0,
         averageOPR: avg.overallOPR.toFixed(2) || 0,
@@ -38,6 +40,52 @@ export default function LandingPage() {
     fetchStats()
   }, [])
 
+  const getThemedStyles = (darkMode: boolean) => {
+    const theme = {
+      background: darkMode ? "#0F172A" : "#FFFFFF",
+      backgroundSecondary: darkMode ? "#1E293B" : "#F9FAFB",
+      backgroundTertiary: darkMode ? "#334155" : "#FFFFFF",
+
+      textPrimary: darkMode ? "#F8FAFC" : "#111827",
+      textSecondary: darkMode ? "#CBD5E1" : "#6B7280",
+      textTertiary: darkMode ? "#94A3B8" : "#9CA3AF",
+
+      border: darkMode ? "#334155" : "#E5E7EB",
+      borderLight: darkMode ? "#475569" : "#F3F4F6",
+
+      cardBackground: darkMode ? "#1E293B" : "#FFFFFF",
+      cardBackgroundHover: darkMode ? "#334155" : "#F9FAFB",
+
+      accent: "#3B82F6",
+      accentHover: darkMode ? "#60A5FA" : "#2563EB",
+
+      success: darkMode ? "#10B981" : "#059669",
+      error: darkMode ? "#EF4444" : "#DC2626",
+
+      statCards: {
+        blue: {
+          background: darkMode ? "#1E3A8A" : "#EBF4FF",
+          border: darkMode ? "#3B82F6" : "#BFDBFE",
+        },
+        indigo: {
+          background: darkMode ? "#312E81" : "#EEF2FF",
+          border: darkMode ? "#6366F1" : "#C7D2FE",
+        },
+        green: {
+          background: darkMode ? "#14532D" : "#ECFDF5",
+          border: darkMode ? "#10B981" : "#BBF7D0",
+        },
+        purple: {
+          background: darkMode ? "#581C87" : "#FAF5FF",
+          border: darkMode ? "#A855F7" : "#DDD6FE",
+        },
+      },
+    }
+    return theme
+  }
+
+  const theme = getThemedStyles(darkMode)
+
   type StatCardProps = {
     title: string
     value: string | number
@@ -48,109 +96,183 @@ export default function LandingPage() {
   }
 
   const StatCard = ({ title, value, change, positive, color, icon }: StatCardProps) => {
-    const colorStyles = {
-      blue: { backgroundColor: "#EBF4FF", borderColor: "#BFDBFE" },
-      indigo: { backgroundColor: "#EEF2FF", borderColor: "#C7D2FE" },
-      green: { backgroundColor: "#ECFDF5", borderColor: "#BBF7D0" },
-      purple: { backgroundColor: "#FAF5FF", borderColor: "#DDD6FE" },
-    }
-
-    const textColor = positive ? "#059669" : "#DC2626"
+    const colorStyles = theme.statCards[color]
+    const textColor = positive ? theme.success : theme.error
 
     return (
-      <View style={[styles.statCard, colorStyles[color], { borderWidth: 1 }]}>
+      <View
+        style={[
+          styles.statCard,
+          {
+            backgroundColor: colorStyles.background,
+            borderColor: colorStyles.border,
+            borderWidth: 1,
+          },
+        ]}
+      >
         <View style={styles.statHeader}>
           <View style={styles.statTitleRow}>
-            <Feather name={icon as any} size={18} color="#6B7280" />
-            <Text style={styles.statTitle}>{title}</Text>
+            <Feather name={icon as any} size={18} color={theme.textSecondary} />
+            <Text style={[styles.statTitle, { color: theme.textSecondary }]}>{title}</Text>
           </View>
         </View>
-        <Text style={styles.statValue}>{typeof value === "number" ? value.toLocaleString() : value}</Text>
+        <Text style={[styles.statValue, { color: theme.textPrimary }]}>
+          {typeof value === "number" ? value.toLocaleString() : value}
+        </Text>
       </View>
     )
   }
 
   const FeatureCard = ({ icon, title, description }: { icon: string; title: string; description: string }) => (
-    <View style={styles.featureCard}>
-      <View style={styles.featureIcon}>
-        <Feather name={icon as any} size={24} color="#3B82F6" />
+    <View
+      style={[
+        styles.featureCard,
+        {
+          backgroundColor: theme.cardBackground,
+          borderColor: theme.border,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.featureIcon,
+          {
+            backgroundColor: darkMode ? "#1E3A8A" : "#DBEAFE",
+          },
+        ]}
+      >
+        <Feather name={icon as any} size={24} color={theme.accent} />
       </View>
-      <Text style={styles.featureTitle}>{title}</Text>
-      <Text style={styles.featureDescription}>{description}</Text>
+      <Text style={[styles.featureTitle, { color: theme.textPrimary }]}>{title}</Text>
+      <Text style={[styles.featureDescription, { color: theme.textSecondary }]}>{description}</Text>
     </View>
   )
 
   const openLink = (url: string) => {
     Linking.openURL(url)
   }
+    
+  const [teams, setTeams] = useState<TeamInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+
+
+    useEffect(() => {
+      const init = async () => {
+        const result = await getAllTeams();
+        setTeams(result ?? []);
+        setLoading(false);
+      };
+      init();
+    }, []);
+
+  if (loading) {
+    return (
+        <View style={styles.loadingOverlay}>
+        <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#3B82F6" />
+            <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+        </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Hero Section */}
-      <View style={styles.heroSection}>
+      <View
+        style={[
+          styles.heroSection,
+          {
+            backgroundColor: darkMode
+              ? "linear-gradient(135deg, #0F172A 0%, #1E293B 100%)"
+              : "linear-gradient(135deg, #F9FAFB 0%, #FFFFFF 100%)",
+          },
+        ]}
+      >
         <View style={styles.heroContent}>
           <View style={styles.leftSection}>
             <View style={styles.brandRow}>
-              <View style={styles.logoContainer}>
+              <View
+                style={[
+                  styles.logoContainer,
+                  {
+                    backgroundColor: darkMode ? "#14532D" : "#ECFDF5",
+                  },
+                ]}
+              >
                 <Image source={require("@/assets/images/ARES-Logo-Green.png")} style={styles.logo} />
               </View>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>FTC Scouting Intelligence Platform</Text>
+              <View
+                style={[
+                  styles.badge,
+                  {
+                    backgroundColor: darkMode ? "#334155" : "#F3F4F6",
+                  },
+                ]}
+              >
+                <Text style={[styles.badgeText, { color: theme.textSecondary }]}>
+                  FTC Scouting Intelligence Platform
+                </Text>
               </View>
             </View>
 
             <View style={styles.heroText}>
-              <Text style={styles.title}>
-                Welcome to <Text style={styles.titleAccent}>ARES</Text>
+              <Text style={[styles.title, { color: theme.textPrimary }]}>
+                Welcome to <Text style={[styles.titleAccent, { color: theme.accent }]}>ARES</Text>
               </Text>
-              <Text style={styles.subtitle}>
+              <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
                 Scouting Intelligence. Simplified. Transform your robotics competition strategy with powerful analytics
                 and real-time insights.
               </Text>
             </View>
 
             <View style={styles.buttonContainer}>
-              <Pressable style={styles.primaryBtn} onPress={() => router.push("/dashboards/intothedeep")}>
+              <Pressable
+                style={[
+                  styles.primaryBtn,
+                  {
+                    backgroundColor: theme.accent,
+                    shadowColor: theme.accent,
+                  },
+                ]}
+                onPress={() => openLink("https://testflight.apple.com/join/FYFDhmcA")}
+              >
                 <Feather name="download" size={18} color="#FFFFFF" />
                 <Text style={styles.primaryText}>Join TestFlight</Text>
               </Pressable>
 
-              <Pressable style={styles.secondaryBtn} onPress={() => openLink("https://discord.gg/YOUR_INVITE")}>
-                <Text style={styles.secondaryText}>Add to Discord</Text>
-                <Feather name="external-link" size={16} color="#374151" />
+              <Pressable
+                style={[
+                  styles.secondaryBtn,
+                  {
+                    backgroundColor: theme.cardBackground,
+                    borderColor: theme.border,
+                  },
+                ]}
+                onPress={() => openLink("https://discord.com/oauth2/authorize?client_id=1327489137238081566")}
+              >
+                <Text style={[styles.secondaryText, { color: theme.textPrimary }]}>Add to Discord</Text>
+                <Feather name="external-link" size={16} color={theme.textSecondary} />
               </Pressable>
             </View>
-
-            {/* <View style={styles.socialProof}>
-              <View style={styles.avatarGroup}>
-                {[1, 2, 3, 4].map((i) => (
-                  <View key={i} style={[styles.avatar, { marginLeft: i > 1 ? -8 : 0 }]} />
-                ))}
-              </View>
-              <Text style={styles.socialProofText}>
-                <Text style={styles.socialProofNumber}>1,200+</Text> teams already using ARES
-              </Text>
-            </View> */}
           </View>
-
-          {/* <View style={styles.rightSection}>
-            <View style={styles.heroImageContainer}>
-              <Image source={{ uri: "/placeholder.svg?height=400&width=500" }} style={styles.heroImage} />
-              <View style={styles.floatingCard}>
-                <View style={styles.liveIndicator} />
-                <Text style={styles.floatingCardText}>Live Data Sync</Text>
-              </View>
-            </View>
-          </View> */}
         </View>
       </View>
 
       {/* Statistics Section */}
-      <View style={styles.statsSection}>
+      <View
+        style={[
+          styles.statsSection,
+          {
+            backgroundColor: theme.background,
+            borderTopColor: theme.border,
+          },
+        ]}
+      >
         <View style={styles.sectionContent}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Platform Statistics</Text>
-            <Text style={styles.sectionSubtitle}>
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Platform Statistics</Text>
+            <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
               Real-time insights from competitions worldwide. See how ARES is transforming robotics scouting.
             </Text>
           </View>
@@ -202,7 +324,8 @@ export default function LandingPage() {
             />
           </View>
 
-          <Text style={styles.teamSearch}>Team Search</Text>
+          <Text style={[styles.teamSearch, { color: theme.textPrimary }]}>Team Search</Text>
+          <DataTable teams={teams} data="overall" />
         </View>
       </View>
     </View>
@@ -211,12 +334,11 @@ export default function LandingPage() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#FFFFFF",
+    flex: 1,
   },
   heroSection: {
     paddingHorizontal: 20,
     paddingVertical: 50,
-    backgroundColor: "linear-gradient(135deg, #F9FAFB 0%, #FFFFFF 100%)",
   },
   heroContent: {
     flexDirection: "row",
@@ -240,7 +362,6 @@ const styles = StyleSheet.create({
   logoContainer: {
     width: 64,
     height: 64,
-    backgroundColor: "#ECFDF5",
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
@@ -256,7 +377,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   badge: {
-    backgroundColor: "#F3F4F6",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -264,7 +384,6 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     fontWeight: "500",
-    color: "#374151",
   },
   heroText: {
     marginBottom: 32,
@@ -272,18 +391,34 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 48,
     fontWeight: "700",
-    color: "#111827",
     marginBottom: 16,
     lineHeight: 56,
   },
   titleAccent: {
-    color: "#3B82F6",
+    // Color will be set dynamically
   },
   subtitle: {
     fontSize: 20,
-    color: "#6B7280",
     lineHeight: 28,
     fontWeight: "400",
+  },
+  loadingOverlay: {
+    flex: 1,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+  },
+  loadingContainer: {
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#3B82F6',
+    fontWeight: '600',
   },
   buttonContainer: {
     flexWrap: "wrap",
@@ -292,14 +427,12 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   primaryBtn: {
-    backgroundColor: "#3B82F6",
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    shadowColor: "#3B82F6",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -311,9 +444,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   secondaryBtn: {
-    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
@@ -322,7 +453,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   secondaryText: {
-    color: "#374151",
     fontWeight: "500",
     fontSize: 16,
   },
@@ -344,11 +474,9 @@ const styles = StyleSheet.create({
   },
   socialProofText: {
     fontSize: 14,
-    color: "#6B7280",
   },
   socialProofNumber: {
     fontWeight: "600",
-    color: "#111827",
   },
   rightSection: {
     flex: 1,
@@ -356,7 +484,6 @@ const styles = StyleSheet.create({
   },
   heroImageContainer: {
     position: "relative",
-    backgroundColor: "linear-gradient(135deg, #DBEAFE 0%, #E0E7FF 100%)",
     borderRadius: 24,
     padding: 32,
     shadowColor: "#000",
@@ -374,7 +501,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: -12,
     left: -12,
-    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     flexDirection: "row",
@@ -395,24 +521,19 @@ const styles = StyleSheet.create({
   floatingCardText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#111827",
   },
   statsSection: {
-    backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
     paddingTop: 50,
   },
   sectionContent: {
     maxWidth: 1200,
     width: "100%",
     alignSelf: "center",
-    paddingHorizontal: 20,
   },
   teamSearch: {
     fontSize: 36,
     fontWeight: "700",
-    color: "#111827",
     marginVertical: 30,
     textAlign: "center",
   },
@@ -423,13 +544,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 36,
     fontWeight: "700",
-    color: "#111827",
     marginBottom: 16,
     textAlign: "center",
   },
   sectionSubtitle: {
     fontSize: 18,
-    color: "#6B7280",
     textAlign: "center",
     maxWidth: 600,
     lineHeight: 26,
@@ -460,7 +579,6 @@ const styles = StyleSheet.create({
   statTitle: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#6B7280",
   },
   changeBadge: {
     flexDirection: "row",
@@ -477,7 +595,6 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 32,
     fontWeight: "700",
-    color: "#111827",
   },
   featuresGrid: {
     flexDirection: "row",
@@ -487,9 +604,7 @@ const styles = StyleSheet.create({
   featureCard: {
     flex: 1,
     minWidth: 250,
-    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
     borderRadius: 16,
     padding: 24,
     alignItems: "center",
@@ -497,7 +612,6 @@ const styles = StyleSheet.create({
   featureIcon: {
     width: 48,
     height: 48,
-    backgroundColor: "#DBEAFE",
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -506,18 +620,15 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
     marginBottom: 8,
     textAlign: "center",
   },
   featureDescription: {
     fontSize: 14,
-    color: "#6B7280",
     textAlign: "center",
     lineHeight: 20,
   },
   ctaSection: {
-    backgroundColor: "linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)",
     paddingVertical: 80,
   },
   ctaContent: {

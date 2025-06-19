@@ -3,18 +3,25 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import Search from './search';
 
 import Bell from '../../assets/icons/bell-ringing.svg';
+import House from '../../assets/icons/house.svg';
 import Refresh from '../../assets/icons/arrow-clockwise.svg';
 import Sun from '../../assets/icons/sun.svg';
+import { usePathname, useRouter, useGlobalSearchParams } from 'expo-router';
 
-import { Linking } from 'react-native';
-
-const HoverIcon = ({ children }: { children: React.ReactNode }) => {
+const HoverIcon = ({
+  children,
+  onPress,
+}: {
+  children: React.ReactNode;
+  onPress?: () => void;
+}) => {
   const [hovered, setHovered] = useState(false);
 
   return (
     <Pressable
       onHoverIn={() => setHovered(true)}
       onHoverOut={() => setHovered(false)}
+      onPress={onPress}
       style={[styles.iconWrapper, hovered && styles.iconHovered]}
     >
       {children}
@@ -24,6 +31,15 @@ const HoverIcon = ({ children }: { children: React.ReactNode }) => {
 
 
 const RightSide = () => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useGlobalSearchParams();
+  const teamnumber = params.teamnumber ? parseInt(params.teamnumber as string, 10) : NaN;
+
+  let fullPath = pathname;
+  if (!isNaN(teamnumber ?? NaN)) {
+    fullPath = `${pathname}?teamnumber=${teamnumber}`;
+  }
   return (
     <View style={styles.container}>
         <View style={styles.search}>
@@ -37,17 +53,14 @@ const RightSide = () => {
       </Pressable>
 
       {/* Refresh button to reload the screen not the entire page*/}
-      <Pressable onPress={() => Linking.openURL(window.location.href)}>
-        <HoverIcon>
+        <HoverIcon onPress={() => router.replace(fullPath as any)}>
             <Refresh width={15} height={15} />
         </HoverIcon>
-      </Pressable>
 
-      <Pressable>
-        <HoverIcon>
-            <Bell width={15} height={15} />
+        <HoverIcon onPress={() => router.replace('/')}>
+            <House width={15} height={15} />
+            {/* <Bell width={15} height={15} /> */}
         </HoverIcon>
-      </Pressable>
     </View>
   );
 };
