@@ -1,5 +1,5 @@
 import { TeamInfo } from '@/api/types';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import UpDown from '@/assets/icons/caret-up-down.svg';
 import Down from '@/assets/icons/caret-down.svg';
 import Check from '@/assets/icons/check-circle.svg';
@@ -14,6 +14,7 @@ import {
   Pressable,
 } from 'react-native';
 import { filterTeams } from '@/api/algorithms/filter';
+import { useWindowDimensions } from 'react-native';
 
 const ITEMS_PER_PAGE = 20;
 const router = useRouter();
@@ -36,6 +37,8 @@ export default function DataTable({ teams, data}: DataTableProps) {
     { label: 'Rank', value: 'rank' },
     { label: 'Location', value: 'location' },
     ];
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 700;
 
   const [visibleColumns, setVisibleColumns] = useState<string[]>([
     'teamNumber',
@@ -45,37 +48,55 @@ export default function DataTable({ teams, data}: DataTableProps) {
     'location',
   ]);
 
-    const renderDropdown = () => (
-    <View style={styles.dropdownMenu}>
-        {allColumns.map(({ label, value }) => {
-        const isVisible = visibleColumns.includes(value);
+  useEffect(() => {
+    setVisibleColumns((current) => {
+      if (isSmallScreen && current.includes('location')) {
+        return current.filter((col) => col !== 'location');
+      }
+      if (!isSmallScreen && !current.includes('location')) {
+        return [...current, 'location'];
+      }
+      return current;
+    });
+  }, [isSmallScreen]);
 
-        return (
+  const renderDropdown = () => {
+    const filteredColumns = allColumns.filter(
+      (col) => !(isSmallScreen && col.value === 'location')
+    );
+
+    return (
+      <View style={styles.dropdownMenu}>
+        {filteredColumns.map(({ label, value }) => {
+          const isVisible = visibleColumns.includes(value);
+
+          return (
             <TouchableOpacity
-            key={value}
-            onPress={() => {
+              key={value}
+              onPress={() => {
                 const next = isVisible
-                ? visibleColumns.filter((v) => v !== value)
-                : [...visibleColumns, value];
- 
+                  ? visibleColumns.filter((v) => v !== value)
+                  : [...visibleColumns, value];
+
                 const hasNameOrNumber = next.includes('teamName') || next.includes('teamNumber');
                 const hasOneStatColumn = ['opr', 'rank', 'location'].some(col => next.includes(col));
 
                 if (hasNameOrNumber && hasOneStatColumn) {
-                setVisibleColumns(next);
+                  setVisibleColumns(next);
                 }
-            }}
-            style={styles.dropdownItem}
+              }}
+              style={styles.dropdownItem}
             >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Text style={{ fontWeight: isVisible ? 'bold' : 'normal' }}>{label}</Text>
                 {isVisible && <Check height={14} width={14} />}
-            </View>
+              </View>
             </TouchableOpacity>
-        );
+          );
         })}
-    </View>
+      </View>
     );
+  };
 
     const filtered = useMemo(() => {
     const isSearching = query.trim().length > 0;
@@ -172,6 +193,7 @@ export default function DataTable({ teams, data}: DataTableProps) {
         {item.location?.split(',').slice(-2).join(', ').trim()}
         </Text>
     )}
+    <View style={styles.divider} />
     </Pressable>
     );
 
@@ -203,47 +225,51 @@ export default function DataTable({ teams, data}: DataTableProps) {
         {columnDropdownVisible && renderDropdown()}
 
       {/* Table Header */}
-    <View style={[styles.row, styles.headerRow]}>
+      <View style={[styles.row, styles.headerRow]}>
         {visibleColumns.includes('teamNumber') && (
-            <Pressable onPress={() => handleSort('teamNumber')} style={styles.cell}>
-            <Text style={styles.headerText}>
-                Team # {sortColumn === 'teamNumber' && <UpDown height={14} width={14} />}
-            </Text>
-            </Pressable>
+          <Pressable onPress={() => handleSort('teamNumber')} style={styles.cell}>
+            <View style={styles.headerItem}>
+              <Text style={styles.headerText}>Team #</Text>
+              {sortColumn === 'teamNumber' && <UpDown height={14} width={14} />}
+            </View>
+          </Pressable>
         )}
         {visibleColumns.includes('teamName') && (
-            <Pressable onPress={() => handleSort('teamName')} style={[styles.cell, styles.name]}>
-            <Text style={styles.headerText}>
-                Team Name {sortColumn === 'teamName' && <UpDown height={14} width={14} />}
-            </Text>
-            </Pressable>
+          <Pressable onPress={() => handleSort('teamName')} style={[styles.cell, styles.name]}>
+            <View style={styles.headerItem}>
+              <Text style={styles.headerText}>Team Name</Text>
+              {sortColumn === 'teamName' && <UpDown height={14} width={14} />}
+            </View>
+          </Pressable>
         )}
         {visibleColumns.includes('opr') && (
-            <Pressable onPress={() => handleSort('overallOPR')} style={styles.cell}>
-            <Text style={[styles.headerText, styles.opr]}>
-                {sortColumn === 'overallOPR' && <UpDown height={14} width={14} />} OPR
-            </Text>
-            </Pressable>
+          <Pressable onPress={() => handleSort('overallOPR')} style={styles.cell}>
+            <View style={[styles.headerItem, styles.alignRight]}>
+              {sortColumn === 'overallOPR' && <UpDown height={14} width={14} />}
+              <Text style={[styles.headerText, styles.textRight]}>OPR</Text>
+            </View>
+          </Pressable>
         )}
         {visibleColumns.includes('rank') && (
-            <Pressable onPress={() => handleSort('overallRank')} style={styles.cell}>
-            <Text style={[styles.headerText, styles.opr]}>
-                {sortColumn === 'overallRank' && <UpDown height={14} width={14} />} Rank
-            </Text>
-            </Pressable>
+          <Pressable onPress={() => handleSort('overallRank')} style={styles.cell}>
+            <View style={[styles.headerItem, styles.alignRight]}>
+              {sortColumn === 'overallRank' && <UpDown height={14} width={14} />}
+              <Text style={[styles.headerText, styles.textRight]}>Rank</Text>
+            </View>
+          </Pressable>
         )}
         {visibleColumns.includes('location') && (
-            <Pressable onPress={() => handleSort('location')} style={[styles.cell, styles.location]}>
-            <Text style={[styles.headerText, styles.opr]}>
-                {sortColumn === 'location' && <UpDown height={14} width={14} />} Location
-            </Text>
-            </Pressable>
+          <Pressable onPress={() => handleSort('location')} style={[styles.cell, styles.location]}>
+            <View style={[styles.headerItem, styles.alignRight]}>
+              {sortColumn === 'location' && <UpDown height={14} width={14} />}
+              <Text style={[styles.headerText, styles.textRight]}>Location</Text>
+            </View>
+          </Pressable>
         )}
-    </View>
+      </View>
 
       {/* Table Body */}
       <FlatList
-        scrollEnabled={false}
         data={paginated}
         keyExtractor={(item) => item.teamNumber && item.teamNumber.toString() || 'No Number Found'}
         renderItem={renderItem}
@@ -311,22 +337,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  divider: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: '#e5e7eb',
+    marginHorizontal: 10,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: 'transparent',
     paddingVertical: 5,
     paddingHorizontal: 10,
     minHeight: 50,
-    marginBottom: 8,
+    marginTop: -1
+  },
+  headerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   headerRow: {
-    marginTop: -8,
-    marginBottom: -8,
-    backgroundColor: 'none',
+    marginBottom: 8,
     borderRadius: 8,
     borderBottomWidth: 0,
+    backgroundColor: '#f3f4f6',
   },
   cell: {
     flex: 1,
@@ -355,6 +394,12 @@ const styles = StyleSheet.create({
   selectionText: {
     fontSize: 12,
     color: '#6b7280',
+  },
+  textRight: {
+    textAlign: 'right',
+  },
+  alignRight: {
+    justifyContent: 'flex-end',
   },
   pagination: {
     flexDirection: 'row',

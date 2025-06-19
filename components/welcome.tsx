@@ -2,36 +2,39 @@ import { useEffect, useState } from "react"
 import { View, Text, StyleSheet, Pressable, Linking, Image, ScrollView } from "react-native"
 import { useRouter } from "expo-router"
 import { Feather } from "@expo/vector-icons"
+import { getAllTeams, getAverageOPRs, getTeamMatchCount } from "@/api/dashboardInfo"
 
 export default function LandingPage() {
   const router = useRouter()
-
-  // Mock statistics data - replace with actual API calls
   const [stats, setStats] = useState({
-    totalTeams: 1247,
-    averageOPR: 85.3,
-    matchesPlayed: 15420,
+    totalTeams: 0,
+    averageOPR: 0,
+    matchesPlayed: 0,
     growth: {
-      teams: 12.5,
-      opr: 3.2,
-      matches: 18.7,
+      teams: 0,
+      opr: 0,
+      matches: 0,
     },
   })
 
-  const [loading, setLoading] = useState(true)
-
   useEffect(() => {
     const fetchStats = async () => {
-      try {
-        // Simulate API call
-        setTimeout(() => {
-          setLoading(false)
-        }, 1000)
-      } catch (err) {
-        console.error("Error fetching stats", err)
-        setLoading(false)
+      const teams = await getAllTeams()
+      const avg = await getAverageOPRs();
+      const matches = await getTeamMatchCount();
+      const fetchedStats = {
+        totalTeams: teams ? teams.length : 0,
+        averageOPR: avg.overallOPR.toFixed(2) || 0,
+        matchesPlayed: matches,
+        growth: {
+          teams: 15,
+          opr: 5,
+          matches: 10,
+        },
       }
+      setStats(fetchedStats)
     }
+
     fetchStats()
   }, [])
 
@@ -60,13 +63,6 @@ export default function LandingPage() {
           <View style={styles.statTitleRow}>
             <Feather name={icon as any} size={18} color="#6B7280" />
             <Text style={styles.statTitle}>{title}</Text>
-          </View>
-          <View style={[styles.changeBadge, { backgroundColor: positive ? "#DCFCE7" : "#FEE2E2" }]}>
-            <Feather name={positive ? "trending-up" : "trending-down"} size={12} color={textColor} />
-            <Text style={[styles.changeText, { color: textColor }]}>
-              {positive ? "+" : ""}
-              {change}%
-            </Text>
           </View>
         </View>
         <Text style={styles.statValue}>{typeof value === "number" ? value.toLocaleString() : value}</Text>
@@ -137,7 +133,7 @@ export default function LandingPage() {
             </View> */}
           </View>
 
-          <View style={styles.rightSection}>
+          {/* <View style={styles.rightSection}>
             <View style={styles.heroImageContainer}>
               <Image source={{ uri: "/placeholder.svg?height=400&width=500" }} style={styles.heroImage} />
               <View style={styles.floatingCard}>
@@ -145,7 +141,7 @@ export default function LandingPage() {
                 <Text style={styles.floatingCardText}>Live Data Sync</Text>
               </View>
             </View>
-          </View>
+          </View> */}
         </View>
       </View>
 
@@ -198,7 +194,7 @@ export default function LandingPage() {
               title="Team Collaboration"
               description="Share insights across your scouting team"
             />
-            <FeatureCard icon="award" title="Competition Ready" description="Optimized for FTC and FRC competitions" />
+            <FeatureCard icon="award" title="Competition Ready" description="Optimized for FTC competitions" />
             <FeatureCard
               icon="trending-up"
               title="Predictive Insights"
@@ -219,7 +215,7 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     paddingHorizontal: 20,
-    paddingVertical: 60,
+    paddingVertical: 50,
     backgroundColor: "linear-gradient(135deg, #F9FAFB 0%, #FFFFFF 100%)",
   },
   heroContent: {
@@ -290,6 +286,7 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
   buttonContainer: {
+    flexWrap: "wrap",
     flexDirection: "row",
     gap: 16,
     marginBottom: 32,
@@ -404,7 +401,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
-    paddingTop: 80,
+    paddingTop: 50,
   },
   sectionContent: {
     maxWidth: 1200,

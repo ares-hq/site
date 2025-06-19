@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flexDirection: 'row',
-    flexWrap: 'wrap', // this is key to wrapping when needed
+    // flexWrap: 'wrap', // this is key to wrapping when needed
     justifyContent: 'space-between',
     alignItems: 'center',
   },

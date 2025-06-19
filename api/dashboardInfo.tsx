@@ -121,6 +121,19 @@ export async function getTeamMatches(teamNumber: number): Promise<AllianceInfo[]
   return mapped;
 }
 
+export async function getTeamMatchCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from('matches_2024')
+    .select('*', { count: 'exact', head: true })
+
+  if (error) {
+    console.error('Failed to fetch match count:', error.message);
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
 // ------------------- STATS -------------------
 export async function getAverageOPRs() {
   if (averageOPRsCache) return averageOPRsCache;
