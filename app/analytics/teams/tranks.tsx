@@ -3,10 +3,12 @@ import DataTable from '@/components/graphs/teamTables';
 import type { TeamInfo } from '@/api/types';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { useDarkMode } from '@/context/DarkModeContext';
 
 const TRanks = () => {
   const [teams, setTeams] = useState<TeamInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isDarkMode } = useDarkMode();
 
   React.useEffect(() => {
     const fetchTeams = async () => {
@@ -19,7 +21,10 @@ const TRanks = () => {
 
   if (loading) {
     return (
-      <View style={styles.loadingOverlay}>
+      <View style={[
+          styles.loadingOverlay,
+          { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' },
+        ]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#3B82F6" />
           <Text style={styles.loadingText}>Loading...</Text>

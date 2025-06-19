@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 
 import Sidebar from '../../assets/icons/sidebar-simple.svg';
 import Star from '../../assets/icons/star.svg';
+import { useDarkMode } from '@/context/DarkModeContext';
 
 type LeftSideProps = {
   toggleSidebar: () => void;
@@ -18,13 +19,21 @@ const HoverIcon = ({
   onPress?: () => void;
 }) => {
   const [hovered, setHovered] = useState(false);
+  const { isDarkMode } = useDarkMode();
 
   return (
     <Pressable
       onHoverIn={() => setHovered(true)}
       onHoverOut={() => setHovered(false)}
       onPress={onPress}
-      style={[styles.iconWrapper, hovered && styles.iconHovered]}
+      style={[
+        styles.iconWrapper,
+        hovered && {
+          backgroundColor: isDarkMode
+            ? 'rgba(255, 255, 255, 0.08)'
+            : 'rgba(0, 0, 0, 0.05)',
+        },
+      ]}
     >
       {children}
     </Pressable>
@@ -32,6 +41,8 @@ const HoverIcon = ({
 };
 
 const LeftSide = ({ toggleSidebar, pageTitle, showRoute }: LeftSideProps) => {
+  const { isDarkMode } = useDarkMode();
+
   let routeLabel: string | null = null;
 
   if (pageTitle === 'AGE' || pageTitle === 'DIVE') {
@@ -41,34 +52,51 @@ const LeftSide = ({ toggleSidebar, pageTitle, showRoute }: LeftSideProps) => {
   } else if (pageTitle === 'ScoutSheet') {
     routeLabel = 'Scouting';
   } else if (
-    pageTitle === 'Teams' || pageTitle === 'Auto' || pageTitle === 'TeleOp' || pageTitle === 'Endgame' ||
-    pageTitle === 'Matches' || pageTitle === 'Qualifiers' || pageTitle === 'Finals' || pageTitle === 'Premier'
+    ['Teams', 'Auto', 'TeleOp', 'Endgame', 'Matches', 'Qualifiers', 'Finals', 'Premier'].includes(pageTitle)
   ) {
     routeLabel = 'Analytics';
-  } else {
-    routeLabel = null;
   }
+
   return (
     <View style={styles.container}>
       {/* Icons */}
       <View style={styles.icons}>
         <HoverIcon onPress={toggleSidebar}>
-          <Sidebar width={15} height={15} />
+          <Sidebar width={15} height={15} fill={isDarkMode ? '#fff' : '#000'}/>
         </HoverIcon>
 
         <HoverIcon>
-          <Star width={15} height={15} />
+          <Star width={15} height={15} fill={isDarkMode ? '#fff' : '#000'}/>
         </HoverIcon>
       </View>
 
       {/* Labels */}
       {showRoute && pageTitle !== '' && (
         <>
-          <Text style={styles.faded}>
-          {pageTitle === 'AGE' || pageTitle === 'DIVE' ? 'Dashboards' : pageTitle === 'Discord' || pageTitle === 'App' ? 'Platforms' : pageTitle === 'ScoutSheet' ? 'Scouting' : 'Analytics'}
+          <Text
+            style={[
+              styles.faded,
+              { color: isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)' },
+            ]}
+          >
+            {routeLabel}
           </Text>
-          <Text style={styles.separator}> / </Text>
-          <Text style={styles.active}>{pageTitle}</Text>
+          <Text
+            style={[
+              styles.separator,
+              { color: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)' },
+            ]}
+          >
+            /
+          </Text>
+          <Text
+            style={[
+              styles.active,
+              { color: isDarkMode ? '#fff' : '#000' },
+            ]}
+          >
+            {pageTitle}
+          </Text>
         </>
       )}
     </View>
@@ -92,20 +120,14 @@ const styles = StyleSheet.create({
     padding: 4.4,
     borderRadius: 7,
   },
-  iconHovered: {
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-  },
   faded: {
-    color: 'rgba(0, 0, 0, .4)',
     fontSize: 13,
   },
   separator: {
-    marginHorizontal: 2.2,
-    color: 'rgba(0, 0, 0, .2)',
+    marginHorizontal: 5,
     fontSize: 13,
   },
   active: {
-    color: '#000',
     fontSize: 13,
   },
 });

@@ -1,4 +1,5 @@
 import { AllianceInfo, MatchInfo, TeamInfo } from '@/api/types';
+import { useDarkMode } from '@/context/DarkModeContext';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { ComposedChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
@@ -29,6 +30,7 @@ interface TooltipProps {
 const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: UserGraphSectionProps) => {
   const [chartWrapperWidth, setChartWrapperWidth] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<string>('Match Score');
+  const { isDarkMode } = useDarkMode();
 
   function getBarColor(): string {
     if (teamInfo.averagePlace == null) return '#9ca3af'; // gray for no data
@@ -282,7 +284,7 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
   return (
     <View>
       {screenWidth > 820 ? (
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff' }]}>
           <ChartContent />
           <TeamData />
         </View>

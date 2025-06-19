@@ -12,9 +12,11 @@ import { useDarkMode } from '@/context/DarkModeContext';
 const HoverIcon = ({
   children,
   onPress,
+  isDarkMode,
 }: {
   children: React.ReactNode;
   onPress?: () => void;
+  isDarkMode: boolean;
 }) => {
   const [hovered, setHovered] = useState(false);
 
@@ -23,7 +25,10 @@ const HoverIcon = ({
       onHoverIn={() => setHovered(true)}
       onHoverOut={() => setHovered(false)}
       onPress={onPress}
-      style={[styles.iconWrapper, hovered && styles.iconHovered]}
+      style={[
+        styles.iconWrapper,
+        hovered && (isDarkMode ? styles.iconHoveredDark : styles.iconHoveredLight),
+      ]}
     >
       {children}
     </Pressable>
@@ -38,32 +43,27 @@ const RightSide = () => {
   const teamnumber = params.teamnumber ? parseInt(params.teamnumber as string, 10) : NaN;
 
   let fullPath = pathname;
-  if (!isNaN(teamnumber ?? NaN)) {
+  if (!isNaN(teamnumber)) {
     fullPath = `${pathname}?teamnumber=${teamnumber}`;
   }
-  const handleToggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-  };
 
   return (
     <View style={styles.container}>
-        <View style={styles.search}>
-            <Search />
-        </View>
+      <View style={styles.search}>
+        <Search />
+      </View>
 
-        <HoverIcon onPress={() => setIsDarkMode(!isDarkMode)}>
-            <Sun width={15} height={15} />
-        </HoverIcon>
+      <HoverIcon isDarkMode={isDarkMode} onPress={() => setIsDarkMode(!isDarkMode)}>
+        <Sun width={15} height={15} fill={isDarkMode ? '#fff' : '#000'}/>
+      </HoverIcon>
 
-      {/* Refresh button to reload the screen not the entire page*/}
-        <HoverIcon onPress={() => router.replace(fullPath as any)}>
-            <Refresh width={15} height={15} />
-        </HoverIcon>
+      <HoverIcon isDarkMode={isDarkMode} onPress={() => router.replace(fullPath as any)}>
+        <Refresh width={15} height={15} fill={isDarkMode ? '#fff' : '#000'}/>
+      </HoverIcon>
 
-        <HoverIcon onPress={() => router.replace('/')}>
-            <House width={15} height={15} />
-            {/* <Bell width={15} height={15} /> */}
-        </HoverIcon>
+      <HoverIcon isDarkMode={isDarkMode} onPress={() => router.replace('/')}>
+        <House width={15} height={15} fill={isDarkMode ? '#fff' : '#000'}/>
+      </HoverIcon>
     </View>
   );
 };
@@ -78,12 +78,15 @@ const styles = StyleSheet.create({
     padding: 4.4,
     borderRadius: 7,
   },
-  iconHovered: {
+  iconHoveredLight: {
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  iconHoveredDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   search: {
     paddingRight: 7,
-  }
+  },
 });
 
 export default RightSide;

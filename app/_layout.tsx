@@ -25,7 +25,7 @@ export default function Layout() {
 }
 
 function InnerLayout() {
- const { isDarkMode, setIsDarkMode } = useDarkMode();
+ const { isDarkMode } = useDarkMode();
  const [fontsLoaded] = useFonts({
     InterRegular: require('@/assets/fonts/Inter/static/Inter_18pt-Thin.ttf'),
   });
@@ -107,14 +107,14 @@ function InnerLayout() {
           {sidebarVisible && <LeftSidebar close={() => setSidebarVisible(false)} />}
         </Animated.View>
 
-        <View style={styles2.contentArea}>
+        <View style={[styles2.contentArea, isDarkMode && { backgroundColor: 'rgba(42, 42, 42, .8)' }]}>
           <HeaderBar toggleSidebar={() => setSidebarVisible(!sidebarVisible)} currentPage={currentPage}/>
           <ScrollView 
             refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
-          contentContainerStyle={styles2.scrollContent}>
-            <View style={styles2.pageContent}>
+          contentContainerStyle={[styles2.scrollContent, isDarkMode && { backgroundColor: 'rgba(42, 42, 42, 1)' }]}>
+            <View style={[styles.pageContent, isDarkMode && { backgroundColor: 'rgba(42, 42, 42, 1)' }]}>
               <Slot />
             </View>
             <Footer />
@@ -125,15 +125,15 @@ function InnerLayout() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.contentArea}>
+    <View style={[styles.container, isDarkMode && { backgroundColor: 'rgba(42, 42, 42, 1)' }]}>
+      <View style={[styles.contentArea , isDarkMode && { backgroundColor: 'rgba(42, 42, 42, 1)' }]}>
         <HeaderBar toggleSidebar={() => setSidebarVisible(!sidebarVisible)} currentPage={currentPage}/>
         <ScrollView 
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        contentContainerStyle={styles.scrollContent}>
-          <View style={styles.pageContent}>
+        contentContainerStyle={[styles.scrollContent, isDarkMode && { backgroundColor: 'rgba(42, 42, 42, 1)' }]}>
+          <View style={[styles.pageContent, isDarkMode && { backgroundColor: 'rgba(42, 42, 42, 1)' }]}>
             <Slot />
           </View>
           <Footer />
@@ -144,7 +144,7 @@ function InnerLayout() {
         <Animated.View style={[styles.blurOverlay, { opacity: overlayOpacity }]} />
       )}
 
-      <Animated.View style={[styles.sidebar, { transform: [{ translateX: sidebarTranslateX }] }]}>
+      <Animated.View style={[styles.sidebar, { transform: [{ translateX: sidebarTranslateX }] }, isDarkMode && { backgroundColor: 'rgba(42, 42, 42, 1)' }]}>
         <LeftSidebar close={() => setSidebarVisible(false)} />
         {sidebarVisible && (
           <Animated.View style={[styles.closeButton, { opacity: overlayOpacity }]}>
@@ -233,7 +233,6 @@ const styles2 = StyleSheet.create({
    pageContent: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#fff',
   },
   scrollContent: {
     flexGrow: 1,

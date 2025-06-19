@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
 import Chart from '../../assets/icons/chart-pie-slice-fill.svg';
 import Graph from '../../assets/icons/chart-line-fill.svg';
 import { useRouter } from 'expo-router';
+import { useDarkMode } from '@/context/DarkModeContext';
 
 type DashboardsProps = {
   close?: () => void;
@@ -15,35 +16,35 @@ type DashboardsProps = {
 
 const Dashboards = ({ close }: DashboardsProps) => {
   const router = useRouter();
+  const { isDarkMode } = useDarkMode();
+
+  const textColor = isDarkMode ? '#fff' : '#000';
+  const mutedColor = isDarkMode ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+  const bgColor = isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff';
+  const hoverBg = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
 
   return (
-    <View style={styles.sidebar}>
-      <Text style={styles.sectionTitle}>Dashboards</Text>
+    <View style={[styles.sidebar, { backgroundColor: bgColor }]}>
+      <Text style={[styles.sectionTitle, { color: mutedColor }]}>Dashboards</Text>
 
       <SidebarItem
         label="Into the Deep"
-        icon={
-          <View style={styles.teamIcons}>
-            <Chart width={18} height={18} />
-          </View>
-        }
-        onPress={() => 
-          {router.push('/dashboards/intothedeep');
-          // close?.();
-          }}
-      />
-
-    <SidebarItem
-        label="Decode"
-        icon={
-          <View style={styles.teamIcons}>
-            <Graph width={18} height={18} />
-          </View>
-        }
+        icon={<View style={styles.teamIcons}><Chart width={18} height={18} fill={isDarkMode ? '#fff' : '#000'}/></View>}
         onPress={() => {
-          router.push('/dashboards/age')
+          router.push('/dashboards/intothedeep');
           // close?.();
         }}
+        isDarkMode={isDarkMode}
+      />
+
+      <SidebarItem
+        label="Decode"
+        icon={<View style={styles.teamIcons}><Graph width={18} height={18} fill={isDarkMode ? '#fff' : '#000'}/></View>}
+        onPress={() => {
+          router.push('/dashboards/age');
+          // close?.();
+        }}
+        isDarkMode={isDarkMode}
       />
     </View>
   );
@@ -54,13 +55,18 @@ const SidebarItem = ({
   icon,
   isSelected = false,
   onPress,
+  isDarkMode,
 }: {
   label: string;
   icon?: React.ReactNode;
   isSelected?: boolean;
   onPress?: () => void;
+  isDarkMode: boolean;
 }) => {
   const [hovered, setHovered] = useState(false);
+
+  const textColor = isDarkMode ? '#fff' : '#000';
+  const hoverBg = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
 
   return (
     <Pressable
@@ -69,16 +75,12 @@ const SidebarItem = ({
       onHoverOut={() => setHovered(false)}
       style={[
         styles.item,
-        hovered && styles.hoveredItem,
+        hovered && { backgroundColor: hoverBg, borderRadius: 13 },
       ]}
     >
       <View style={styles.iconLabel}>
-        {icon ? (
-          <View>{icon}</View>
-        ) : (
-          <View style={{ width: 16, height: 16, paddingLeft: 60 }} />
-        )}
-        <Text style={styles.label}>{label}</Text>
+        {icon ? icon : <View style={{ width: 16, height: 16, paddingLeft: 60 }} />}
+        <Text style={[styles.label, { color: textColor }]}>{label}</Text>
       </View>
     </Pressable>
   );
@@ -89,13 +91,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     gap: 2.2,
     paddingVertical: 9,
-    backgroundColor: '#fff',
     marginBottom: 18,
   },
   sectionTitle: {
     fontSize: 15,
     marginBottom: 9,
-    color: 'rgba(0, 0, 0, 0.4)',
     paddingHorizontal: 13,
   },
   item: {
@@ -106,13 +106,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 9,
   },
-  hoveredItem: {
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    borderRadius: 13,
-  },
   label: {
     fontSize: 15,
-    color: '#000',
   },
   teamIcons: {
     paddingLeft: 33,

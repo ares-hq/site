@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import Binoculars from '../../assets/icons/binoculars.svg';
 import { useRouter } from 'expo-router';
+import { useDarkMode } from '@/context/DarkModeContext';
 
 type ScoutingProps = {
   close?: () => void;
@@ -14,24 +15,30 @@ type ScoutingProps = {
 
 const Scouting = ({ close }: ScoutingProps) => {
   const router = useRouter();
+  const { isDarkMode } = useDarkMode();
 
   const handleNavigate = () => {
     router.push('/scouting/ScoutSheet');
     // close?.();
   };
 
+  const backgroundColor = isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff';
+  const titleColor = isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)';
+  const iconColor = isDarkMode ? '#fff' : '#000';
+
   return (
-    <View style={styles.sidebar}>
-      <Text style={styles.sectionTitle}>Scouting</Text>
+    <View style={[styles.sidebar, { backgroundColor }]}>
+      <Text style={[styles.sectionTitle, { color: titleColor }]}>Scouting</Text>
 
       <SidebarItem
         label="ScoutSheet"
         icon={
           <View style={styles.teamIcons}>
-            <Binoculars width={18} height={18} />
+            <Binoculars width={18} height={18} fill={iconColor} />
           </View>
         }
         onPress={handleNavigate}
+        isDarkMode={isDarkMode}
       />
     </View>
   );
@@ -42,13 +49,18 @@ const SidebarItem = ({
   icon,
   isSelected = false,
   onPress,
+  isDarkMode,
 }: {
   label: string;
   icon?: React.ReactNode;
   isSelected?: boolean;
   onPress?: () => void;
+  isDarkMode: boolean;
 }) => {
   const [hovered, setHovered] = useState(false);
+
+  const hoverBg = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+  const textColor = isDarkMode ? '#fff' : '#000';
 
   return (
     <Pressable
@@ -57,7 +69,7 @@ const SidebarItem = ({
       onHoverOut={() => setHovered(false)}
       style={[
         styles.item,
-        hovered && styles.hoveredItem,
+        hovered && { backgroundColor: hoverBg, borderRadius: 13 },
       ]}
     >
       <View style={styles.iconLabel}>
@@ -66,7 +78,7 @@ const SidebarItem = ({
         ) : (
           <View style={{ width: 16, height: 16, paddingLeft: 60 }} />
         )}
-        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.label, { color: textColor }]}>{label}</Text>
       </View>
     </Pressable>
   );
@@ -77,13 +89,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     gap: 2.2,
     paddingVertical: 9,
-    backgroundColor: '#fff',
     marginBottom: 18,
   },
   sectionTitle: {
     fontSize: 15,
     marginBottom: 9,
-    color: 'rgba(0, 0, 0, 0.4)',
     paddingHorizontal: 13,
   },
   item: {
@@ -94,13 +104,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 9,
   },
-  hoveredItem: {
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    borderRadius: 13,
-  },
   label: {
     fontSize: 15,
-    color: '#000',
   },
   teamIcons: {
     paddingLeft: 33,

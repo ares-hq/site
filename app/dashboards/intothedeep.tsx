@@ -19,6 +19,7 @@ import { getFirstAPI } from '@/api/firstAPI';
 import { AllianceInfo, EventInfo, MatchInfo, MatchTypeAverages, TeamInfo } from '@/api/types';
 import { attachHourlyAverages, getAverageByMatchType, getAveragePlace, getAwards } from '@/api/averageMatchScores';
 import { useLocalSearchParams } from 'expo-router';
+import { useDarkMode } from '@/context/DarkModeContext';
 
 type StatCardProps = {
   title: string;
@@ -61,6 +62,7 @@ const IntoTheDeep = () => {
   const [wins, setWins] = useState<number | null>(0);
   const [highestScore, setHighScore] = useState(0);
   const [loading, setLoading] = useState(true);
+  const { isDarkMode } = useDarkMode();
   const [averageOPR, setAverageOPR] = useState<{
     autoOPR: number;
     teleOPR: number;
@@ -108,7 +110,10 @@ const IntoTheDeep = () => {
 
   if (loading) {
     return (
-      <View style={styles.loadingOverlay} onLayout={handleLayout}>
+      <View style={[
+          styles.loadingOverlay,
+          { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' },
+        ]} onLayout={handleLayout}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#3B82F6" />
           <Text style={styles.loadingText}>Loading...</Text>

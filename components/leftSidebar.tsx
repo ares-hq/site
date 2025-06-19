@@ -11,14 +11,22 @@ import Dashboards from './left_sidebar/dashboards';
 import UsedTabs from './left_sidebar/usedTabs';
 import Platforms from './left_sidebar/platforms';
 import Scouting from './left_sidebar/scouting';
+import { useDarkMode } from '@/context/DarkModeContext';
 
 type SidebarProps = {
   close?: () => void; // optional close callback for mobile view
 };
 
 export default function Sidebar({ close }: SidebarProps) {
+  const { isDarkMode } = useDarkMode();
+
+  const backgroundColor = isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff';
+  const borderColor = isDarkMode ? '#4B5563' : '#e5e7eb';
+  const textColor = isDarkMode ? '#fff' : '#000';
+  const footerColor = isDarkMode ? '#777' : '#aaa';
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { borderColor, backgroundColor}]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Profile */}
         <View style={styles.profileSection}>
@@ -26,7 +34,7 @@ export default function Sidebar({ close }: SidebarProps) {
             source={{ uri: 'https://avatars.githubusercontent.com/u/1?v=4' }}
             style={styles.avatar}
           />
-          <Text style={styles.profileName}>Team 14584</Text>
+          <Text style={[styles.profileName, { color: textColor }]}>Team 14584</Text>
         </View>
 
         {/* Favorites & Recents */}
@@ -47,7 +55,7 @@ export default function Sidebar({ close }: SidebarProps) {
 
       {/* Footer */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>🤖 ARES Dashboard</Text>
+        <Text style={[styles.footerText, { color: footerColor }]}>🤖 ARES Dashboard</Text>
       </View>
     </View>
   );
@@ -58,10 +66,8 @@ const styles = StyleSheet.create({
     width: 209,
     height: '100%',
     paddingTop: 13,
-    backgroundColor: '#fff',
     justifyContent: 'space-between',
     borderRightWidth: 1,
-    borderColor: '#e5e7eb',
   },
   profileSection: {
     flexDirection: 'row',
@@ -86,6 +92,5 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13,
-    color: '#aaa',
   },
 });

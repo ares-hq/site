@@ -1,23 +1,31 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useColorScheme } from 'react-native';
 
 type DarkModeContextType = {
   isDarkMode: boolean;
-  setIsDarkMode: (val: boolean) => void;
+  setIsDarkMode: (value: boolean) => void;
 };
 
-const DarkModeContext = createContext<DarkModeContextType | undefined>(undefined);
+const DarkModeContext = createContext<DarkModeContextType>({
+  isDarkMode: false,
+  setIsDarkMode: () => {},
+});
 
 export const DarkModeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const systemScheme = useColorScheme(); // 'light' | 'dark' | null
+  const [isDarkMode, setIsDarkMode] = useState(systemScheme === 'dark');
+
+  useEffect(() => {
+    if (systemScheme != null) {
+      setIsDarkMode(systemScheme === 'dark');
+    }
+  }, [systemScheme]);
+
   return (
-    <DarkModeContext.Provider value={{ isDarkMode, setIsDarkMode }}>
+    <DarkModeContext.Provider value={{ isDarkMode, setIsDarkMode: setIsDarkMode }}>
       {children}
     </DarkModeContext.Provider>
   );
 };
 
-export const useDarkMode = () => {
-  const context = useContext(DarkModeContext);
-  if (!context) throw new Error('useDarkMode must be used within a DarkModeProvider');
-  return context;
-};
+export const useDarkMode = () => useContext(DarkModeContext);

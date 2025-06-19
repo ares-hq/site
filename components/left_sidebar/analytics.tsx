@@ -10,6 +10,7 @@ import IdentificationBadge from '../../assets/icons/identification-badge.svg';
 import CaretRight from '../../assets/icons/caret-right.svg';
 import Controller from '../../assets/icons/game-controller.svg';
 import { useRouter } from 'expo-router';
+import { useDarkMode } from '@/context/DarkModeContext';
 
 type AnalyticsProps = {
   close?: () => void;
@@ -21,6 +22,7 @@ const Analytics = ({ close }: AnalyticsProps) => {
   const [matchesExpanded, setMatchesExpanded] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const fadeAnimMatch = useRef(new Animated.Value(0)).current;
+  const { isDarkMode } = useDarkMode();
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -30,7 +32,7 @@ const Analytics = ({ close }: AnalyticsProps) => {
     }).start();
   }, [teamsExpanded]);
 
-    useEffect(() => {
+  useEffect(() => {
     Animated.timing(fadeAnimMatch, {
       toValue: matchesExpanded ? 1 : 0,
       duration: 200,
@@ -53,10 +55,15 @@ const Analytics = ({ close }: AnalyticsProps) => {
     // close?.();
   };
 
+  const textColor = isDarkMode ? '#fff' : '#000';
+  const mutedColor = isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)';
+  const hoverColor = isDarkMode ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)';
+  const arrowFill = isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)';
+  const bgColor = isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff';
 
   return (
-    <View style={styles.sidebar}>
-      <Text style={styles.sectionTitle}>Analytics</Text>
+    <View style={[styles.sidebar, { backgroundColor: bgColor }]}>
+      <Text style={[styles.sectionTitle, { color: mutedColor }]}>Analytics</Text>
 
       <SidebarItem
         label="Teams"
@@ -64,46 +71,49 @@ const Analytics = ({ close }: AnalyticsProps) => {
           <View style={styles.teamIcons}>
             <View style={styles.arrowContainer}>
               <Animated.View style={[styles.arrow, { transform: [{ rotate: rotate }] }]}>
-                <CaretRight fill='rgba(0,0,0,.2)' width={15} height={15} />
+                <CaretRight fill={arrowFill} width={15} height={15} />
               </Animated.View>
             </View>
-            <IdentificationBadge width={18} height={18} />
+            <IdentificationBadge width={18} height={18} fill={isDarkMode ? '#fff' : '#000'}/>
           </View>
         }
         onPress={() => setTeamsExpanded(!teamsExpanded)}
+        isDarkMode={isDarkMode}
       />
 
       {teamsExpanded && (
         <>
-          <SidebarItem label="Ranks" onPress={() => go('/analytics/teams/tranks')} />
-          <SidebarItem label="Auto" onPress={() => go('/analytics/teams/tauto')} />
-          <SidebarItem label="TeleOp" onPress={() => go('/analytics/teams/ttele')} />
-          <SidebarItem label="Endgame" onPress={() => go('/analytics/teams/tendgame')} />
+          <SidebarItem label="Ranks" onPress={() => go('/analytics/teams/tranks')} isDarkMode={isDarkMode} />
+          <SidebarItem label="Auto" onPress={() => go('/analytics/teams/tauto')} isDarkMode={isDarkMode} />
+          <SidebarItem label="TeleOp" onPress={() => go('/analytics/teams/ttele')} isDarkMode={isDarkMode} />
+          <SidebarItem label="Endgame" onPress={() => go('/analytics/teams/tendgame')} isDarkMode={isDarkMode} />
         </>
       )}
 
-      <Text style={styles.sectionTitle}></Text>
+      <Text style={[styles.sectionTitle, { color: mutedColor }]}></Text>
+
       <SidebarItem
         label="Matches"
         icon={
           <View style={styles.teamIcons}>
             <View style={styles.arrowContainer}>
               <Animated.View style={[styles.arrow, { transform: [{ rotate: rotateMatch }] }]}>
-                <CaretRight fill='rgba(0,0,0,.2)' width={15} height={15} />
+                <CaretRight fill={arrowFill} width={15} height={15} />
               </Animated.View>
             </View>
-            <Controller width={18} height={18}/>
+            <Controller width={18} height={18} fill={isDarkMode ? '#fff' : '#000'}/>
           </View>
         }
         onPress={() => setMatchesExpanded(!matchesExpanded)}
+        isDarkMode={isDarkMode}
       />
 
       {matchesExpanded && (
         <>
-          <SidebarItem label="Ranks" onPress={() => go('/analytics/matches/mranks')} />
-          <SidebarItem label="Qualifiers" onPress={() => go('/analytics/matches/qual')} />
-          <SidebarItem label="Finals" onPress={() => go('/analytics/matches/finals')} />
-          <SidebarItem label="Premier" onPress={() => go('/analytics/matches/premier')} />
+          <SidebarItem label="Ranks" onPress={() => go('/analytics/matches/mranks')} isDarkMode={isDarkMode} />
+          <SidebarItem label="Qualifiers" onPress={() => go('/analytics/matches/qual')} isDarkMode={isDarkMode} />
+          <SidebarItem label="Finals" onPress={() => go('/analytics/matches/finals')} isDarkMode={isDarkMode} />
+          <SidebarItem label="Premier" onPress={() => go('/analytics/matches/premier')} isDarkMode={isDarkMode} />
         </>
       )}
     </View>
@@ -115,11 +125,13 @@ const SidebarItem = ({
   icon,
   isSelected = false,
   onPress,
+  isDarkMode,
 }: {
   label: string;
   icon?: React.ReactNode;
   isSelected?: boolean;
   onPress?: () => void;
+  isDarkMode: boolean;
 }) => {
   const [hovered, setHovered] = useState(false);
 
@@ -130,7 +142,10 @@ const SidebarItem = ({
       onHoverOut={() => setHovered(false)}
       style={[
         styles.item,
-        hovered && styles.hoveredItem,
+        hovered && {
+          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+          borderRadius: 13,
+        },
       ]}
     >
       <View style={styles.iconLabel}>
@@ -139,7 +154,7 @@ const SidebarItem = ({
         ) : (
           <View style={{ width: 16, height: 16, paddingLeft: 60 }} />
         )}
-        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.label, { color: isDarkMode ? '#fff' : '#000' }]}>{label}</Text>
       </View>
     </Pressable>
   );
@@ -149,13 +164,11 @@ const styles = StyleSheet.create({
   sidebar: {
     paddingHorizontal: 9,
     gap: 2.2,
-    backgroundColor: '#fff',    
     marginBottom: 18,
   },
   sectionTitle: {
     fontSize: 15,
     marginBottom: 9,
-    color: 'rgba(0, 0, 0, 0.4)',
     paddingHorizontal: 13,
   },
   item: {
@@ -166,13 +179,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 9,
   },
-  hoveredItem: {
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    borderRadius: 13,
-  },
   label: {
     fontSize: 15,
-    color: '#000',
   },
   teamIcons: {
     paddingLeft: 9,

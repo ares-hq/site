@@ -5,9 +5,9 @@ import { Feather } from "@expo/vector-icons"
 import { getAllTeams, getAverageOPRs, getTeamMatchCount } from "@/api/dashboardInfo"
 import DataTable from "./graphs/teamTables"
 import { TeamInfo } from "@/api/types"
+import { useDarkMode } from "@/context/DarkModeContext"
 
 export default function LandingPage({ darkMode = false }: { darkMode?: boolean }) {
-  const router = useRouter()
   const [stats, setStats] = useState({
     totalTeams: 0,
     averageOPR: 0,
@@ -42,7 +42,7 @@ export default function LandingPage({ darkMode = false }: { darkMode?: boolean }
 
   const getThemedStyles = (darkMode: boolean) => {
     const theme = {
-      background: darkMode ? "#0F172A" : "#FFFFFF",
+      background: darkMode ? "rgba(42, 42, 42, 1)" : "#FFFFFF",
       backgroundSecondary: darkMode ? "#1E293B" : "#F9FAFB",
       backgroundTertiary: darkMode ? "#334155" : "#FFFFFF",
 
@@ -97,7 +97,6 @@ export default function LandingPage({ darkMode = false }: { darkMode?: boolean }
 
   const StatCard = ({ title, value, change, positive, color, icon }: StatCardProps) => {
     const colorStyles = theme.statCards[color]
-    const textColor = positive ? theme.success : theme.error
 
     return (
       <View
@@ -154,7 +153,7 @@ export default function LandingPage({ darkMode = false }: { darkMode?: boolean }
     
   const [teams, setTeams] = useState<TeamInfo[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const { isDarkMode } = useDarkMode();
 
     useEffect(() => {
       const init = async () => {
@@ -167,7 +166,10 @@ export default function LandingPage({ darkMode = false }: { darkMode?: boolean }
 
   if (loading) {
     return (
-        <View style={styles.loadingOverlay}>
+        <View style={[
+          styles.loadingOverlay,
+          { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' },
+        ]}>
         <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#3B82F6" />
             <Text style={styles.loadingText}>Loading...</Text>

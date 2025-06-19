@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
 import App from '../../assets/icons/app-store-logo.svg';
 import Robot from '../../assets/icons/robot.svg';
 import { useRouter } from 'expo-router';
+import { useDarkMode } from '@/context/DarkModeContext';
 
 type PlatformsProps = {
   close?: () => void;
@@ -15,35 +16,42 @@ type PlatformsProps = {
 
 const Platforms = ({ close }: PlatformsProps) => {
   const router = useRouter();
+  const { isDarkMode } = useDarkMode();
+
+  const backgroundColor = isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff';
+  const titleColor = isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)';
+  const iconColor = isDarkMode ? '#fff' : '#000';
 
   return (
-    <View style={styles.sidebar}>
-      <Text style={styles.sectionTitle}>Platforms</Text>
+    <View style={[styles.sidebar, { backgroundColor }]}>
+      <Text style={[styles.sectionTitle, { color: titleColor }]}>Platforms</Text>
 
       <SidebarItem
         label="Discord Bot"
         icon={
           <View style={styles.teamIcons}>
-            <Robot width={18} height={18} />
+            <Robot width={18} height={18} fill={iconColor} />
           </View>
         }
         onPress={() => {
           router.push('/platforms/discord');
           // close?.();
         }}
+        isDarkMode={isDarkMode}
       />
 
-    <SidebarItem
+      <SidebarItem
         label="Mobile App"
         icon={
           <View style={styles.teamIcons}>
-            <App width={18} height={18} />
+            <App width={18} height={18} fill={iconColor} />
           </View>
         }
         onPress={() => {
           router.push('/platforms/app');
           // close?.();
         }}
+        isDarkMode={isDarkMode}
       />
     </View>
   );
@@ -54,13 +62,18 @@ const SidebarItem = ({
   icon,
   isSelected = false,
   onPress,
+  isDarkMode,
 }: {
   label: string;
   icon?: React.ReactNode;
   isSelected?: boolean;
   onPress?: () => void;
+  isDarkMode: boolean;
 }) => {
   const [hovered, setHovered] = useState(false);
+
+  const hoverBg = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+  const textColor = isDarkMode ? '#fff' : '#000';
 
   return (
     <Pressable
@@ -69,16 +82,12 @@ const SidebarItem = ({
       onHoverOut={() => setHovered(false)}
       style={[
         styles.item,
-        hovered && styles.hoveredItem,
+        hovered && { backgroundColor: hoverBg, borderRadius: 13 },
       ]}
     >
       <View style={styles.iconLabel}>
-        {icon ? (
-          <View>{icon}</View>
-        ) : (
-          <View style={{ width: 16, height: 16, paddingLeft: 60 }} />
-        )}
-        <Text style={styles.label}>{label}</Text>
+        {icon ? icon : <View style={{ width: 16, height: 16, paddingLeft: 60 }} />}
+        <Text style={[styles.label, { color: textColor }]}>{label}</Text>
       </View>
     </Pressable>
   );
@@ -89,13 +98,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     gap: 2.2,
     paddingVertical: 9,
-    backgroundColor: '#fff',
     marginBottom: 9,
   },
   sectionTitle: {
     fontSize: 15,
     marginBottom: 9,
-    color: 'rgba(0, 0, 0, 0.4)',
     paddingHorizontal: 13,
   },
   item: {
@@ -106,13 +113,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 9,
   },
-  hoveredItem: {
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    borderRadius: 13,
-  },
   label: {
     fontSize: 15,
-    color: '#000',
   },
   teamIcons: {
     paddingLeft: 33,
