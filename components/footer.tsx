@@ -24,7 +24,7 @@ const Footer = () => {
 
         <Text style={styles.separator}>|</Text>
 
-        <Pressable onPress={() => router.push('/systemStatus')}>
+        <Pressable onPress={() => router.push('/systemstatus')}>
           <Text style={styles.link}>Systems Status</Text>
         </Pressable>
       </View>

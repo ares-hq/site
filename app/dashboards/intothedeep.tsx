@@ -28,10 +28,6 @@ type StatCardProps = {
   color: 'blue' | 'indigo';
 };
 
-type IntoTheDeepProps = {
-  teamNumber: number;
-};
-
 const StatCard = ({ title, value, change, positive, color }: StatCardProps) => {
   const backgroundColor = color === 'blue' ? '#E6F1FD' : '#EDEEFC';
   const textColor = positive ? '#16a34a' : '#dc2626';
@@ -50,10 +46,11 @@ const StatCard = ({ title, value, change, positive, color }: StatCardProps) => {
   );
 };
 
-const IntoTheDeep = () => {
-  const teamnumber = Number(useLocalSearchParams());
-  if (isNaN(teamnumber)) {
-    return <Text>Invalid or missing team number</Text>;
+const IntoTheDeep = () => {  
+  const { teamnumber } = useLocalSearchParams();
+  const teamNumber = Number(teamnumber);
+  if (isNaN(teamNumber)) {
+    return <Text>Invalid or missing team number </Text>;
   }
   const [containerWidth, setContainerWidth] = useState(0);
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(null);
@@ -74,14 +71,14 @@ const IntoTheDeep = () => {
   useEffect(() => {
     const fetchInfo = async () => {
       try {
-        const data = await getTeamInfo(teamnumber);
+        const data = await getTeamInfo(teamNumber);
         const avg = await getAverageOPRs();
-        const match = await getTeamMatches(teamnumber);
+        const match = await getTeamMatches(teamNumber);
         const hourlyAverages = await attachHourlyAverages(match ?? []);
         const matchType = await getAverageByMatchType(match ?? []);
         const highScore = match?.reduce((max, m) => Math.max(max, m.totalPoints), 0) ?? 0;
         const wins = await getWins(match ?? []);
-        const eventData = await getFirstAPI(data?.events ?? [''], teamnumber);
+        const eventData = await getFirstAPI(data?.events ?? [''], teamNumber);
 
         if (data) {
           data.averagePlace = getAveragePlace(eventData ?? []);
@@ -212,7 +209,7 @@ const IntoTheDeep = () => {
       <View style={styles.eventContainer}>
         {eventData && eventData.map((event, index) => (
           <View key={index} style={{ marginBottom: 5, flexShrink: 0 }}>
-            <EventCard eventData={event} teamNumber={teamnumber} />
+            <EventCard eventData={event} teamNumber={teamNumber} />
           </View>
         ))}
       </View>
