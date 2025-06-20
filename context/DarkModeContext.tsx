@@ -12,7 +12,7 @@ const DarkModeContext = createContext<DarkModeContextType>({
 });
 
 export const DarkModeProvider = ({ children }: { children: React.ReactNode }) => {
-  const systemScheme = useColorScheme(); // 'light' | 'dark' | null
+  const systemScheme = useColorScheme();
   const [isDarkMode, setIsDarkMode] = useState(systemScheme === 'dark');
 
   useEffect(() => {

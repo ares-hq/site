@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  useColorScheme,
 } from 'react-native';
 import { useFonts } from 'expo-font';
 import { router, Slot, usePathname } from 'expo-router';
@@ -26,6 +27,7 @@ export default function Layout() {
 
 function InnerLayout() {
  const { isDarkMode } = useDarkMode();
+ const systemScheme = useColorScheme();
  const [fontsLoaded] = useFonts({
     InterRegular: require('@/assets/fonts/Inter/static/Inter_18pt-Thin.ttf'),
   });

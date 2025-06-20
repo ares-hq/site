@@ -6,6 +6,9 @@ import { getAllTeams, getAverageOPRs, getTeamMatchCount } from "@/api/dashboardI
 import DataTable from "./graphs/teamTables"
 import { TeamInfo } from "@/api/types"
 import { useDarkMode } from "@/context/DarkModeContext"
+import Medal from '../assets/icons/medal.svg';
+import People from '../assets/icons/users.svg';
+import Target from '../assets/icons/target.svg';
 
 export default function LandingPage({ darkMode = false }: { darkMode?: boolean }) {
   const [stats, setStats] = useState({
@@ -111,7 +114,16 @@ export default function LandingPage({ darkMode = false }: { darkMode?: boolean }
       >
         <View style={styles.statHeader}>
           <View style={styles.statTitleRow}>
-            <Feather name={icon as any} size={18} color={theme.textSecondary} />
+            {icon === "users" ? (
+                <People width={18} height={18} fill={theme.textSecondary} />
+            ) : (
+                icon === "target" ? (
+                <Target width={18} height={18} fill={theme.textSecondary} />
+                
+                ) : (
+                <Medal width={18} height={18} fill={theme.textSecondary} />
+                )
+            )}
             <Text style={[styles.statTitle, { color: theme.textSecondary }]}>{title}</Text>
           </View>
         </View>
