@@ -8,6 +8,7 @@ import CalendarIcon from '@/assets/icons/calendar.svg';
 import ShieldIcon from '@/assets/icons/identification-card.svg';
 import GlobeIcon from '@/assets/icons/link-simple-horizontal.svg';
 import { TeamInfo } from '@/api/types';
+import { useDarkMode } from '@/context/DarkModeContext';
 
 interface InfoSectionProps {
   screenWidth: number;
@@ -16,31 +17,38 @@ interface InfoSectionProps {
 }
 
 const InfoBox = ({ screenWidth, teamInfo, highScore }: InfoSectionProps) => {
+  const { isDarkMode } = useDarkMode();
+
   const Inside = () => (
     <View style={styles.container}>
-    <Text style={styles.title}>Team Profile</Text>
+      <Text style={[
+        styles.title,
+        { color: isDarkMode ? '#F9FAFB' : '#111827' }
+      ]}>
+        Team Profile
+      </Text>
       <View style={styles.contentContainer}>
         <View style={{ gap: 30 }}>
-          <InfoRow icon={<ShieldIcon />} label="Team Name" value={teamInfo.teamName || 'N/A'} />
-          <InfoRow icon={<LocationIcon />} label="Location" value={teamInfo.location || 'N/A'} />
-          <InfoRow icon={<CalendarIcon />} label="Founded" value={teamInfo.founded || 'N/A'} />
-          <InfoRow icon={<TrophyIcon />} label="Highest Score" value={highScore.toString()} />
+          <InfoRow icon={<ShieldIcon fill={isDarkMode ? '#fff' : '#000'}/>} label="Team Name" value={teamInfo.teamName || 'N/A'} />
+          <InfoRow icon={<LocationIcon fill={isDarkMode ? '#fff' : '#000'}/>} label="Location" value={teamInfo.location || 'N/A'} />
+          <InfoRow icon={<CalendarIcon fill={isDarkMode ? '#fff' : '#000'}/>} label="Founded" value={teamInfo.founded || 'N/A'} />
+          <InfoRow icon={<TrophyIcon fill={isDarkMode ? '#fff' : '#000'}/>} label="Highest Score" value={highScore.toString()} />
         </View>
         <View style={styles.offsetColumn}>
           <InfoRow
-            icon={<GlobeIcon />}
+            icon={<GlobeIcon fill={isDarkMode ? '#fff' : '#000'}/>}
             label="Website"
             value={teamInfo.website || 'N/A'}
             isLink
             displayText={'Team ' + (teamInfo.teamNumber && teamInfo.teamNumber.toString())}
           />
           <InfoRow
-            icon={<UsersIcon />}
+            icon={<UsersIcon fill={isDarkMode ? '#fff' : '#000'}/>}
             label="Sponsors"
             value={teamInfo.sponsors || 'N/A'}
           />
           <InfoRow
-            icon={<TopScore />}
+            icon={<TopScore fill={isDarkMode ? '#fff' : '#000'}/>}
             label="Achievements"
             value={teamInfo.achievements || 'N/A'}
           />
@@ -48,20 +56,34 @@ const InfoBox = ({ screenWidth, teamInfo, highScore }: InfoSectionProps) => {
       </View>
     </View>
   );
+
   return (
     screenWidth < 1400 ? (
-      <View style={[styles.container, { width: 550 }]}>
+      <View style={[
+        styles.container, 
+        { 
+          width: 550,
+          backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9FAFB',
+          borderColor: isDarkMode ? '#374151' : 'transparent',
+          // borderWidth: 1 ,
+        }
+      ]}>
         <Inside />
       </View>
     ) : (
-      <View style={styles.container}>
+      <View style={[
+        styles.container,
+        {
+          backgroundColor: isDarkMode ? '#1F2937' : '#F9FAFB',
+          borderColor: isDarkMode ? '#374151' : 'transparent',
+          // borderWidth: 1,
+        }
+      ]}>
         <Inside />
       </View>
     )
   );
 };
-
-import { ScrollView } from 'react-native'; // ← Make sure this is imported
 
 const InfoRow = ({
   icon,
@@ -76,6 +98,8 @@ const InfoRow = ({
   isLink?: boolean;
   displayText?: string;
 }) => {
+  const { isDarkMode } = useDarkMode();
+
   const openLink = async (url: string) => {
     const prefixed = url.startsWith('http') ? url : `https://${url}`;
     const supported = await Linking.canOpenURL(prefixed);
@@ -90,11 +114,22 @@ const InfoRow = ({
     <View style={styles.row}>
       <View style={styles.icon}>{icon}</View>
       <View style={styles.textContainer}>
-        <Text style={styles.label}>{label}</Text>
+        <Text style={[
+          styles.label,
+          { color: isDarkMode ? '#9CA3AF' : '#6B7280' }
+        ]}>
+          {label}
+        </Text>
         {isLink ? (
           <Pressable onPress={() => openLink(value)} style={styles.pressableLink}>
             <Text
-              style={[styles.value, styles.link]}
+              style={[
+                styles.value,
+                styles.link,
+                { 
+                  color: isDarkMode ? '#60A5FA' : '#3B82F6',
+                }
+              ]}
               numberOfLines={1}
               ellipsizeMode="tail"
             >
@@ -102,7 +137,12 @@ const InfoRow = ({
             </Text>
           </Pressable>
         ) : (
-          <Text style={styles.value}>{value}</Text>
+          <Text style={[
+            styles.value,
+            { color: isDarkMode ? '#F9FAFB' : '#111827' }
+          ]}>
+            {value}
+          </Text>
         )}
       </View>
     </View>
@@ -111,7 +151,6 @@ const InfoRow = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F9FAFB',
     padding: 10,
     paddingTop: 8,
     flex: 1,
@@ -120,7 +159,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    color: '#111827',
     marginBottom: 16,
     textAlign: 'left',
   },
@@ -151,20 +189,17 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    color: '#6B7280',
     textTransform: 'uppercase',
     fontWeight: '600',
     letterSpacing: 0.5,
   },
   value: {
     fontSize: 14,
-    color: '#111827',
     fontWeight: '500',
     lineHeight: 18,
     flexWrap: 'wrap',
   },
   link: {
-    color: '#3B82F6',
     textDecorationLine: 'underline',
   },
   pressableLink: {

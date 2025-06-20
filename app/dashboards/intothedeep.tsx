@@ -30,14 +30,32 @@ type StatCardProps = {
 };
 
 const StatCard = ({ title, value, change, positive, color }: StatCardProps) => {
-  const backgroundColor = color === 'blue' ? '#E6F1FD' : '#EDEEFC';
+  const { isDarkMode } = useDarkMode();
+  
+  const getBackgroundColor = () => {
+    if (isDarkMode) {
+      return color === 'blue' ? 'rgba(30, 58, 138, 0.4)' : 'rgba(55, 48, 163, 0.4)';
+    }
+    return color === 'blue' ? '#E6F1FD' : '#EDEEFC';
+  };
+
   const textColor = positive ? '#16a34a' : '#dc2626';
 
   return (
-    <View style={[styles.card, { backgroundColor }]}>
-      <Text style={styles.title}>{title}</Text>
+    <View style={[styles.card, { backgroundColor: getBackgroundColor() }]}>
+      <Text style={[
+        styles.title,
+        { color: isDarkMode ? '#D1D5DB' : '#6b7280' }
+      ]}>
+        {title}
+      </Text>
       <View style={styles.row}>
-        <Text style={styles.value}>{value}</Text>
+        <Text style={[
+          styles.value,
+          { color: isDarkMode ? '#F9FAFB' : '#000' }
+        ]}>
+          {value}
+        </Text>
         <View style={styles.changeRow}>
           <Text style={[styles.change, { color: textColor }]}>{change}</Text>
           <Feather name={positive ? 'trending-up' : 'trending-down'} size={11} color={textColor} />
@@ -50,9 +68,6 @@ const StatCard = ({ title, value, change, positive, color }: StatCardProps) => {
 const IntoTheDeep = () => {  
   const { teamnumber } = useLocalSearchParams();
   const teamNumber = Number(teamnumber);
-  if (isNaN(teamNumber)) {
-    return <Text>Invalid or missing team number </Text>;
-  }
   const [containerWidth, setContainerWidth] = useState(0);
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(null);
   const [matches, setMatches] = useState<AllianceInfo[] | null>(null);
@@ -71,6 +86,11 @@ const IntoTheDeep = () => {
   } | null>(null);
 
   useEffect(() => {
+    if (isNaN(teamNumber)) {
+      console.error('Invalid or missing team number');
+      return;
+    }
+
     const fetchInfo = async () => {
       try {
         const data = await getTeamInfo(teamNumber);
@@ -101,7 +121,7 @@ const IntoTheDeep = () => {
       }
     };
     fetchInfo();
-  }, []);
+  }, [teamNumber]);
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const { width } = event.nativeEvent.layout;
@@ -111,21 +131,53 @@ const IntoTheDeep = () => {
   if (loading) {
     return (
       <View style={[
-          styles.loadingOverlay,
-          { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' },
-        ]} onLayout={handleLayout}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3B82F6" />
-          <Text style={styles.loadingText}>Loading...</Text>
+        styles.loadingOverlay,
+        { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' },
+      ]} onLayout={handleLayout}>
+        <View style={[
+          styles.loadingContainer,
+          { backgroundColor: isDarkMode ? '#1f2937' : '#ffffff' }
+        ]}>
+          <ActivityIndicator size="large" color={isDarkMode ? '#9CA3AF' : '#6B7280'} />
+          <Text style={[
+            styles.loadingText,
+            { color: isDarkMode ? '#9CA3AF' : '#6B7280' }
+          ]}>
+            Loading...
+          </Text>
         </View>
       </View>
     );
   }
 
+  if (isNaN(teamNumber)) {
+    return (
+      <View style={[
+        styles.container,
+        { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' }
+      ]}>
+        <Text style={[
+          styles.errorText,
+          { color: isDarkMode ? '#F87171' : '#DC2626' }
+        ]}>
+          Invalid or missing team number
+        </Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container} onLayout={handleLayout}>
+    <View style={[
+      styles.container,
+      { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' }
+    ]} onLayout={handleLayout}>
       <View style={styles.headerRow}>
-        <Text style={styles.header}>Overview</Text>
+        <Text style={[
+          styles.header,
+          { color: isDarkMode ? '#F9FAFB' : '#111827' }
+        ]}>
+          Overview
+        </Text>
       </View>
 
       <View style={styles.cardRow}>
@@ -180,7 +232,12 @@ const IntoTheDeep = () => {
       )}
 
       <View style={styles.headerRow}>
-        <Text style={styles.header}>Team Information</Text>
+        <Text style={[
+          styles.header,
+          { color: isDarkMode ? '#F9FAFB' : '#111827' }
+        ]}>
+          Team Information
+        </Text>
       </View>
       
       {containerWidth < 1250 ? (
@@ -208,7 +265,12 @@ const IntoTheDeep = () => {
       )}
 
       <View style={styles.headerRow}>
-        <Text style={styles.header}>Events</Text>
+        <Text style={[
+          styles.header,
+          { color: isDarkMode ? '#F9FAFB' : '#111827' }
+        ]}>
+          Events
+        </Text>
       </View>
       
       <View style={styles.eventContainer}>
@@ -235,6 +297,7 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: 15,
+    fontWeight: '600',
   },
   date: {
     fontSize: 13,
@@ -248,14 +311,13 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    minWidth: 162,
+    minWidth: 180,
     height: 97,
     borderRadius: 13,
     padding: 20,
   },
   title: {
     fontSize: 15,
-    color: '#6b7280',
     marginBottom: 9,
   },
   row: {
@@ -266,7 +328,7 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: 26,
-    color: '#000',
+    fontWeight: '700',
   },
   changeRow: {
     flexDirection: 'row',
@@ -275,6 +337,7 @@ const styles = StyleSheet.create({
   },
   change: {
     fontSize: 13,
+    fontWeight: '600',
   },
   chartScrollContainer: {
     gap: 16,
@@ -288,7 +351,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
   },
   loadingContainer: {
     padding: 24,
@@ -298,8 +360,13 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#3B82F6',
     fontWeight: '600',
+  },
+  errorText: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 50,
   },
 });
 

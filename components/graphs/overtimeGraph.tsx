@@ -71,8 +71,17 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
   const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
       return (
-        <View style={styles.tooltip}>
-          <Text style={styles.tooltipLabel}>
+        <View style={[
+          styles.tooltip,
+          {
+            backgroundColor: isDarkMode ? '#1F2937' : '#fff',
+            borderColor: isDarkMode ? '#374151' : '#e5e7eb',
+          }
+        ]}>
+          <Text style={[
+            styles.tooltipLabel,
+            { color: isDarkMode ? '#F9FAFB' : '#000' }
+          ]}>
             {`Match ${label ? label.replace(/^M\s*/, '') : ''}`}
           </Text>
           {payload.map((entry: any, index: number) => (
@@ -103,34 +112,99 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
   ];
 
   const TeamData = () => (
-      <View style={styles.trafficContainer}>
+      <View style={[
+        styles.trafficContainer,
+        {
+          backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9F9FA',
+        }
+      ]}>
         <View style={styles.trafficHeader}>
-          <Text style={styles.trafficTitle}>Team Data</Text>
-          <Text style={styles.trafficSubtitle}>Current Season</Text>
+          <Text style={[
+            styles.trafficTitle,
+            { color: isDarkMode ? '#F9FAFB' : '#111827' }
+          ]}>
+            Team Data
+          </Text>
+          <Text style={[
+            styles.trafficSubtitle,
+            { color: isDarkMode ? '#9CA3AF' : '#6b7280' }
+          ]}>
+            Current Season
+          </Text>
         </View>
         
         <View style={styles.metricsGrid}>
           <View style={styles.topRow}>
-            <View style={styles.metricCard}>
-              <Text style={styles.metricName}>{trafficData[0].name}</Text>
+            <View style={[
+              styles.metricCard,
+              {
+                backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff',
+              }
+            ]}>
+              <Text style={[
+                styles.metricName,
+                { color: isDarkMode ? '#D1D5DB' : '#374151' }
+              ]}>
+                {trafficData[0].name}
+              </Text>
               <View style={styles.metricValue}>
-                <Text style={styles.valueText}>{trafficData[0].value}</Text>
+                <Text style={[
+                  styles.valueText,
+                  { color: isDarkMode ? '#F9FAFB' : '#111827' }
+                ]}>
+                  {trafficData[0].value}
+                </Text>
               </View>
             </View>
-            <View style={styles.metricCard}>
-              <Text style={styles.metricName}>{trafficData[1].name}</Text>
+            <View style={[
+              styles.metricCard,
+              {
+                backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff',
+              }
+            ]}>
+              <Text style={[
+                styles.metricName,
+                { color: isDarkMode ? '#D1D5DB' : '#374151' }
+              ]}>
+                {trafficData[1].name}
+              </Text>
               <View style={styles.metricValue}>
-                <Text style={styles.valueText}>{trafficData[1].value}</Text>
+                <Text style={[
+                  styles.valueText,
+                  { color: isDarkMode ? '#F9FAFB' : '#111827' }
+                ]}>
+                  {trafficData[1].value}
+                </Text>
               </View>
             </View>
           </View>
 
           <View style={styles.bottomRow}>
-            <View style={styles.metricCard}>
-              <Text style={styles.metricName}>{trafficData[2].name}</Text>
+            <View style={[
+              styles.metricCard,
+              {
+                backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff',
+              }
+            ]}>
+              <Text style={[
+                styles.metricName,
+                { color: isDarkMode ? '#D1D5DB' : '#374151' }
+              ]}>
+                {trafficData[2].name}
+              </Text>
               <View style={styles.metricValue}>
-                <Text style={styles.valueText}>{trafficData[2].value}</Text>
-                <Text style={styles.totalText}>/ {trafficData[2].total}</Text>
+                <Text style={[
+                  styles.valueText,
+                  { color: isDarkMode ? '#F9FAFB' : '#111827' }
+                ]}>
+                  {trafficData[2].value}
+                </Text>
+                <Text style={[
+                  styles.totalText,
+                  { color: isDarkMode ? '#6B7280' : '#9CA3AF' }
+                ]}>
+                  / {trafficData[2].total}
+                </Text>
               </View>
               <View style={styles.barContainer}>
                 <View
@@ -142,14 +216,32 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
                     },
                   ]}
                 />
-                <View style={styles.barEmpty} />
+                <View style={[
+                  styles.barEmpty,
+                  { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }
+                ]} />
               </View>
             </View>
 
-          <View style={styles.metricCard}>
-            <Text style={styles.metricName}>{trafficData[3].name}</Text>
+          <View style={[
+            styles.metricCard,
+            {
+              backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff',
+            }
+          ]}>
+            <Text style={[
+              styles.metricName,
+              { color: isDarkMode ? '#D1D5DB' : '#374151' }
+            ]}>
+              {trafficData[3].name}
+            </Text>
             <View style={styles.metricValue}>
-              <Text style={styles.valueText}>{teamInfo.averagePlace}</Text>
+              <Text style={[
+                styles.valueText,
+                { color: isDarkMode ? '#F9FAFB' : '#111827' }
+              ]}>
+                {teamInfo.averagePlace}
+              </Text>
             </View>
             <View style={styles.barContainer}>
               <View
@@ -161,36 +253,94 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
                   },
                 ]}
               />
-              <View style={styles.barEmpty} />
+              <View style={[
+                styles.barEmpty,
+                { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }
+              ]} />
             </View>
           </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
-            <Text style={{ fontSize: 12, color: '#374151', fontWeight: '500' }}>Penalties OPR</Text>
-            <Text style={{ fontSize: 14, color: '#111827', fontWeight: '600' }}>{teamInfo.penalties != null ? Number(teamInfo.penalties).toFixed(2) : '--'}</Text>
+            <Text style={[
+              { fontSize: 12, fontWeight: '500' },
+              { color: isDarkMode ? '#D1D5DB' : '#374151' }
+            ]}>
+              Penalties OPR
+            </Text>
+            <Text style={[
+              { fontSize: 14, fontWeight: '600' },
+              { color: isDarkMode ? '#F9FAFB' : '#111827' }
+            ]}>
+              {teamInfo.penalties != null ? Number(teamInfo.penalties).toFixed(2) : '--'}
+            </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
-            <Text style={{ fontSize: 12, color: '#374151', fontWeight: '500' }}>Overall Rank</Text>
-            <Text style={{ fontSize: 14, color: '#111827', fontWeight: '600' }}>{teamInfo.overallRank}</Text>
+            <Text style={[
+              { fontSize: 12, fontWeight: '500' },
+              { color: isDarkMode ? '#D1D5DB' : '#374151' }
+            ]}>
+              Overall Rank
+            </Text>
+            <Text style={[
+              { fontSize: 14, fontWeight: '600' },
+              { color: isDarkMode ? '#F9FAFB' : '#111827' }
+            ]}>
+              {teamInfo.overallRank}
+            </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
-            <Text style={{ fontSize: 12, color: '#374151', fontWeight: '500' }}>Auto Rank</Text>
-            <Text style={{ fontSize: 14, color: '#111827', fontWeight: '600' }}>{teamInfo.autoRank}</Text>
+            <Text style={[
+              { fontSize: 12, fontWeight: '500' },
+              { color: isDarkMode ? '#D1D5DB' : '#374151' }
+            ]}>
+              Auto Rank
+            </Text>
+            <Text style={[
+              { fontSize: 14, fontWeight: '600' },
+              { color: isDarkMode ? '#F9FAFB' : '#111827' }
+            ]}>
+              {teamInfo.autoRank}
+            </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
-            <Text style={{ fontSize: 12, color: '#374151', fontWeight: '500' }}>TeleOp Rank</Text>
-            <Text style={{ fontSize: 14, color: '#111827', fontWeight: '600' }}>{teamInfo.teleRank}</Text>
+            <Text style={[
+              { fontSize: 12, fontWeight: '500' },
+              { color: isDarkMode ? '#D1D5DB' : '#374151' }
+            ]}>
+              TeleOp Rank
+            </Text>
+            <Text style={[
+              { fontSize: 14, fontWeight: '600' },
+              { color: isDarkMode ? '#F9FAFB' : '#111827' }
+            ]}>
+              {teamInfo.teleRank}
+            </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
-            <Text style={{ fontSize: 12, color: '#374151', fontWeight: '500' }}>Endgame Rank</Text>
-            <Text style={{ fontSize: 14, color: '#111827', fontWeight: '600' }}>{teamInfo.endgameRank}</Text>
+            <Text style={[
+              { fontSize: 12, fontWeight: '500' },
+              { color: isDarkMode ? '#D1D5DB' : '#374151' }
+            ]}>
+              Endgame Rank
+            </Text>
+            <Text style={[
+              { fontSize: 14, fontWeight: '600' },
+              { color: isDarkMode ? '#F9FAFB' : '#111827' }
+            ]}>
+              {teamInfo.endgameRank}
+            </Text>
           </View>
         </View>
       </View>
   );
 
   const ChartContent = () => (
-    <View style={styles.graphContainer}>
+    <View style={[
+      styles.graphContainer,
+      {
+        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9F9FA',
+      }
+    ]}>
       <View style={styles.tabRow}>
         <View style={styles.tabs}>
           {tabs.map((tab) => (
@@ -199,21 +349,44 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
               onPress={() => setActiveTab(tab)}
               style={styles.tabButton}
             >
-              <Text style={activeTab === tab ? styles.activeTab : styles.inactiveTab}>
+              <Text style={[
+                activeTab === tab ? styles.activeTab : styles.inactiveTab,
+                {
+                  color: activeTab === tab 
+                    ? (isDarkMode ? '#F9FAFB' : '#000')
+                    : (isDarkMode ? '#6B7280' : '#9ca3af')
+                }
+              ]}>
                 {tab}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
-        <View style={styles.divider} />
+        <View style={[
+          styles.divider,
+          { backgroundColor: isDarkMode ? '#4B5563' : '#d1d5db' }
+        ]} />
         <View style={styles.legend}>
           <View style={styles.legendItem}>
-            <View style={[styles.circle, { backgroundColor: '#000' }]} />
-            <Text style={styles.legendLabel}>Current Team</Text>
+            <View style={[
+              styles.circle, 
+              { backgroundColor: isDarkMode ? '#F9FAFB' : '#000' }
+            ]} />
+            <Text style={[
+              styles.legendLabel,
+              { color: isDarkMode ? '#F9FAFB' : '#000' }
+            ]}>
+              Current Team
+            </Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.circle, { backgroundColor: 'rgba(59,130,246,0.4)' }]} />
-            <Text style={styles.legendLabel}>Average</Text>
+            <Text style={[
+              styles.legendLabel,
+              { color: isDarkMode ? '#F9FAFB' : '#000' }
+            ]}>
+              Average
+            </Text>
           </View>
         </View>
       </View>
@@ -224,8 +397,8 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
             <ComposedChart data={matchData} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
               <defs>
                 <linearGradient id="currentGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#000" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#000" stopOpacity={0} />
+                  <stop offset="5%" stopColor={isDarkMode ? "#F9FAFB" : "#000"} stopOpacity={0.15} />
+                  <stop offset="95%" stopColor={isDarkMode ? "#F9FAFB" : "#000"} stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="averageGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="rgba(59, 130, 246, 0.4)" stopOpacity={0.1} />
@@ -236,21 +409,29 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
                 dataKey="name"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 10, fill: '#9ca3af', fontFamily: 'Inter' }}
+                tick={{ 
+                  fontSize: 10, 
+                  fill: isDarkMode ? '#6B7280' : '#9ca3af', 
+                  fontFamily: 'Inter' 
+                }}
                 tickMargin={15}
                 interval={(matchData.length > 9) ? Math.ceil((matchData.length - 2) / 8) : 0}
               />
               <YAxis
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 10, fill: '#9ca3af', fontFamily: 'Inter' }}
+                tick={{ 
+                  fontSize: 10, 
+                  fill: isDarkMode ? '#6B7280' : '#9ca3af', 
+                  fontFamily: 'Inter' 
+                }}
                 tickCount={4}
                 tickMargin={15}
               />
               <Tooltip
                 content={<CustomTooltip />}
                 cursor={{
-                  stroke: '#d1d5db',
+                  stroke: isDarkMode ? '#4B5563' : '#d1d5db',
                   strokeWidth: 1,
                   strokeDasharray: '3 3',
                 }}
@@ -258,11 +439,11 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
               <Area
                 type="monotone"
                 dataKey="current"
-                stroke="#000"
+                stroke={isDarkMode ? "#F9FAFB" : "#000"}
                 strokeWidth={2}
                 fill="url(#currentGradient)"
                 dot={false}
-                activeDot={{ r: 4, fill: '#000' }}
+                activeDot={{ r: 4, fill: isDarkMode ? "#F9FAFB" : "#000" }}
               />
               <Area
                 type="monotone"
@@ -284,12 +465,22 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
   return (
     <View>
       {screenWidth > 820 ? (
-        <View style={[styles.section, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff' }]}>
+        <View style={[
+          styles.section, 
+          { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff' }
+        ]}>
           <ChartContent />
           <TeamData />
         </View>
       ) : (
-        <ScrollView horizontal contentContainerStyle={styles.section} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          horizontal 
+          contentContainerStyle={[
+            styles.section,
+            { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff' }
+          ]} 
+          showsVerticalScrollIndicator={false}
+        >
           <ChartContent />
           <TeamData />
         </ScrollView>
@@ -302,7 +493,6 @@ const styles = StyleSheet.create({
   section: {
     flexDirection: 'row',
     gap: 12.6,
-    backgroundColor: '#fff',
     borderRadius: 16,
     marginBottom: 22,
   },
@@ -310,7 +500,6 @@ const styles = StyleSheet.create({
     minWidth: 500,
     flex: 1,
     padding: 17,
-    backgroundColor: '#F9F9FA',
     borderRadius: 16,
   },
   chartWrapper: {
@@ -328,17 +517,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
   },
   activeTab: {
-    color: '#000',
     fontSize: 12.6,
   },
   inactiveTab: {
-    color: '#9ca3af',
     fontSize: 12.6,
   },
   trafficContainer: {
     width: 302.4,
     padding: 17,
-    backgroundColor: '#F9F9FA',
     borderRadius: 16,
   },
   trafficHeader: {
@@ -348,11 +534,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 17.1,
     marginBottom: 1.8,
-    color: '#111827',
   },
   trafficSubtitle: {
     fontSize: 12.6,
-    color: '#6b7280',
   },
   metricsGrid: {
     gap: 12.6,
@@ -367,14 +551,12 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     width: '48%',
-    backgroundColor: '#fff',
     paddingHorizontal: 12.6,
     paddingTop: 12.6,
     borderRadius: 9,
   },
   metricName: {
     fontSize: 12.6,
-    color: '#374151',
     fontWeight: '500',
     marginBottom: 9,
   },
@@ -386,11 +568,9 @@ const styles = StyleSheet.create({
   valueText: {
     fontSize: 19.8,
     fontWeight: '700',
-    color: '#111827',
   },
   totalText: {
     fontSize: 12.6,
-    color: '#9CA3AF',
     marginLeft: 4.5,
   },
   barContainer: {
@@ -405,6 +585,7 @@ const styles = StyleSheet.create({
   },
   barEmpty: {
     flex: 1,
+    borderRadius: 1.8,
   },
   tabRow: {
     alignItems: 'center',
@@ -415,7 +596,6 @@ const styles = StyleSheet.create({
     width: 0.54,
     height: 17.1,
     marginHorizontal: 4.5,
-    backgroundColor: '#d1d5db',
   },
   legend: {
     paddingHorizontal: 9,
@@ -434,22 +614,17 @@ const styles = StyleSheet.create({
   },
   legendLabel: {
     fontSize: 12.6,
-    color: '#000',
   },
   tooltip: {
-    backgroundColor: '#fff',
     padding: 9,
     borderRadius: 6.3,
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
     elevation: 3.6,
     borderWidth: 0.9,
-    borderColor: '#e5e7eb',
   },
   tooltipLabel: {
     fontSize: 12.6,
     fontWeight: '600',
     marginBottom: 4.5,
-    color: '#000',
   },
   tooltipValue: {
     fontSize: 11.7,

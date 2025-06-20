@@ -27,7 +27,6 @@ export default function Layout() {
 
 function InnerLayout() {
  const { isDarkMode } = useDarkMode();
- const systemScheme = useColorScheme();
  const [fontsLoaded] = useFonts({
     InterRegular: require('@/assets/fonts/Inter/static/Inter_18pt-Thin.ttf'),
   });
@@ -149,9 +148,9 @@ function InnerLayout() {
       <Animated.View style={[styles.sidebar, { transform: [{ translateX: sidebarTranslateX }] }, isDarkMode && { backgroundColor: 'rgba(42, 42, 42, 1)' }]}>
         <LeftSidebar close={() => setSidebarVisible(false)} />
         {sidebarVisible && (
-          <Animated.View style={[styles.closeButton, { opacity: overlayOpacity }]}>
-            <TouchableOpacity style={styles.closeButtonTouch} onPress={() => setSidebarVisible(false)}>
-              <Cancel width={16} height={16} />
+          <Animated.View style={[styles.closeButton, { opacity: overlayOpacity }, isDarkMode && { backgroundColor: 'rgba(42, 42, 42, 0.8)' }]}>
+            <TouchableOpacity style={[styles.closeButtonTouch, isDarkMode && { backgroundColor: 'rgba(42, 42, 42, 1)' }]} onPress={() => setSidebarVisible(false)}>
+              <Cancel width={16} height={16} fill={isDarkMode ? "#fff" : '#000'}/>
             </TouchableOpacity>
           </Animated.View>
         )}
@@ -201,6 +200,7 @@ const styles = StyleSheet.create({
     top: 10,
     right: -40,
     zIndex: 1001,
+    borderRadius: 6,
   },
   closeButtonTouch: {
     width: 30,

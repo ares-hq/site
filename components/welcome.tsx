@@ -178,15 +178,23 @@ export default function LandingPage({ darkMode = false }: { darkMode?: boolean }
 
   if (loading) {
     return (
+      <View style={[
+        styles.loadingOverlay,
+        { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' },
+      ]}>
         <View style={[
-          styles.loadingOverlay,
-          { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' },
+          styles.loadingContainer,
+          { backgroundColor: isDarkMode ? '#1f2937' : '#ffffff' }
         ]}>
-        <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#3B82F6" />
-            <Text style={styles.loadingText}>Loading...</Text>
+          <ActivityIndicator size="large" color={isDarkMode ? '#9CA3AF' : '#6B7280'} />
+          <Text style={[
+            styles.loadingText,
+            { color: isDarkMode ? '#9CA3AF' : '#6B7280' }
+          ]}>
+            Loading...
+          </Text>
         </View>
-        </View>
+      </View>
     );
   }
 
@@ -418,10 +426,8 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     flex: 1,
-    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
   },
   loadingContainer: {
     padding: 24,
@@ -431,7 +437,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#3B82F6',
     fontWeight: '600',
   },
   buttonContainer: {

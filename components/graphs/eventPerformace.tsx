@@ -1,4 +1,3 @@
-// eventPerformance.tsx
 import { MatchTypeAverages } from '@/api/types';
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
@@ -11,15 +10,27 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
+import { useDarkMode } from '@/context/DarkModeContext';
 
 const CustomTooltip = ({ active, payload }: any) => {
+  const { isDarkMode } = useDarkMode();
+  
   if (active && payload && payload.length > 0) {
     const { name, payload: data } = payload[0];
     const matchScore = data['Match Score'];
 
     return (
-      <View style={styles.tooltip}>
-        <Text style={styles.tooltipText}>
+      <View style={[
+        styles.tooltip,
+        {
+          backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff',
+          borderColor: isDarkMode ? '#374151' : '#e5e7eb',
+        }
+      ]}>
+        <Text style={[
+          styles.tooltipText,
+          { color: isDarkMode ? '#F9FAFB' : '#000' }
+        ]}>
           {`${name}: ${matchScore.toFixed(2)}`}
         </Text>
       </View>
@@ -33,14 +44,28 @@ interface UserGraphSectionProps {
 }
 
 const EventPerformance = ({ matchType }: UserGraphSectionProps) => {
+  const { isDarkMode } = useDarkMode();
+
   const rankData = [
     { name: 'Qualifier', 'Match Score': matchType.qual, fill: '#9F9FF8' },
     { name: 'Finals', 'Match Score': matchType.finals, fill: '#96E2D6' },
   ];
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Average Match Score</Text>
+    <View style={[
+      styles.container,
+      {
+        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#f9fafb',
+        borderColor: isDarkMode ? '#374151' : 'transparent',
+        // borderWidth: 1,
+      }
+    ]}>
+      <Text style={[
+        styles.title,
+        { color: isDarkMode ? '#F9FAFB' : '#000' }
+      ]}>
+        Average Match Score
+      </Text>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={rankData}
@@ -49,19 +74,26 @@ const EventPerformance = ({ matchType }: UserGraphSectionProps) => {
         >
           <XAxis
             dataKey="name"
-            tick={{ fontSize: 12, fill: '#6b7280', fontFamily: 'Arial' }}
+            tick={{ 
+              fontSize: 12, 
+              fill: isDarkMode ? '#9CA3AF' : '#6b7280', 
+              fontFamily: 'Arial' 
+            }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fontSize: 12, fill: '#9ca3af', fontFamily: 'Arial' }}
+            tick={{ 
+              fontSize: 12, 
+              fill: isDarkMode ? '#6B7280' : '#9ca3af', 
+              fontFamily: 'Arial' 
+            }}
             axisLine={false}
             tickLine={false}
             tickCount={4}
           />
           <Tooltip
             cursor={{ fill: 'transparent' }}
-            // contentStyle={{ borderRadius: 8, borderColor: '#e5e7eb', fontSize: 12, backgroundColor: 'white', fontFamily: 'Arial', marginBottom: -5 }}
             content={<CustomTooltip />}
           />
           <Bar dataKey="Match Score" radius={6} barSize={30}>
@@ -81,23 +113,18 @@ const styles = StyleSheet.create({
     width: 250,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: '#f9fafb',
   },
   title: {
     fontSize: 16,
     marginBottom: 22,
-    color: '#000',
   },
   tooltip: {
-    backgroundColor: '#fff',
     borderRadius: 8,
     padding: 8,
-    borderColor: '#e5e7eb',
     borderWidth: 1,
   },
   tooltipText: {
     fontSize: 12,
-    color: '#000',
   },
 });
 

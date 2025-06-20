@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { useDarkMode } from '@/context/DarkModeContext';
 
 const COLORS = ['#92BFFF', '#94E9B8', '#a78bfa'];
 
@@ -17,6 +18,8 @@ interface UserGraphSectionProps {
 }
 
 const EventScores = ({ teamInfo }: UserGraphSectionProps) => {
+  const { isDarkMode } = useDarkMode();
+
   const rawData = [
     { name: 'Auto', value: teamInfo.autoOPR ?? 0 },
     { name: 'TeleOp', value: (teamInfo.teleOPR ?? 0) - Math.max(teamInfo.endgameOPR ?? 0, 0) },
@@ -48,7 +51,10 @@ const EventScores = ({ teamInfo }: UserGraphSectionProps) => {
     const item = contributionData.find(d => d.name === value);
     const percentage = item ? ((item.value / total) * 100).toFixed(2) + '%' : '';
     return (
-      <Text style={{ color: '#6b7280', margin: 5, fontSize: 12 }}>
+      <Text style={[
+        styles.legendText,
+        { color: isDarkMode ? '#9CA3AF' : '#6b7280' }
+      ]}>
         {`${value}  ${percentage}`}
       </Text>
     );
@@ -60,8 +66,17 @@ const EventScores = ({ teamInfo }: UserGraphSectionProps) => {
       const percentage = total > 0 ? ((value / total) * 100).toFixed(2) + '%' : '0.00%';
 
       return (
-        <View style={styles.tooltip}>
-          <Text style={styles.tooltipText}>
+        <View style={[
+          styles.tooltip,
+          {
+            backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff',
+            borderColor: isDarkMode ? '#374151' : '#e5e7eb',
+          }
+        ]}>
+          <Text style={[
+            styles.tooltipText,
+            { color: isDarkMode ? '#F9FAFB' : '#000' }
+          ]}>
             {`${name}: ${rawValue.toFixed(2)} (${percentage})`}
           </Text>
         </View>
@@ -71,8 +86,20 @@ const EventScores = ({ teamInfo }: UserGraphSectionProps) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>OPR Contribution by Phase</Text>
+    <View style={[
+      styles.container,
+      {
+        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#f9fafb',
+        borderColor: isDarkMode ? '#374151' : 'transparent',
+        // borderWidth: 1,
+      }
+    ]}>
+      <Text style={[
+        styles.title,
+        { color: isDarkMode ? '#F9FAFB' : '#000' }
+      ]}>
+        OPR Contribution by Phase
+      </Text>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -110,24 +137,23 @@ const styles = StyleSheet.create({
     minWidth: 400,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: '#f9fafb',
     flexDirection: 'column',
   },
   title: {
     fontSize: 16,
     marginBottom: 12,
-    color: '#000',
   },
   tooltip: {
-    backgroundColor: '#fff',
     borderRadius: 8,
     padding: 8,
-    borderColor: '#e5e7eb',
     borderWidth: 1,
   },
   tooltipText: {
     fontSize: 12,
-    color: '#000',
+  },
+  legendText: {
+    margin: 5,
+    fontSize: 12,
   },
 });
 

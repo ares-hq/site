@@ -13,7 +13,7 @@ import LocationIcon from '@/assets/icons/map-pin.svg';
 import CalendarIcon from '@/assets/icons/calendar.svg';
 import TopScore from '@/assets/icons/ranking.svg';
 import { AllianceInfo, EventInfo, MatchInfo } from '@/api/types';
-import { re } from 'mathjs';
+import { useDarkMode } from '@/context/DarkModeContext';
 
 interface UserGraphSectionProps {
   eventData: EventInfo;
@@ -22,6 +22,7 @@ interface UserGraphSectionProps {
 
 export default function EventCard({ eventData, teamNumber }: UserGraphSectionProps) {
   const { width } = useWindowDimensions();
+  const { isDarkMode } = useDarkMode();
 
   const getEventStatus = (dateStr?: string) => {
     if (!dateStr) return { label: 'Unknown', color: '#9CA3AF' };
@@ -64,7 +65,9 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
       <View
         style={[
           styles.teamCell,
-          isRedAlliance ? styles.redAlliance : styles.blueAlliance,
+          isRedAlliance 
+            ? [styles.redAlliance, { backgroundColor: isDarkMode ? '#2D1B1B' : '#FEF2F2' }]
+            : [styles.blueAlliance, { backgroundColor: isDarkMode ? '#1B2D3D' : '#EFF6FF' }],
           isSmallDevice && styles.teamCellSmall,
         ]}
       >
@@ -116,6 +119,7 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
     return (
       <View key={index} style={[
         styles.tableRow,
+        { borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB' },
         isLastRow && styles.lastRow,
         isSmallDevice && styles.tableRowSmall
       ]}>
@@ -140,7 +144,13 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
             ]}>
               {redScore}
             </Text>
-            <Text style={[styles.scoreDivider, isSmallDevice && styles.scoreDividerSmall]}>-</Text>
+            <Text style={[
+              styles.scoreDivider, 
+              { color: isDarkMode ? '#6B7280' : '#9CA3AF' },
+              isSmallDevice && styles.scoreDividerSmall
+            ]}>
+              -
+            </Text>
             <Text style={[
               styles.scoreNumber,
               match.blueAlliance.win ? styles.winningScore : styles.losingScore,
@@ -158,17 +168,32 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[
+      styles.container,
+      { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF' }
+    ]}>
       <View style={[
         styles.card,
+        {
+          backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF',
+          borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#FAFBFC',
+        },
         isSmallDevice && styles.cardSmall,
         isLargeDevice && styles.cardLarge
       ]}>
-        <View style={[styles.header, isSmallDevice && styles.headerSmall]}>
+        <View style={[
+          styles.header,
+          {
+            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#FAFBFC',
+            borderBottomColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#E5E7EB',
+          },
+          isSmallDevice && styles.headerSmall
+        ]}>
           <View style={styles.titleSection}>
           {eventData && (
             <Text style={[
               styles.title,
+              { color: isDarkMode ? '#F9FAFB' : '#111827' },
               isSmallDevice ? styles.titleSmall : isLargeDevice ? styles.titleLarge : null
             ]}>
               {eventData.name}
@@ -180,7 +205,11 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
               </Text>
             </View>
             {(status.label !== 'Completed' && matches.length === 0) && (
-              <Text style={{ marginTop: 4, color: '#9CA3AF', fontSize: 12 }}>
+              <Text style={{ 
+                marginTop: 4, 
+                color: isDarkMode ? '#6B7280' : '#9CA3AF', 
+                fontSize: 12 
+              }}>
                 No info yet
               </Text>
             )}
@@ -188,19 +217,24 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
           <View style={styles.eventDetails}>
             <View style={styles.detailRow}>
               <View style={styles.iconContainer}>
-                <CalendarIcon width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} />
+                <CalendarIcon width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} fill={isDarkMode ? '#fff' : '#000'}/>
               </View>
-              <Text style={[styles.detailText, isSmallDevice && styles.detailTextSmall]}>
+              <Text style={[
+                styles.detailText,
+                { color: isDarkMode ? '#D1D5DB' : '#374151' },
+                isSmallDevice && styles.detailTextSmall
+              ]}>
                 {eventData.date}
               </Text>
             </View>
             <TouchableOpacity onPress={handleWebsitePress} style={styles.locationRow}>
               <View style={styles.iconContainer}>
-                <LocationIcon width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} />
+                <LocationIcon width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} fill={isDarkMode ? '#fff' : '#000'}/>
               </View>
               <Text style={[
                 styles.detailText, 
                 styles.linkText,
+                { color: isDarkMode ? '#60A5FA' : '#2563EB' },
                 isSmallDevice && styles.detailTextSmall
               ]}>
                 {eventData.location}
@@ -208,17 +242,29 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
             </TouchableOpacity>
             <View style={styles.detailRow}>
               <View style={styles.iconContainer}>
-                <TrophyIcon width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} />
+                <TrophyIcon width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} fill={isDarkMode ? '#fff' : '#000'}/>
               </View>
-              <Text style={[styles.detailText, isSmallDevice && styles.detailTextSmall]}>
+              <Text style={[
+                styles.detailText,
+                { color: isDarkMode ? '#D1D5DB' : '#374151' },
+                isSmallDevice && styles.detailTextSmall
+              ]}>
                 {eventData.achievements}
               </Text>
             </View>
           </View>
-          <View style={[styles.performanceCard, isSmallDevice && styles.performanceCardSmall]}>
+          <View style={[
+            styles.performanceCard,
+            {
+              backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF',
+              borderColor: isDarkMode ? '#374151' : '#E5E7EB',
+            },
+            isSmallDevice && styles.performanceCardSmall
+          ]}>
             <View style={styles.performanceHeader}>
               <Text style={[
                 styles.performanceTitle,
+                { color: isDarkMode ? '#F9FAFB' : '#111827' },
                 isSmallDevice && styles.performanceTitleSmall
               ]}>
                 Team Performance
@@ -232,69 +278,184 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
             </View>
             <View style={styles.statsGrid}>
               <View style={styles.statItem}>
-                <Text style={[styles.statLabel, isSmallDevice && styles.statLabelSmall]}>Record</Text>
-                <Text style={[styles.statValue, isSmallDevice && styles.statValueSmall]}>
+                <Text style={[
+                  styles.statLabel,
+                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                  isSmallDevice && styles.statLabelSmall
+                ]}>
+                  Record
+                </Text>
+                <Text style={[
+                  styles.statValue,
+                  { color: isDarkMode ? '#F9FAFB' : '#111827' },
+                  isSmallDevice && styles.statValueSmall
+                ]}>
                   {eventData.record}
                 </Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={[styles.statLabel, isSmallDevice && styles.statLabelSmall]}>Win Rate</Text>
-                <Text style={[styles.statValue, isSmallDevice && styles.statValueSmall]}>
+                <Text style={[
+                  styles.statLabel,
+                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                  isSmallDevice && styles.statLabelSmall
+                ]}>
+                  Win Rate
+                </Text>
+                <Text style={[
+                  styles.statValue,
+                  { color: isDarkMode ? '#F9FAFB' : '#111827' },
+                  isSmallDevice && styles.statValueSmall
+                ]}>
                   {eventData.winRate}%
                 </Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={[styles.statLabel, isSmallDevice && styles.statLabelSmall]}>OPR</Text>
-                <Text style={[styles.statValue, isSmallDevice && styles.statValueSmall]}>{eventData.OPR}</Text>
+                <Text style={[
+                  styles.statLabel,
+                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                  isSmallDevice && styles.statLabelSmall
+                ]}>
+                  OPR
+                </Text>
+                <Text style={[
+                  styles.statValue,
+                  { color: isDarkMode ? '#F9FAFB' : '#111827' },
+                  isSmallDevice && styles.statValueSmall
+                ]}>
+                  {eventData.OPR}
+                </Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={[styles.statLabel, isSmallDevice && styles.statLabelSmall]}>Average</Text>
-                <Text style={[styles.statValue, isSmallDevice && styles.statValueSmall]}>{eventData.averageScore}</Text>
+                <Text style={[
+                  styles.statLabel,
+                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                  isSmallDevice && styles.statLabelSmall
+                ]}>
+                  Average
+                </Text>
+                <Text style={[
+                  styles.statValue,
+                  { color: isDarkMode ? '#F9FAFB' : '#111827' },
+                  isSmallDevice && styles.statValueSmall
+                ]}>
+                  {eventData.averageScore}
+                </Text>
               </View>
             </View>
           </View>
         </View>
-        <View style={[styles.matchesSection, isSmallDevice && styles.matchesSectionSmall]}>
+        <View style={[
+          styles.matchesSection,
+          { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF' },
+          isSmallDevice && styles.matchesSectionSmall
+        ]}>
           <Text style={[
             styles.sectionTitle,
+            { color: isDarkMode ? '#F9FAFB' : '#111827' },
             isSmallDevice && styles.sectionTitleSmall
           ]}>
             Match Results
           </Text>
           {width < 600 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.table}>
-                <View style={styles.tableHeader}>
+              <View style={[
+                styles.table,
+                { borderColor: isDarkMode ? '#374151' : '#E5E7EB' }
+              ]}>
+                <View style={[
+                  styles.tableHeader,
+                  {
+                    backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9FAFB',
+                    borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB',
+                  }
+                ]}>
                   <View style={[styles.matchHeaderCell, isSmallDevice && styles.matchHeaderCellSmall]}>
-                  <Text style={[styles.headerText, isSmallDevice && styles.headerTextSmall]}>Match</Text>
+                  <Text style={[
+                    styles.headerText,
+                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                    isSmallDevice && styles.headerTextSmall
+                  ]}>
+                    Match
+                  </Text>
                 </View>
                 <View style={[styles.scoreHeaderCell, isSmallDevice && styles.scoreHeaderCellSmall]}>
-                  <Text style={[styles.headerText, isSmallDevice && styles.headerTextSmall]}>Score</Text>
+                  <Text style={[
+                    styles.headerText,
+                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                    isSmallDevice && styles.headerTextSmall
+                  ]}>
+                    Score
+                  </Text>
                 </View>
                 <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
-                  <Text style={[styles.headerText, isSmallDevice && styles.headerTextSmall]}>Red Alliance</Text>
+                  <Text style={[
+                    styles.headerText,
+                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                    isSmallDevice && styles.headerTextSmall
+                  ]}>
+                    Red Alliance
+                  </Text>
                 </View>
                 <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
-                  <Text style={[styles.headerText, isSmallDevice && styles.headerTextSmall]}>Blue Alliance</Text>
+                  <Text style={[
+                    styles.headerText,
+                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                    isSmallDevice && styles.headerTextSmall
+                  ]}>
+                    Blue Alliance
+                  </Text>
                 </View>
                 </View>
                 {matches.map(renderMatchRow)}
               </View>
             </ScrollView>
           ) : (
-            <View style={styles.table}>
-              <View style={styles.tableHeader}>
+            <View style={[
+              styles.table,
+              { borderColor: isDarkMode ? '#374151' : '#E5E7EB' }
+            ]}>
+              <View style={[
+                styles.tableHeader,
+                {
+                  backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9FAFB',
+                  borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB',
+                }
+              ]}>
                 <View style={[styles.matchHeaderCell, isSmallDevice && styles.matchHeaderCellSmall]}>
-                  <Text style={[styles.headerText, isSmallDevice && styles.headerTextSmall]}>Match</Text>
+                  <Text style={[
+                    styles.headerText,
+                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                    isSmallDevice && styles.headerTextSmall
+                  ]}>
+                    Match
+                  </Text>
                 </View>
                 <View style={[styles.scoreHeaderCell, isSmallDevice && styles.scoreHeaderCellSmall]}>
-                  <Text style={[styles.headerText, isSmallDevice && styles.headerTextSmall]}>Score</Text>
+                  <Text style={[
+                    styles.headerText,
+                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                    isSmallDevice && styles.headerTextSmall
+                  ]}>
+                    Score
+                  </Text>
                 </View>
                 <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
-                  <Text style={[styles.headerText, isSmallDevice && styles.headerTextSmall]}>Red Alliance</Text>
+                  <Text style={[
+                    styles.headerText,
+                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                    isSmallDevice && styles.headerTextSmall
+                  ]}>
+                    Red Alliance
+                  </Text>
                 </View>
                 <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
-                  <Text style={[styles.headerText, isSmallDevice && styles.headerTextSmall]}>Blue Alliance</Text>
+                  <Text style={[
+                    styles.headerText,
+                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                    isSmallDevice && styles.headerTextSmall
+                  ]}>
+                    Blue Alliance
+                  </Text>
                 </View>
               </View>
               {matches.map(renderMatchRow)}
@@ -309,13 +470,10 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
     marginBottom: 20,
   },
   card: {
-    backgroundColor: '#FFFFFF',
     borderWidth: 3,
-    borderColor: '#FAFBFC',
     borderRadius: 16,
     elevation: 4,
     alignSelf: 'center',
@@ -331,10 +489,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    backgroundColor: '#FAFBFC',
-
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
     overflow: 'hidden',
   },
   headerSmall: {
@@ -349,7 +504,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#111827',
     flex: 1,
     marginRight: 12,
     lineHeight: 28,
@@ -397,22 +551,18 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 15,
-    color: '#374151',
     flex: 1,
   },
   detailTextSmall: {
     fontSize: 13,
   },
   linkText: {
-    color: '#2563EB',
     textDecorationLine: 'underline',
   },
   performanceCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 6,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   performanceCardSmall: {
     padding: 12,
@@ -427,7 +577,6 @@ const styles = StyleSheet.create({
   performanceTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
   },
   performanceTitleSmall: {
     fontSize: 14,
@@ -460,7 +609,6 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: '#6B7280',
     marginBottom: 4,
     fontWeight: '500',
   },
@@ -470,16 +618,15 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#111827',
   },
   statValueSmall: {
     fontSize: 14,
   },
   matchesSection: {
     padding: 16,
-    borderBottomLeftRadius: 16,  // NEW
-    borderBottomRightRadius: 16, // NEW
-    overflow: 'hidden',          // NEW
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    overflow: 'hidden',
   },
   matchesSectionSmall: {
     padding: 12,
@@ -487,7 +634,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
     marginBottom: 16,
   },
   sectionTitleSmall: {
@@ -498,21 +644,17 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     overflow: 'hidden',
     minWidth: 600,
     width: '100%',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#F9FAFB',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
     minHeight: 80,
   },
   tableRowSmall: {
@@ -557,7 +699,6 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6B7280',
     textAlign: 'center',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -625,7 +766,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   winningScore: {
-    // color: '#059669',
     color: '#34C759',
   },
   losingScore: {
@@ -633,7 +773,6 @@ const styles = StyleSheet.create({
   },
   scoreDivider: {
     fontSize: 16,
-    color: '#9CA3AF',
     marginHorizontal: 8,
   },
   scoreDividerSmall: {
@@ -651,12 +790,10 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   redAlliance: {
-    backgroundColor: '#FEF2F2',
     borderLeftWidth: 4,
     borderLeftColor: '#EF4444',
   },
   blueAlliance: {
-    backgroundColor: '#EFF6FF',
     borderLeftWidth: 4,
     borderLeftColor: '#3B82F6',
   },
@@ -678,9 +815,7 @@ const styles = StyleSheet.create({
   },
   teamName: {
     fontSize: 11,
-    // fontStyle: 'italic',
     marginTop: 2,
-    // opacity: 0.8,
   },
   teamNameSmall: {
     fontSize: 9,
