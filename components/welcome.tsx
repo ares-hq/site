@@ -67,20 +67,20 @@ export default function LandingPage({ darkMode = false }: { darkMode?: boolean }
 
       statCards: {
         blue: {
-          background: darkMode ? "#1E3A8A" : "#EBF4FF",
-          border: darkMode ? "#3B82F6" : "#BFDBFE",
+          background: darkMode ? "#1E2A4A" : "#EBF4FF",
+          border: darkMode ? "#3B5998" : "#BFDBFE",
         },
         indigo: {
-          background: darkMode ? "#312E81" : "#EEF2FF",
-          border: darkMode ? "#6366F1" : "#C7D2FE",
+          background: darkMode ? "#2A2347" : "#EEF2FF",
+          border: darkMode ? "#7C6AE8" : "#C7D2FE",
         },
         green: {
-          background: darkMode ? "#14532D" : "#ECFDF5",
-          border: darkMode ? "#10B981" : "#BBF7D0",
+          background: darkMode ? "#1F3A2E" : "#ECFDF5",
+          border: darkMode ? "#4ADE80" : "#BBF7D0",
         },
         purple: {
-          background: darkMode ? "#581C87" : "#FAF5FF",
-          border: darkMode ? "#A855F7" : "#DDD6FE",
+          background: darkMode ? "#332042" : "#FAF5FF",
+          border: darkMode ? "#C084FC" : "#DDD6FE",
         },
       },
     }
