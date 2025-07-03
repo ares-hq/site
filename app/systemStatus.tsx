@@ -1,4 +1,4 @@
-// StatusScreen.tsx (Enhanced with real API monitoring)
+// StatusScreen.tsx (Enhanced with real API monitoring and Dark Mode)
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
@@ -10,6 +10,7 @@ import {
   Linking,
   Pressable,
 } from 'react-native';
+import { useDarkMode } from '@/context/DarkModeContext'; // Add this import
 
 interface ServiceStatus {
   name: string;
@@ -63,6 +64,7 @@ const REFRESH_INTERVAL = 120000;
 const MAX_HISTORY_LENGTH = 24;
 
 const StatusScreen = () => {
+  const { isDarkMode } = useDarkMode(); // Add dark mode context
   const [statuses, setStatuses] = useState<ServiceStatus[]>([]);
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL / 1000);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -249,13 +251,13 @@ const StatusScreen = () => {
     const downCount = statuses.filter(s => s.status === 'Down').length;
     
     if (downCount > 0) {
-      return { status: 'Service Disruption', color: '#B91C1C' };
+      return { status: 'Service Disruption', color: isDarkMode ? '#F87171' : '#B91C1C' };
     } else if (degradedCount > 0) {
-      return { status: 'Partial Outage', color: '#D97706' };
+      return { status: 'Partial Outage', color: isDarkMode ? '#FBBF24' : '#D97706' };
     } else if (operationalCount === statuses.length && statuses.length > 0) {
-      return { status: 'All Systems Operational', color: '#15803D' };
+      return { status: 'All Systems Operational', color: isDarkMode ? '#34D399' : '#15803D' };
     } else {
-      return { status: 'Checking Systems...', color: '#6B7280' };
+      return { status: 'Checking Systems...', color: isDarkMode ? '#9CA3AF' : '#6B7280' };
     }
   };
 
@@ -276,112 +278,184 @@ const StatusScreen = () => {
         onHoverIn={() => setHovered(true)}
         onHoverOut={() => setHovered(false)}
       >
-        <Text style={[styles.link, hovered && styles.linkHover]}>
+        <Text style={[
+          styles.link, 
+          { color: isDarkMode ? '#60A5FA' : '#3B82F6' },
+          hovered && styles.linkHover
+        ]}>
           {name}
         </Text>
       </Pressable>
     );
   };
 
+  const getStatusBadgeColors = (status: string) => {
+    if (status === 'Operational') {
+      return {
+        backgroundColor: isDarkMode ? '#064E3B' : '#DCFCE7',
+        textColor: isDarkMode ? '#34D399' : '#15803D'
+      };
+    } else if (status === 'Degraded') {
+      return {
+        backgroundColor: isDarkMode ? '#451A03' : '#FEF3C7',
+        textColor: isDarkMode ? '#FBBF24' : '#D97706'
+      };
+    } else {
+      return {
+        backgroundColor: isDarkMode ? '#7F1D1D' : '#FEE2E2',
+        textColor: isDarkMode ? '#F87171' : '#B91C1C'
+      };
+    }
+  };
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[
+      styles.container,
+      { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F8FAFC' }
+    ]}>
       <View style={styles.header}>
-        <Text style={styles.title}>System Status</Text>
-        {isRefreshing && <ActivityIndicator size="small" color="#3B82F6" />}
+        <Text style={[
+          styles.title,
+          { color: isDarkMode ? '#F9FAFB' : '#111827' }
+        ]}>
+          System Status
+        </Text>
+        {isRefreshing && <ActivityIndicator size="small" color={isDarkMode ? '#60A5FA' : '#3B82F6'} />}
       </View>
 
-      <View style={[styles.overallBox]}>
+      <View style={[
+        styles.overallBox,
+        { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F1F5F9' }
+      ]}>
         <Text style={[styles.overallStatus, { color: overallStatus.color }]}>
           {overallStatus.status}
         </Text>
       </View>
 
-      {statuses.map((service) => (
-        <View key={service.name} style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>
-              <HoverLink name={service.name} url={service.url} />
-            </Text>
-            <View
-              style={[
-                styles.statusBadge,
-                {
-                  backgroundColor:
-                    service.status === 'Operational' ? '#DCFCE7' :
-                    service.status === 'Degraded' ? '#FEF3C7' : '#FEE2E2',
-                },
-              ]}
-            >
-              <Text
-                style={{
-                  color: 
-                    service.status === 'Operational' ? '#15803D' :
-                    service.status === 'Degraded' ? '#D97706' : '#B91C1C',
-                  fontWeight: '600',
-                  fontSize: 12,
-                }}
+      {statuses.map((service) => {
+        const badgeColors = getStatusBadgeColors(service.status);
+        
+        return (
+          <View key={service.name} style={[
+            styles.card,
+            { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#FFFFFF' }
+          ]}>
+            <View style={styles.cardHeader}>
+              <Text style={[
+                styles.cardTitle,
+                { color: isDarkMode ? '#F9FAFB' : '#1F2937' }
+              ]}>
+                <HoverLink name={service.name} url={service.url} />
+              </Text>
+              <View
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: badgeColors.backgroundColor }
+                ]}
               >
-                {service.status}
+                <Text
+                  style={{
+                    color: badgeColors.textColor,
+                    fontWeight: '600',
+                    fontSize: 12,
+                  }}
+                >
+                  {service.status}
+                </Text>
+              </View>
+            </View>
+
+            {service.status !== 'Checking...' && (
+              <>
+                <View style={styles.metricsRow}>
+                  <Text style={[
+                    styles.metricText,
+                    { color: isDarkMode ? '#D1D5DB' : '#6B7280' }
+                  ]}>
+                    Response: {formatResponseTime(service.responseTime)}
+                  </Text>
+                  <Text style={[
+                    styles.metricText,
+                    { color: isDarkMode ? '#D1D5DB' : '#6B7280' }
+                  ]}>
+                    Uptime: {service.uptime}%
+                  </Text>
+                </View>
+
+                {service.errorMessage && (
+                  <Text style={[
+                    styles.errorText,
+                    { color: isDarkMode ? '#F87171' : '#EF4444' }
+                  ]}>
+                    Error: {service.errorMessage}
+                  </Text>
+                )}
+              </>
+            )}
+
+            <View style={styles.footerRow}>
+              <Text style={[
+                styles.footerText,
+                { color: isDarkMode ? '#9CA3AF' : '#9CA3AF' }
+              ]}>
+                Last checked: {service.lastChecked}
               </Text>
             </View>
           </View>
+        );
+      })}
 
-          {service.status !== 'Checking...' && (
-            <>
-              <View style={styles.metricsRow}>
-                <Text style={styles.metricText}>
-                  Response: {formatResponseTime(service.responseTime)}
-                </Text>
-                <Text style={styles.metricText}>
-                  Uptime: {service.uptime}%
-                </Text>
-              </View>
-
-              {service.errorMessage && (
-                <Text style={styles.errorText}>
-                  Error: {service.errorMessage}
-                </Text>
-              )}
-
-              {/* {renderStatusTimeline(service.statusHistory)} */}
-            </>
-          )}
-
-          <View style={styles.footerRow}>
-            <Text style={styles.footerText}>
-              Last checked: {service.lastChecked}
-            </Text>
-          </View>
-        </View>
-      ))}
-
-      <Text style={styles.note}>
+      <Text style={[
+        styles.note,
+        { color: isDarkMode ? '#D1D5DB' : '#6B7280' }
+      ]}>
         Status history shows the last 12 checks. Green = operational, Red = down.
       </Text>
 
-      <Text style={styles.note}>
+      <Text style={[
+        styles.note,
+        { color: isDarkMode ? '#D1D5DB' : '#6B7280' }
+      ]}>
         Additional Cloudflare status details at{' '}
         <TouchableOpacity onPress={() => Linking.openURL('https://www.cloudflarestatus.com')}>
-          <Text style={styles.link}>cloudflarestatus.com</Text>
+          <Text style={[
+            styles.link,
+            { color: isDarkMode ? '#60A5FA' : '#3B82F6' }
+          ]}>
+            cloudflarestatus.com
+          </Text>
         </TouchableOpacity>
       </Text>
 
       {lastUpdateTime && (
-        <Text style={styles.timestamp}>
+        <Text style={[
+          styles.timestamp,
+          { color: isDarkMode ? '#9CA3AF' : '#9CA3AF' }
+        ]}>
           Last Updated: {lastUpdateTime.toLocaleString()}
         </Text>
       )}
       
-      <Text style={styles.timestamp}>
+      <Text style={[
+        styles.timestamp,
+        { color: isDarkMode ? '#9CA3AF' : '#9CA3AF' }
+      ]}>
         Next refresh in: {countdown}s
       </Text>
 
       <TouchableOpacity 
-        style={[styles.refreshButton, isRefreshing && styles.refreshButtonDisabled]} 
+        style={[
+          styles.refreshButton,
+          { backgroundColor: isDarkMode ? '#4B5563' : '#E5E7EB' },
+          isRefreshing && styles.refreshButtonDisabled
+        ]} 
         onPress={fetchAllStatuses}
         disabled={isRefreshing}
       >
-        <Text style={styles.refreshText}>
+        <Text style={[
+          styles.refreshText,
+          { color: isDarkMode ? '#F9FAFB' : '#1F2937' }
+        ]}>
           {isRefreshing ? 'Refreshing...' : 'Refresh now'}
         </Text>
       </TouchableOpacity>
@@ -392,7 +466,6 @@ const StatusScreen = () => {
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    backgroundColor: '#F8FAFC',
     borderRadius: 12,
   },
   header: {
@@ -404,10 +477,8 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#111827',
   },
   overallBox: {
-    backgroundColor: '#F1F5F9',
     padding: 12,
     borderRadius: 10,
     marginBottom: 16,
@@ -417,7 +488,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   card: {
-    backgroundColor: '#FFFFFF',
     padding: 14,
     borderRadius: 12,
     marginBottom: 16,
@@ -431,7 +501,6 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontWeight: '600',
     fontSize: 15,
-    color: '#1F2937',
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -445,7 +514,6 @@ const styles = StyleSheet.create({
   },
   metricText: {
     fontSize: 12,
-    color: '#6B7280',
     fontWeight: '500',
   },
   linkHover: {
@@ -453,7 +521,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 11,
-    color: '#EF4444',
     fontStyle: 'italic',
     marginBottom: 6,
   },
@@ -474,26 +541,21 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 11,
-    color: '#9CA3AF',
   },
   note: {
     fontSize: 12,
-    color: '#6B7280',
     marginTop: 8,
     lineHeight: 16,
   },
   link: {
-    color: '#3B82F6',
     textDecorationLine: 'none',
   },
   timestamp: {
     fontSize: 12,
-    color: '#9CA3AF',
     marginTop: 4,
   },
   refreshButton: {
     marginTop: 12,
-    backgroundColor: '#E5E7EB',
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -505,7 +567,6 @@ const styles = StyleSheet.create({
   refreshText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#1F2937',
   },
 });
 

@@ -111,6 +111,7 @@ const EventScores = ({ teamInfo }: UserGraphSectionProps) => {
             paddingAngle={5}
             cornerRadius={8}
             minAngle={20}
+            stroke='none'
           >
             {contributionData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} style={{outline: 'none'}}/>

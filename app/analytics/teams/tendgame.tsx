@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { Ionicons } from '@expo/vector-icons';
+import { useWindowDimensions } from 'react-native';
 
 const TEndgame = () => {
   const [teams, setTeams] = useState<TeamInfo[]>([]);
@@ -79,74 +80,81 @@ const TEndgame = () => {
     </View>
   );
 
-  const StatsHeader = () => (
-    <View 
-      style={[
-        styles.statsContainer,
-        {
-          backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F8FAFC',
-          borderColor: isDarkMode ? '#374151' : '#E2E8F0',
-        }
-      ]}
-    >
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text 
-            style={[
-              styles.statNumber, 
-              { color: isDarkMode ? '#F9FAFB' : '#111827' }
-            ]}
-          >
-            {teams.length}
-          </Text>
-          <Text style={[styles.statLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
-            Teams Loaded
-          </Text>
-        </View>
-        
-        <View style={[styles.statDivider, { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }]} />
-        
-        <View style={styles.statItem}>
-          <View style={styles.statusIndicator}>
-            <View style={[
-              styles.statusDot, 
-              { backgroundColor: isDarkMode ? '#9CA3AF' : '#6B7280' }
-            ]} />
-            <Text style={[styles.statusText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
-              Live
+const StatsHeader = () => {
+    const { width } = useWindowDimensions();
+
+    return (
+      <View 
+        style={[
+          styles.statsContainer,
+          {
+            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F8FAFC',
+            borderColor: isDarkMode ? '#374151' : '#E2E8F0',
+          }
+        ]}
+      >
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text 
+              style={[
+                styles.statNumber, 
+                { color: isDarkMode ? '#F9FAFB' : '#111827' }
+              ]}
+            >
+              {teams.length}
+            </Text>
+            <Text style={[styles.statLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
+              Teams Loaded
             </Text>
           </View>
-          <Text style={[styles.statLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
-            Status
-          </Text>
-        </View>
-        
-        <View style={[styles.statDivider, { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }]} />
-        
-        <View style={styles.statItem}>
-          {lastUpdated ? (
+
+          {width > 600 && (
             <>
-              <Text style={[styles.statNumber, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
-                {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-              <Text style={[styles.statLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
-                Updated
-              </Text>
-            </>
-          ) : (
-            <>
-              <Text style={[styles.statNumber, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
-                --:--
-              </Text>
-              <Text style={[styles.statLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
-                Updated
-              </Text>
+              <View style={[styles.statDivider, { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }]} />
+              <View style={styles.statItem}>
+                <View style={styles.statusIndicator}>
+                  <View style={[
+                    styles.statusDot, 
+                    { backgroundColor: isDarkMode ? '#9CA3AF' : '#6B7280' }
+                  ]} />
+                  <Text style={[styles.statusText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
+                    Live
+                  </Text>
+                </View>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
+                  Status
+                </Text>
+              </View>
             </>
           )}
+
+          <View style={[styles.statDivider, { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }]} />
+          
+          <View style={styles.statItem}>
+            {lastUpdated ? (
+              <>
+                <Text style={[styles.statNumber, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
+                  {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
+                  Updated
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.statNumber, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
+                  --:--
+                </Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
+                  Updated
+                </Text>
+              </>
+            )}
+          </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   if (loading) {
     return (
