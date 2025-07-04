@@ -14,6 +14,7 @@ import Platforms from './left_sidebar/platforms';
 import Scouting from './left_sidebar/scouting';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { useIsLoggedIn } from '@/api/auth';
+import { router } from 'expo-router';
 
 type SidebarProps = {
   close?: () => void;
@@ -27,14 +28,14 @@ export default function Sidebar({ close }: SidebarProps) {
   const borderColor = isDarkMode ? '#4B5563' : '#e5e7eb';
   const textColor = isDarkMode ? '#fff' : '#000';
   const footerColor = isDarkMode ? '#777' : '#aaa';
+  const headerColor = isDarkMode ? '#9CA3AF' : '#6B7280';
 
-  const handleSignIn = () => {
-    console.log('Sign in pressed');
-  };
 
   return (
     <View style={[styles.container, { borderColor, backgroundColor }]}>
       <ScrollView showsVerticalScrollIndicator={false}>
+
+
         {/* Profile or Sign In */}
         {isLoggedIn ? (
           <View style={styles.profileSection}>
@@ -46,32 +47,42 @@ export default function Sidebar({ close }: SidebarProps) {
           </View>
         ) : (
           <View style={styles.signInSection}>
-            <View style={styles.authButtonRow}>
+            <Text style={[styles.authSubhead, { color: headerColor }]}>FTC Analytics platform</Text>
+            <Text style={[styles.authHeader, { color: textColor }]}>Get Started</Text>
+            <View style={styles.authButtonContainer}>
               <TouchableOpacity
                 style={[
-                  styles.signUpButton,
+                  styles.primaryButton,
                   {
-                    backgroundColor: isDarkMode ? '#4B5563' : '#f3f4f6',
+                    backgroundColor: '#3B82F6'
                   }
                 ]}
-                onPress={() => console.log('Sign up')}
+                onPress={() => router.push('/auth/signin')}
               >
-                <Text style={[styles.authButtonText, { color: isDarkMode ? '#fff' : '#000' }]}>Sign up</Text>
+                <Text style={styles.primaryButtonText}>Sign In</Text>
               </TouchableOpacity>
+              
               <TouchableOpacity
                 style={[
-                  styles.signInButton,
+                  styles.secondaryButton,
                   {
-                    backgroundColor: isDarkMode ? '#fff' : '#000',
+                    borderColor: isDarkMode ? '#4B5563' : '#D1D5DB',
+                    borderWidth: 1,
+                    backgroundColor: 'transparent',
                   }
                 ]}
-                onPress={handleSignIn}
+                onPress={() => router.push('/auth/signup')}
               >
-                <Text style={[styles.authButtonText, { color: isDarkMode ? '#000' : '#fff' }]}>Sign in</Text>
+                <Text style={[styles.secondaryButtonText, { color: textColor }]}>
+                  Create Account
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
+
+        {/* Separator */}
+        <View style={[styles.separator, { backgroundColor: isDarkMode ? '#374151' : '#f3f4f6' }]} />
 
         {/* Favorites & Recents */}
         {isLoggedIn && <UsedTabs close={close} />}
@@ -96,6 +107,77 @@ export default function Sidebar({ close }: SidebarProps) {
     </View>
   );
 }
+
+// const styles = StyleSheet.create({
+//   container: {
+//     width: 209,
+//     height: '100%',
+//     paddingTop: 13,
+//     justifyContent: 'space-between',
+//     borderRightWidth: 1,
+//   },
+//   profileSection: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     paddingHorizontal: 22,
+//     marginBottom: 22,
+//   },
+//   avatar: {
+//     width: 26,
+//     height: 26,
+//     borderRadius: 18,
+//     marginRight: 13,
+//   },
+//   profileName: {
+//     fontSize: 15,
+//     fontWeight: '600',
+//     fontFamily: 'InterRegular',
+//   },
+//   signInSection: {
+//     paddingHorizontal: 22,
+//     marginBottom: 22,
+//     marginTop: 5,
+//   },
+//   authSubhead: {
+//     fontSize: 10,
+//     marginBottom: 6,
+//   },
+//   authHeader: {
+//     fontSize: 14,
+//     marginBottom: 14,
+//   },
+//   authButtonRow: {
+//     flexDirection: 'row',
+//     gap: 10,
+//     alignContent: 'center',
+//     justifyContent: 'center',
+//   },
+//   signUpButton: {
+//     borderRadius: 9999,
+//     paddingVertical: 6,
+//     paddingHorizontal: 18,
+//   },
+//   signInButton: {
+//     borderRadius: 9999,
+//     paddingVertical: 6,
+//     paddingHorizontal: 18,
+//   },
+//   authButtonText: {
+//     fontSize: 12,
+//   },
+//   separator: {
+//     height: 1,
+//     marginHorizontal: 10,
+//     marginBottom: 16,
+//   },
+//   footer: {
+//     paddingVertical: 18,
+//     alignItems: 'center',
+//   },
+//   footerText: {
+//     fontSize: 13,
+//   },
+// });
 
 const styles = StyleSheet.create({
   container: {
@@ -123,26 +205,65 @@ const styles = StyleSheet.create({
     fontFamily: 'InterRegular',
   },
   signInSection: {
-    alignContent: 'center',
-    paddingHorizontal: 28,
+    paddingHorizontal: 22,
     marginBottom: 22,
+    marginTop: 5,
+    alignItems: 'center',
   },
-  authButtonRow: {
-    flexDirection: 'row',
-    gap: 10,
+  brandContainer: {
+    marginBottom: 12,
   },
-  signUpButton: {
-    borderRadius: 9999,
-    paddingVertical: 4,
-    paddingHorizontal: 12,
+  brandEmoji: {
+    fontSize: 24,
   },
-  signInButton: {
-    borderRadius: 9999,
-    paddingVertical: 4,
-    paddingHorizontal: 12,
+  authSubhead: {
+    fontSize: 10,
+    marginBottom: 6,
+    textAlign: 'center',
+    fontWeight: '500',
   },
-  authButtonText: {
+  authHeader: {
     fontSize: 14,
+    marginBottom: 8,
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  authDescription: {
+    fontSize: 10,
+    marginBottom: 16,
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  authButtonContainer: {
+    gap: 8,
+    width: '100%',
+  },
+  primaryButton: {
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  secondaryButton: {
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  secondaryButtonText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  separator: {
+    height: 1,
+    marginHorizontal: 10,
+    marginBottom: 16,
   },
   footer: {
     paddingVertical: 18,

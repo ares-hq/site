@@ -101,6 +101,14 @@ function InnerLayout() {
 
   if (!fontsLoaded) return null;
 
+  if (pathname === '/auth/signin' || pathname === '/auth/signup') {
+    return (
+      <View style={{ flex: 1 }}>
+        <Slot />
+      </View>
+    );
+  }
+
   if (isDesktop) {
     return (
       <View style={styles2.container}>

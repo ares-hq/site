@@ -5,7 +5,7 @@ import AppleIcon from '@/assets/icons/house.svg';
 import GoogleIcon from '@/assets/icons/house.svg';
 import { useDarkMode } from '@/context/DarkModeContext';
 
-export default function SignUp() {
+export default function SignIn() {
   const { isDarkMode } = useDarkMode();
   const textColor = isDarkMode ? '#F9FAFB' : '#111827';
   const mutedText = isDarkMode ? '#9CA3AF' : '#6B7280';
@@ -16,7 +16,7 @@ export default function SignUp() {
   return (
     <AuthWrapper>
       <View style={[styles.container, { backgroundColor }]}>
-        <Text style={[styles.title, { color: textColor }]}>Sign Up</Text>
+        <Text style={[styles.title, { color: textColor }]}>Sign In</Text>
         <Text style={[styles.subtitle, { color: mutedText }]}>Your Social Campaigns</Text>
         
         <View style={styles.buttonRow}>
@@ -49,11 +49,11 @@ export default function SignUp() {
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.signInButton}>
-          <Text style={styles.signInText}>Create Account</Text>
+          <Text style={styles.signInText}>Sign In</Text>
         </TouchableOpacity>
         
         <Text style={[styles.bottomText, { color: mutedText }]}>
-          Already a Member? <Text style={styles.link}>Sign In</Text>
+          Not a Member yet? <Text style={styles.link}>Sign Up</Text>
         </Text>
       </View>
     </AuthWrapper>
@@ -63,14 +63,17 @@ export default function SignUp() {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 500,
+    height: '100%',
+    maxHeight: 680,
     alignSelf: 'center',
-    padding: 24,
-    borderRadius: 20,
+    alignContent: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 24,
   },
   title: {
     fontSize: 24,
-    fontWeight: '700',
     marginBottom: 4,
     textAlign: 'center',
   },
