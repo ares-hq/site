@@ -82,7 +82,7 @@ export default function Sidebar({ close }: SidebarProps) {
         )}
 
         {/* Separator */}
-        <View style={[styles.separator, { backgroundColor: isDarkMode ? '#374151' : '#f3f4f6' }]} />
+        <View style={[styles.separator, { backgroundColor: isDarkMode ? '#rgba(71, 85, 105, 0.3)' : '#f3f4f6' }]} />
 
         {/* Favorites & Recents */}
         {isLoggedIn && <UsedTabs close={close} />}
@@ -102,7 +102,7 @@ export default function Sidebar({ close }: SidebarProps) {
 
       {/* Footer */}
       <View style={styles.footer}>
-        <Text style={[styles.footerText, { color: footerColor }]}>🤖 ARES Dashboard</Text>
+        <Text style={[styles.footerText, { color: footerColor }]}>ARES Dashboard</Text>
       </View>
     </View>
   );
