@@ -7,6 +7,7 @@ import {
   StyleSheet,
   SafeAreaView,
   StatusBar,
+  useWindowDimensions,
 } from 'react-native';
 import { useDarkMode } from '@/context/DarkModeContext';
 
@@ -46,6 +47,7 @@ const PrivacyPolicyTerms = ({ onBack, privacyPolicy } : LegalPageProps) => {
 
   const theme = getThemedStyles(isDarkMode);
   const styles = createStyles(theme);
+  const { width } = useWindowDimensions();
 
   const renderPrivacyPolicy = () => (
     <View style={styles.contentContainer}>
@@ -223,7 +225,7 @@ const PrivacyPolicyTerms = ({ onBack, privacyPolicy } : LegalPageProps) => {
           onPress={() => setActiveTab('terms')}
         >
           <Text style={[styles.tabText, activeTab === 'terms' && styles.activeTabText]}>
-            Terms & Conditions
+            {width < 575 ? 'T & C' : 'Terms & Conditions'}
           </Text>
         </TouchableOpacity>
       </View>
