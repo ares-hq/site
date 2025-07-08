@@ -81,14 +81,14 @@ export default function Sidebar({ close }: SidebarProps) {
           </View>
         )}
 
-        {/* Separator */}
-        <View style={[styles.separator, { backgroundColor: isDarkMode ? '#rgba(71, 85, 105, 0.3)' : '#f3f4f6' }]} />
-
         {/* Favorites & Recents */}
         {isLoggedIn && <UsedTabs close={close} />}
 
         {/* Dashboards */}
         {isLoggedIn && <Dashboards close={close} />}
+
+        {/* Separator */}
+        <View style={[styles.separator, { backgroundColor: isDarkMode ? '#rgba(71, 85, 105, 0.3)' : '#f3f4f6' }]} />
 
         {/* Analytics */}
         <Analytics close={close} />

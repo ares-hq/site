@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    minWidth: 180,
+    minWidth: 220,
     height: 97,
     borderRadius: 13,
     padding: 20,
