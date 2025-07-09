@@ -4,10 +4,12 @@ import AuthWrapper from '@/components/auth/authWrapper';
 import AppleIcon from '@/assets/icons/apple.svg';
 import GoogleIcon from '@/assets/icons/google.svg';
 import { useDarkMode } from '@/context/DarkModeContext';
-import { signInWithApple, signInWithGoogle } from '@/api/auth/login';
-import { router } from 'expo-router';
+import { signInWithApple, signInWithEmail, signInWithGoogle } from '@/api/auth/login';
+import { router, useLocalSearchParams } from 'expo-router';
 
 export default function SignIn() {
+  const params = useLocalSearchParams();
+  const shouldShowVerifyBadge = params?.verify === "1";
   const { isDarkMode } = useDarkMode();
   const textColor = isDarkMode ? '#F9FAFB' : '#111827';
   const mutedText = isDarkMode ? '#9CA3AF' : 'rgba(0, 0, 0, 0.2)';
@@ -34,6 +36,18 @@ export default function SignIn() {
   return (
     <AuthWrapper>
       <View style={[styles.container, { backgroundColor }]}>
+          {shouldShowVerifyBadge && (
+          <View style={{
+            backgroundColor: "#F59E0B",
+            padding: 10,
+            borderRadius: 8,
+            marginBottom: 16,
+          }}>
+            <Text style={{ color: "#1F2937", fontWeight: "500", textAlign: "center" }}>
+              Please verify your email before continuing.
+            </Text>
+          </View>
+        )}
         <Text style={[styles.title, { color: textColor }]}>Sign In</Text>
         <Text style={[styles.subtitle, { color: mutedText }]}>Your Social Campaigns</Text>
         
@@ -80,17 +94,28 @@ export default function SignIn() {
         
         <TouchableOpacity
           style={[styles.signInButton, { opacity: formIsValid ? 1 : 0.5 }]}
-          onPress={() => {
+          onPress={async () => {
             if (!formIsValid) {
               const errorMsg = generateErrorMessage();
               setCachedError(errorMsg);
               setWasAttempted(true);
             } else {
-              console.log('Submitting...');
+              try {
+                const { data, error } = await signInWithEmail(email, password); // <-- call Supabase
+                if (error) {
+                  setCachedError(error.message);
+                  setWasAttempted(true);
+                } else {
+                  router.push("/");
+                }
+              } catch (err) {
+                setCachedError("Unexpected error. Please try again.");
+                setWasAttempted(true);
+              }
             }
           }}
         >
-          <Text style={styles.signInText}>Sign Up</Text>
+          <Text style={styles.signInText}>Sign In</Text>
         </TouchableOpacity>
         
         <Text style={[styles.bottomText, { color: mutedText }]}>

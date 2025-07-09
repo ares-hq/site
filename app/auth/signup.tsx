@@ -197,6 +197,13 @@ export default function SignUp() {
               setWasAttempted(true);
             } else {
               console.log('Submitting...');
+              router.push({
+                pathname: "/auth/onBoard",
+                params: {
+                  email,
+                  password,
+                },
+              });
             }
           }}
         >
