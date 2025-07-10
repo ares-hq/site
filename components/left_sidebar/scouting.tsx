@@ -8,6 +8,7 @@ import {
 import Binoculars from '../../assets/icons/binoculars.svg';
 import { useRouter } from 'expo-router';
 import { useDarkMode } from '@/context/DarkModeContext';
+import { addRecentItem } from './usedTabs';
 
 type ScoutingProps = {
   close?: () => void;
@@ -18,6 +19,7 @@ const Scouting = ({ close }: ScoutingProps) => {
   const { isDarkMode } = useDarkMode();
 
   const handleNavigate = () => {
+    addRecentItem('ScoutSheet', '/scouting/ScoutSheet');
     router.push('/scouting/ScoutSheet');
     // close?.();
   };

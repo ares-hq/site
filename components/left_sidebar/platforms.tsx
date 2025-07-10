@@ -9,6 +9,7 @@ import App from '../../assets/icons/app-store-logo.svg';
 import Robot from '../../assets/icons/robot.svg';
 import { useRouter } from 'expo-router';
 import { useDarkMode } from '@/context/DarkModeContext';
+import { addRecentItem } from './usedTabs';
 
 type PlatformsProps = {
   close?: () => void;
@@ -34,6 +35,7 @@ const Platforms = ({ close }: PlatformsProps) => {
           </View>
         }
         onPress={() => {
+          addRecentItem('Discord Bot', '/platforms/discord');
           router.push('/platforms/discord');
           // close?.();
         }}
@@ -48,6 +50,7 @@ const Platforms = ({ close }: PlatformsProps) => {
           </View>
         }
         onPress={() => {
+          addRecentItem('Mobile App', '/platforms/app');
           router.push('/platforms/app');
           // close?.();
         }}

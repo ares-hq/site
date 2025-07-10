@@ -11,6 +11,7 @@ import CaretRight from '../../assets/icons/caret-right.svg';
 import Controller from '../../assets/icons/game-controller.svg';
 import { useRouter } from 'expo-router';
 import { useDarkMode } from '@/context/DarkModeContext';
+import { addRecentItem } from './usedTabs';
 
 type AnalyticsProps = {
   close?: () => void;
@@ -50,7 +51,8 @@ const Analytics = ({ close }: AnalyticsProps) => {
     outputRange: ['0deg', '90deg'],
   });
 
-  const go = (path: string) => {
+  const go = (path: string, label: string) => {
+    addRecentItem(label, path); // Save human-friendly name
     router.push(path as any);
     // close?.();
   };
@@ -83,10 +85,10 @@ const Analytics = ({ close }: AnalyticsProps) => {
 
       {teamsExpanded && (
         <>
-          <SidebarItem label="Ranks" onPress={() => go('/analytics/teams/tranks')} isDarkMode={isDarkMode} />
-          <SidebarItem label="Auto" onPress={() => go('/analytics/teams/tauto')} isDarkMode={isDarkMode} />
-          <SidebarItem label="TeleOp" onPress={() => go('/analytics/teams/ttele')} isDarkMode={isDarkMode} />
-          <SidebarItem label="Endgame" onPress={() => go('/analytics/teams/tendgame')} isDarkMode={isDarkMode} />
+          <SidebarItem label="Ranks" onPress={() => go('/analytics/teams/tranks', 'Teams')} isDarkMode={isDarkMode} />
+          <SidebarItem label="Auto" onPress={() => go('/analytics/teams/tauto', 'Auto')} isDarkMode={isDarkMode} />
+          <SidebarItem label="TeleOp" onPress={() => go('/analytics/teams/ttele', 'TeleOp')} isDarkMode={isDarkMode} />
+          <SidebarItem label="Endgame" onPress={() => go('/analytics/teams/tendgame', 'Endgame')} isDarkMode={isDarkMode} />
         </>
       )}
 
@@ -110,10 +112,10 @@ const Analytics = ({ close }: AnalyticsProps) => {
 
       {matchesExpanded && (
         <>
-          <SidebarItem label="Ranks" onPress={() => go('/analytics/matches/mranks')} isDarkMode={isDarkMode} />
-          <SidebarItem label="Qualifiers" onPress={() => go('/analytics/matches/qual')} isDarkMode={isDarkMode} />
-          <SidebarItem label="Finals" onPress={() => go('/analytics/matches/finals')} isDarkMode={isDarkMode} />
-          <SidebarItem label="Premier" onPress={() => go('/analytics/matches/premier')} isDarkMode={isDarkMode} />
+          <SidebarItem label="Ranks" onPress={() => go('/analytics/matches/mranks', 'Matches')} isDarkMode={isDarkMode} />
+          <SidebarItem label="Qualifiers" onPress={() => go('/analytics/matches/qual', 'Qualifiers')} isDarkMode={isDarkMode} />
+          <SidebarItem label="Finals" onPress={() => go('/analytics/matches/finals', 'Finals')} isDarkMode={isDarkMode} />
+          <SidebarItem label="Premier" onPress={() => go('/analytics/matches/premier', 'Premier')} isDarkMode={isDarkMode} />
         </>
       )}
     </View>

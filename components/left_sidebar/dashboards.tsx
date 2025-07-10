@@ -9,6 +9,7 @@ import Chart from '../../assets/icons/chart-pie-slice-fill.svg';
 import Graph from '../../assets/icons/chart-line-fill.svg';
 import { useRouter } from 'expo-router';
 import { useDarkMode } from '@/context/DarkModeContext';
+import { addRecentItem } from './usedTabs';
 
 type DashboardsProps = {
   close?: () => void;
@@ -31,6 +32,7 @@ const Dashboards = ({ close }: DashboardsProps) => {
         label="Into the Deep"
         icon={<View style={styles.teamIcons}><Chart width={18} height={18} fill={isDarkMode ? '#fff' : '#000'}/></View>}
         onPress={() => {
+          addRecentItem('Into the Deep', '/dashboards/intothedeep');
           router.push('/dashboards/intothedeep');
           // close?.();
         }}
@@ -41,6 +43,7 @@ const Dashboards = ({ close }: DashboardsProps) => {
         label="Decode"
         icon={<View style={styles.teamIcons}><Graph width={18} height={18} fill={isDarkMode ? '#fff' : '#000'}/></View>}
         onPress={() => {
+          addRecentItem('Decode', '/dashboards/age');
           router.push('/dashboards/age');
           // close?.();
         }}

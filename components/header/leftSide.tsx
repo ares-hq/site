@@ -3,14 +3,19 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 
 import Sidebar from '../../assets/icons/sidebar-simple.svg';
 import Star from '../../assets/icons/star.svg';
+import StarFill from '../../assets/icons/star-fill.svg';
 import { useDarkMode } from '@/context/DarkModeContext';
+import { usePathname } from 'expo-router';
 import { supabase } from '@/api/dashboardInfo';
+import { getFavoritesForUser, toggleFavorite } from '@/api/auth';
 
 type LeftSideProps = {
   toggleSidebar: () => void;
   pageTitle: string;
   showRoute: boolean;
 };
+
+const disallowedPages = ['index', 'tac', 'privacy', 'systemstatus'];
 
 const HoverIcon = ({
   children,
@@ -44,17 +49,48 @@ const HoverIcon = ({
 const LeftSide = ({ toggleSidebar, pageTitle, showRoute }: LeftSideProps) => {
   const { isDarkMode } = useDarkMode();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const pathname = usePathname();
+
+  const normalizedTitle = pageTitle.toLowerCase();
+  const isFavoritable = !disallowedPages.includes(pathname);
 
   useEffect(() => {
-    const checkUser = async () => {
+    const fetchUser = async () => {
       const { data } = await supabase.auth.getUser();
-      setIsLoggedIn(!!data.user);
+      const user = data?.user;
+      if (user) {
+        setUserId(user.id);
+        setIsLoggedIn(true);
+      }
     };
-    checkUser();
+    fetchUser();
   }, []);
 
-  let routeLabel: string | null = null;
+  useEffect(() => {
+    if (!userId || !isFavoritable) return;
 
+    const favoriteItem = `${pageTitle}:${pathname}`;
+
+    const checkFavoriteStatus = async () => {
+      const { data } = await getFavoritesForUser(userId);
+      setIsFavorite(data?.includes(favoriteItem));
+    };
+
+    checkFavoriteStatus();
+    const interval = setInterval(checkFavoriteStatus, 2000);
+    return () => clearInterval(interval);
+  }, [userId, pageTitle, pathname, isFavoritable]);
+
+  const handleToggleFavorite = async () => {
+    if (!userId || !isFavoritable) return;
+    const favoriteItem = `${pageTitle}:${pathname}`;
+    const { action, error } = await toggleFavorite(userId, favoriteItem);
+    if (!error) setIsFavorite(action === 'added');
+  };
+
+  let routeLabel: string | null = null;
   if (pageTitle === 'AGE' || pageTitle === 'DIVE') {
     routeLabel = 'Dashboards';
   } else if (pageTitle === 'Discord' || pageTitle === 'App') {
@@ -69,44 +105,31 @@ const LeftSide = ({ toggleSidebar, pageTitle, showRoute }: LeftSideProps) => {
 
   return (
     <View style={styles.container}>
-      {/* Icons */}
       <View style={styles.icons}>
         <HoverIcon onPress={toggleSidebar}>
-          <Sidebar width={15} height={15} fill={isDarkMode ? '#fff' : '#000'}/>
+          <Sidebar width={15} height={15} fill={isDarkMode ? '#fff' : '#000'} />
         </HoverIcon>
 
-        {isLoggedIn && (
-          <HoverIcon>
-            <Star width={15} height={15} fill={isDarkMode ? '#fff' : '#000'} />
+        {isLoggedIn && showRoute && pageTitle !== '' && (
+          <HoverIcon onPress={handleToggleFavorite}>
+            {isFavorite ? (
+              <StarFill width={15} height={15} fill={isDarkMode ? '#FACC15' : '#F59E0B'} />
+            ) : (
+              <Star width={15} height={15} fill={isDarkMode ? '#fff' : '#000'} />
+            )}
           </HoverIcon>
         )}
       </View>
 
-      {/* Labels */}
       {showRoute && pageTitle !== '' && (
         <>
-          <Text
-            style={[
-              styles.faded,
-              { color: isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)' },
-            ]}
-          >
+          <Text style={[styles.faded, { color: isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)' }]}>
             {routeLabel}
           </Text>
-          <Text
-            style={[
-              styles.separator,
-              { color: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)' },
-            ]}
-          >
+          <Text style={[styles.separator, { color: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)' }]}>
             /
           </Text>
-          <Text
-            style={[
-              styles.active,
-              { color: isDarkMode ? '#fff' : '#000' },
-            ]}
-          >
+          <Text style={[styles.active, { color: isDarkMode ? '#fff' : '#000' }]}>
             {pageTitle}
           </Text>
         </>

@@ -270,3 +270,29 @@ export const getImage = async (teamNumber: number): Promise<string | null> => {
 
   return teamData?.teamLogo || null;
 };
+
+export async function updateUserProfile({
+  userId,
+  displayName,
+  teamNumber,
+  accountType,
+}: {
+  userId: string
+  displayName: string
+  teamNumber: number
+  accountType: string
+}) {
+  const { error } = await supabase
+    .from('user_teams')
+    .update({
+      currentTeam: teamNumber,
+      accountType,
+      displayName,
+    })
+    .eq('id', userId)
+
+  if (error) {
+    console.error('Failed to update user profile:', error.message)
+    throw error
+  }
+}
