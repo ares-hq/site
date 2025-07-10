@@ -194,10 +194,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   signInButton: {
-    // backgroundColor: '#3B82F6',
     backgroundColor: '#000',
     borderRadius: 16,
-    // paddingVertical: 12,
     alignContent: 'center',
     justifyContent: 'center',
     height: 40,
@@ -207,7 +205,6 @@ const styles = StyleSheet.create({
   signInText: {
     color: '#fff',
     fontSize: 16,
-    // fontWeight: '600',
   },
   bottomText: {
     textAlign: 'center',

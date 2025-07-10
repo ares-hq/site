@@ -24,7 +24,7 @@ interface UserOnboardProps {
 
 interface OnboardingData {
   teamSize: string
-  teamAccountName: string
+  teamAccountNumber: string
   accountPlan: string
 }
 
@@ -40,7 +40,7 @@ export default function UserOnboard({ onContinue, onPrevious }: UserOnboardProps
   const dropdownBackground = isDarkMode ? "rgba(42, 42, 42, 1)" : "#fff"
   const dropdownBorder = isDarkMode ? "rgba(75, 85, 99, 1)" : "#e5e7eb"
 
-  const [teamAccountName, setTeamAccountName] = useState<string>("")
+  const [teamAccountNumber, setTeamAccountNumber] = useState<string>("")
   const [accountPlan, setAccountPlan] = useState<string>("Player")
   const [query, setQuery] = useState("")
   const [allTeams, setAllTeams] = useState<TeamInfo[]>([])
@@ -110,7 +110,7 @@ export default function UserOnboard({ onContinue, onPrevious }: UserOnboardProps
     const result = await handleContinueToSupabase({
         email,
         password,
-        selectedTeam: teamAccountName || query,
+        selectedTeam: teamAccountNumber || query,
         accountPlan,
         displayName,
     })
@@ -123,7 +123,7 @@ export default function UserOnboard({ onContinue, onPrevious }: UserOnboardProps
     if (onContinue) {
         onContinue({
         teamSize: "",
-        teamAccountName: teamAccountName || query,
+        teamAccountNumber: teamAccountNumber || query,
         accountPlan,
         })
     } else {
@@ -148,11 +148,10 @@ export default function UserOnboard({ onContinue, onPrevious }: UserOnboardProps
     if (team.teamNumber === 0) {
       setQuery("none")
       setSelectedTeam({ teamNumber: 0, teamName: "None" } as TeamInfo)
-      setTeamAccountName("None")
     } else {
       setQuery(team.teamNumber?.toString() || "")
       setSelectedTeam(team)
-      setTeamAccountName(team.teamName || `Team ${team.teamNumber}`)
+      setTeamAccountNumber(team.teamNumber?.toString() || "")
     }
     setShowDropdown(false)
     setInputFocused(false)

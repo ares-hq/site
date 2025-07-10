@@ -14,7 +14,7 @@ import EventPerformance from '@/components/graphs/eventPerformace';
 import EventScores from '@/components/graphs/eventScores';
 import InfoBlock from '@/components/teamInfo/infoBlock';
 import EventCard from '@/components/teamInfo/eventCard';
-import { getAverageOPRs, getTeamInfo, getTeamMatches, getWins } from '@/api/dashboardInfo';
+import { getAverageOPRs, getCurrentUserTeam, getTeamInfo, getTeamMatches, getWins } from '@/api/dashboardInfo';
 import { getFirstAPI } from '@/api/firstAPI';
 import { AllianceInfo, EventInfo, MatchInfo, MatchTypeAverages, TeamInfo } from '@/api/types';
 import { attachHourlyAverages, getAverageByMatchType, getAveragePlace, getAwards } from '@/api/averageMatchScores';
@@ -67,7 +67,6 @@ const StatCard = ({ title, value, change, positive, color }: StatCardProps) => {
 
 const IntoTheDeep = () => {  
   const { teamnumber } = useLocalSearchParams();
-  const teamNumber = Number(teamnumber);
   const [containerWidth, setContainerWidth] = useState(0);
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(null);
   const [matches, setMatches] = useState<AllianceInfo[] | null>(null);
@@ -77,6 +76,7 @@ const IntoTheDeep = () => {
   const [wins, setWins] = useState<number | null>(0);
   const [highestScore, setHighScore] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [noTeamSelected, setNoTeamSelected] = useState(false);
   const { isDarkMode } = useDarkMode();
   const [averageOPR, setAverageOPR] = useState<{
     autoOPR: number;
@@ -85,43 +85,68 @@ const IntoTheDeep = () => {
     overallOPR: number;
   } | null>(null);
 
-  useEffect(() => {
-    if (isNaN(teamNumber)) {
-      console.error('Invalid or missing team number');
-      return;
-    }
-
-    const fetchInfo = async () => {
-      try {
-        const data = await getTeamInfo(teamNumber);
-        const avg = await getAverageOPRs();
-        const match = await getTeamMatches(teamNumber);
-        const hourlyAverages = await attachHourlyAverages(match ?? []);
-        const matchType = await getAverageByMatchType(match ?? []);
-        const highScore = match?.reduce((max, m) => Math.max(max, m.totalPoints), 0) ?? 0;
-        const wins = await getWins(match ?? []);
-        const eventData = await getFirstAPI(data?.events ?? [''], teamNumber);
-
-        if (data) {
-          data.averagePlace = getAveragePlace(eventData ?? []);
-          data.achievements = getAwards(eventData ?? []);
-          setTeamInfo(data);
+useEffect(() => {
+  const fetchInfo = async () => {
+    let teamNumber: number;
+    try {
+      if (!teamnumber) {
+        const userTeam = await getCurrentUserTeam();
+        if (!userTeam) {
+          setNoTeamSelected(true);
+          setLoading(false);
+          return;
         }
-        if (avg) setAverageOPR(avg);
-        if (match) setMatches(match);
-        if (hourlyAverages) setAverages(hourlyAverages);
-        if (highScore) setHighScore(highScore);
-        if (wins) setWins(wins);
-        if (eventData) setEventData(eventData);
-        if (matchType) setMatchTypeAverages(matchType);
-      } catch (err) {
-        console.error('Error fetching dashboard info', err);
-      } finally {
-        setLoading(false);
+        // Ensure it's a number
+        teamNumber = typeof userTeam === 'string' ? parseInt(userTeam, 10) : userTeam;
+      } else {
+        teamNumber = Number(teamnumber);
       }
-    };
-    fetchInfo();
-  }, [teamNumber]);
+      
+      if (isNaN(teamNumber)) {
+        console.error('Invalid team number:', teamNumber);
+        setLoading(false);
+        return;
+      }
+
+      console.log('Fetching data for team number:', teamNumber); // Debug log
+
+      const data = await getTeamInfo(teamNumber);
+      console.log('Team info received:', data); // Debug log
+      
+      const avg = await getAverageOPRs();
+      const match = await getTeamMatches(teamNumber);
+      const hourlyAverages = await attachHourlyAverages(match ?? []);
+      const matchType = await getAverageByMatchType(match ?? []);
+      const highScore = match?.reduce((max, m) => Math.max(max, m.totalPoints), 0) ?? 0;
+      const wins = await getWins(match ?? []);
+      
+      // Make sure we have events before calling getFirstAPI
+      const events = data?.events ?? [];
+      console.log('Events for team:', events); // Debug log
+      
+      const eventData = events.length > 0 ? await getFirstAPI(events, teamNumber) : [];
+      console.log('Event data received:', eventData); // Debug log
+
+      if (data) {
+        data.averagePlace = getAveragePlace(eventData ?? []);
+        data.achievements = getAwards(eventData ?? []);
+        setTeamInfo(data);
+      }
+      if (avg) setAverageOPR(avg);
+      if (match) setMatches(match);
+      if (hourlyAverages) setAverages(hourlyAverages);
+      if (highScore) setHighScore(highScore);
+      if (wins) setWins(wins);
+      if (eventData) setEventData(eventData);
+      if (matchType) setMatchTypeAverages(matchType);
+    } catch (err) {
+      console.error('Error fetching dashboard info', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchInfo();
+}, [teamnumber]);
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const { width } = event.nativeEvent.layout;
@@ -150,7 +175,7 @@ const IntoTheDeep = () => {
     );
   }
 
-  if (isNaN(teamNumber)) {
+  if (noTeamSelected) {
     return (
       <View style={[
         styles.container,
@@ -160,7 +185,7 @@ const IntoTheDeep = () => {
           styles.errorText,
           { color: isDarkMode ? '#F87171' : '#DC2626' }
         ]}>
-          Invalid or missing team number
+          Please select an Affiliated team to view data
         </Text>
       </View>
     );
@@ -276,7 +301,7 @@ const IntoTheDeep = () => {
       <View style={styles.eventContainer}>
         {eventData && eventData.map((event, index) => (
           <View key={index} style={{ marginBottom: 5, flexShrink: 0 }}>
-            <EventCard eventData={event} teamNumber={teamNumber} />
+            <EventCard eventData={event} teamNumber={teamInfo?.teamNumber || 0} />
           </View>
         ))}
       </View>

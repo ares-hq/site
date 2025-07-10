@@ -205,3 +205,68 @@ export async function fetchTeamName(teamNumber: number): Promise<string | undefi
   if (name) teamNameCache.set(teamNumber, name);
   return name;
 }
+
+export const getCurrentUserTeam = async (): Promise<number | null> => {
+  const { data, error } = await supabase.auth.getUser();
+  if (error) {
+    console.error('Error fetching user:', error.message);
+    return null;
+  }
+  
+  if (!data.user) return null;
+
+  const { data: teamData, error: teamError } = await supabase
+    .from('user_teams')
+    .select('currentTeam')
+    .eq('id', data.user.id)
+    .single()
+    .throwOnError();
+
+  if (teamError) {
+    console.error('Error fetching user team:', teamError);
+    return null;
+  }
+
+  return teamData?.currentTeam || null;
+};
+
+export const getCurrentUserRole = async (): Promise<string | null> => {
+  const { data, error } = await supabase.auth.getUser();
+  if (error) {
+    console.error('Error fetching user:', error.message);
+    return null;
+  }
+
+  if (!data.user) return null;
+
+  const { data: roleData, error: roleError } = await supabase
+    .from('user_teams')
+    .select('accountType')
+    .eq('id', data.user.id)
+    .single()
+    .throwOnError();
+
+  if (roleError) {
+    console.error('Error fetching user role:', roleError);
+    return null;
+  }
+
+  return roleData?.accountType || null;
+};
+
+export const getImage = async (teamNumber: number): Promise<string | null> => {
+  if (teamNumber < 0) return null; 
+  const { data: teamData, error: teamError } = await supabase
+    .from('season_2024')
+    .select('teamLogo')
+    .eq('teamNumber', teamNumber)
+    .single()
+    .throwOnError();
+
+  if (teamError) {
+    console.error('Error fetching user team:', teamError);
+    return null;
+  }
+
+  return teamData?.teamLogo || null;
+};

@@ -91,7 +91,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     gap: 2.2,
     paddingVertical: 9,
-    marginBottom: 18,
   },
   sectionTitle: {
     fontSize: 15,
