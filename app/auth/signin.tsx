@@ -10,6 +10,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 export default function SignIn() {
   const params = useLocalSearchParams();
   const shouldShowVerifyBadge = params?.verify === "1";
+  const shouldShowSuccessBadge = params?.success === "1";
   const { isDarkMode } = useDarkMode();
   const textColor = isDarkMode ? '#F9FAFB' : '#111827';
   const mutedText = isDarkMode ? '#9CA3AF' : 'rgba(0, 0, 0, 0.2)';
@@ -48,6 +49,18 @@ export default function SignIn() {
             </Text>
           </View>
         )}
+        {shouldShowSuccessBadge && (
+            <View style={{
+              backgroundColor: "#10B981",
+              padding: 10,
+              borderRadius: 8,
+              marginBottom: 16,
+            }}>
+              <Text style={{ color: "#F0FDF4", fontWeight: "500", textAlign: "center" }}>
+                Reset email sent. Please check your inbox.
+              </Text>
+            </View>
+          )}
         <Text style={[styles.title, { color: textColor }]}>Sign In</Text>
         <Text style={[styles.subtitle, { color: mutedText }]}>Your Social Campaigns</Text>
         
@@ -82,7 +95,7 @@ export default function SignIn() {
           style={[styles.input, { backgroundColor: inputBackground, color: inputTextColor }]} 
         />
         
-        <TouchableOpacity style={styles.forgotWrapper}>
+        <TouchableOpacity style={styles.forgotWrapper} onPress={() => router.push('/auth/forgotPassword')}>
           <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
 

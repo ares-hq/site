@@ -23,3 +23,9 @@ export function useIsLoggedIn(): boolean {
 
   return isLoggedIn;
 }
+
+export async function resetPasswordWithEmail(email: string) {
+  return await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://ares-bot.com/auth/signin',
+  });
+}

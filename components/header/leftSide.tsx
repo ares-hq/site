@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 
 import Sidebar from '../../assets/icons/sidebar-simple.svg';
 import Star from '../../assets/icons/star.svg';
 import { useDarkMode } from '@/context/DarkModeContext';
+import { supabase } from '@/api/dashboardInfo';
 
 type LeftSideProps = {
   toggleSidebar: () => void;
@@ -42,6 +43,15 @@ const HoverIcon = ({
 
 const LeftSide = ({ toggleSidebar, pageTitle, showRoute }: LeftSideProps) => {
   const { isDarkMode } = useDarkMode();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setIsLoggedIn(!!data.user);
+    };
+    checkUser();
+  }, []);
 
   let routeLabel: string | null = null;
 
@@ -65,9 +75,11 @@ const LeftSide = ({ toggleSidebar, pageTitle, showRoute }: LeftSideProps) => {
           <Sidebar width={15} height={15} fill={isDarkMode ? '#fff' : '#000'}/>
         </HoverIcon>
 
-        <HoverIcon>
-          <Star width={15} height={15} fill={isDarkMode ? '#fff' : '#000'}/>
-        </HoverIcon>
+        {isLoggedIn && (
+          <HoverIcon>
+            <Star width={15} height={15} fill={isDarkMode ? '#fff' : '#000'} />
+          </HoverIcon>
+        )}
       </View>
 
       {/* Labels */}
