@@ -272,27 +272,56 @@ export const getImage = async (teamNumber: number): Promise<string | null> => {
 };
 
 export async function updateUserProfile({
-  userId,
   displayName,
   teamNumber,
   accountType,
 }: {
-  userId: string
   displayName: string
   teamNumber: number
   accountType: string
 }) {
-  const { error } = await supabase
-    .from('user_teams')
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData?.user) {
+    console.error("Failed to get current user:", userError?.message);
+    throw new Error(userError?.message || "No user found");
+  }
+  const userId = userData.user.id;
+  // 1. Update the displayName in auth.user_metadata
+  const { error: authError } = await supabase.auth.updateUser({
+    data: { displayName },
+  })
+
+  if (authError) {
+    console.error("Failed to update auth user metadata:", authError.message)
+    throw new Error(authError.message)
+  }
+
+  // 2. Update team/accountType in user_teams table
+  const { error: teamError } = await supabase
+    .from("user_teams")
     .update({
       currentTeam: teamNumber,
       accountType,
-      displayName,
     })
-    .eq('id', userId)
+    .eq("id", userId)
 
-  if (error) {
-    console.error('Failed to update user profile:', error.message)
-    throw error
+  if (teamError) {
+    console.error("Failed to update user_teams:", teamError.message)
+    throw new Error(teamError.message)
   }
+}
+
+export async function getName() {
+  const { data, error } = await supabase.auth.getUser()
+
+  if (error || !data?.user) {
+    console.error("Error fetching user:", error)
+    return null
+  }
+
+  const name =
+    data.user.user_metadata?.displayName ??
+    null
+
+  return name
 }

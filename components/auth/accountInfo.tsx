@@ -67,6 +67,9 @@ export default function ProfileSettingsModal({ visible, onClose, userProfile, is
   const [inputFocused, setInputFocused] = useState(false)
   const [confirmDeactivation, setConfirmDeactivation] = useState(false)
   const [displayName, setDisplayName] = useState(userProfile?.display_name || "")
+  const [initialDisplayName, setInitialDisplayName] = useState("")
+  const [initialTeamNumber, setInitialTeamNumber] = useState<number | null>(null)
+  const [initialAccountPlan, setInitialAccountPlan] = useState("")
 
   // Theme colors
   const colors = {
@@ -84,35 +87,40 @@ export default function ProfileSettingsModal({ visible, onClose, userProfile, is
     sectionBackground: isDarkMode ? "rgba(55, 65, 81, 0.5)" : "rgba(249, 249, 250, 1)",
   }
 
-  useEffect(() => {
+    useEffect(() => {
     if (visible) {
-      fetchTeams()
-      // Initialize form with user profile data
-      setDisplayName(userProfile?.display_name || "")
-      setAccountPlan(userProfile?.team_role || "Player")
-      
-      // Parse team number from userProfile (format: "#1234")
-      if (userProfile?.team_number) {
-        const teamNum = parseInt(userProfile.team_number.replace('#', ''))
+        fetchTeams()
+        const initialName = userProfile?.display_name || ""
+        const initialPlan = userProfile?.team_role || "Player"
+        const initialTeam = userProfile?.team_number
+        ? parseInt(userProfile.team_number.replace('#', ''))
+        : null
+
+        setAccountPlan(initialPlan)
+        setInitialDisplayName(initialName)
+        setInitialAccountPlan(initialPlan)
+        setInitialTeamNumber(initialTeam)
+
+        if (initialTeam !== null) {
         setSelectedTeam({
-          teamNumber: teamNum,
-          teamName: userProfile.team_name || ""
+            teamNumber: initialTeam,
+            teamName: userProfile?.team_name || "",
         })
-        setQuery(teamNum.toString())
-      } else {
+        } else {
         setSelectedTeam(null)
+        }
+
         setQuery("")
-      }
-      
-      setConfirmDeactivation(false)
-      
-      Animated.timing(modalAnimation, {
+        setConfirmDeactivation(false)
+
+        Animated.timing(modalAnimation, {
         toValue: 1,
         duration: 300,
         useNativeDriver: true,
-      }).start()
+        }).start()
     }
-  }, [visible, userProfile])
+    }, [visible, userProfile])
+
 
   useEffect(() => {
     filterTeams()
@@ -126,6 +134,11 @@ export default function ProfileSettingsModal({ visible, onClose, userProfile, is
       console.error("Error fetching teams:", error)
     }
   }
+
+  const hasChanges =
+  displayName.trim() !== initialDisplayName.trim() ||
+  accountPlan !== initialAccountPlan ||
+  (selectedTeam?.teamNumber || 0) !== (initialTeamNumber || 0)
 
   const filterTeams = () => {
     if (!query.trim()) {
@@ -161,11 +174,11 @@ export default function ProfileSettingsModal({ visible, onClose, userProfile, is
   }
 
   const handleSave = async () => {
-    if (!userId) {
-      console.error("No user ID available")
-      Alert.alert("Error", "User ID not available")
-      return
-    }
+    // if (!userId) {
+    //   console.error("No user ID available")
+    //   Alert.alert("Error", "User ID not available")
+    //   return
+    // }
     
     // Basic validation
     if (!displayName.trim()) {
@@ -175,7 +188,6 @@ export default function ProfileSettingsModal({ visible, onClose, userProfile, is
 
     try {
       await updateUserProfile({
-        userId: userId,
         displayName: displayName.trim(),
         teamNumber: selectedTeam?.teamNumber || 0,
         accountType: accountPlan,
@@ -196,29 +208,20 @@ export default function ProfileSettingsModal({ visible, onClose, userProfile, is
     }
   }
 
-  const handleLogOut = async () => {
-    Alert.alert(
-      "Log Out",
-      "Are you sure you want to log out?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Log Out",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await supabase.auth.signOut()
-              profileCache.userProfile = null
-              closeModal()
-              router.replace("/auth/signin")
-            } catch (error) {
-              console.error("Error logging out:", error)
-            }
-          },
-        },
-      ]
-    )
-  }
+    const handleLogOut = async () => {
+    // const confirm = window.confirm("Are you sure you want to log out?")
+    // if (!confirm) return
+
+    try {
+        const { error } = await supabase.auth.signOut()
+        if (error) throw error
+
+        profileCache.userProfile = null
+        router.replace("/auth/signin")
+    } catch (error) {
+        console.error("Error logging out:", error)
+    }
+    }
 
   const handleDeleteAccount = async () => {
     if (!confirmDeactivation) {
@@ -434,9 +437,9 @@ export default function ProfileSettingsModal({ visible, onClose, userProfile, is
             </Text>
             <View style={styles.buttonContainer}>
                 <TouchableOpacity onPress={handleLogOut} style={styles.cancelButton}>
-                <Text style={[styles.cancelButtonText, { color: colors.textColor }]}>
-                    Log Out
-                </Text>
+                    <Text style={[styles.cancelButtonText, { color: colors.textColor }]}>
+                        Log Out
+                    </Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={closeModal}>
                 <Cancel width={20} height={20} fill={colors.textColor} />
@@ -451,15 +454,17 @@ export default function ProfileSettingsModal({ visible, onClose, userProfile, is
                     Profile Details
                 </Text>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <TouchableOpacity onPress={closeModal} style={styles.cancelButton}>
+                {/* <TouchableOpacity onPress={closeModal} style={styles.cancelButton}>
                     <Text style={[styles.cancelButtonText, { color: colors.textColor }]}>
                         Cancel
                     </Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-                    <Text style={styles.saveButtonText}>
-                        Save Changes
-                    </Text>
+                </TouchableOpacity> */}
+                <TouchableOpacity
+                onPress={handleSave}
+                style={[styles.saveButton, { opacity: hasChanges ? 1 : 0.5 }]}
+                disabled={!hasChanges}
+                >
+                <Text style={styles.saveButtonText}>Save Changes</Text>
                 </TouchableOpacity>
                 </View>
             </View>
@@ -479,6 +484,13 @@ export default function ProfileSettingsModal({ visible, onClose, userProfile, is
                         borderColor: "rgba(0, 0, 0, 0.2)",
                     }]}
                     />
+                    <View style={styles.selectedTeamContainer}>
+                        <Text style={[styles.selectedTeamText, { color: colors.textColor }]}>
+                            {selectedTeam && selectedTeam.teamNumber !== 0
+                            ? `Name: ${userProfile?.display_name}`
+                            : "No Name Entered"}
+                        </Text>
+                    </View>
               </View>
               
               {renderTeamDropdown()}
@@ -542,7 +554,8 @@ export default function ProfileSettingsModal({ visible, onClose, userProfile, is
                 styles.checkbox, 
                 { 
                     borderColor: colors.headerColor,
-                    backgroundColor: confirmDeactivation ? "#3B82F6" : "transparent"
+                    // backgroundColor: confirmDeactivation ? "#3B82F6" : "transparent"
+                    backgroundColor: confirmDeactivation ? colors.headerColor : "transparent",
                 }
                 ]}>
                 {confirmDeactivation && (

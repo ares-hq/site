@@ -4,6 +4,7 @@ import {
   getCurrentUserRole,
   getCurrentUserTeam,
   getImage,
+  getName,
 } from "@/api/dashboardInfo"
 
 export type UserProfile = {
@@ -37,6 +38,7 @@ export const useUserProfile = (isLoggedIn: boolean) => {
       const teamNumber = await getCurrentUserTeam()
       const teamAccountRole = await getCurrentUserRole()
       const image = await getImage(teamNumber || -1)
+      const name = await getName()
       
       let profile: UserProfile
 
@@ -47,10 +49,11 @@ export const useUserProfile = (isLoggedIn: boolean) => {
           team_name: teamName,
           team_role: teamAccountRole ?? undefined,
           profile_picture: image ?? undefined,
+          display_name: name,
         }
       } else {
         profile = {
-          display_name: teamAccountRole?.toLocaleUpperCase() ?? undefined,
+          display_name: name ?? undefined,
           team_role: "Select Team",
           profile_picture: image ?? undefined,
         }
