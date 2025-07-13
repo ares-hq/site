@@ -68,32 +68,42 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
 
   const tabs: string[] = ['Match Score', 'Driver Period', 'Penalties'];
 
-  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
-    if (active && payload && payload.length) {
-      return (
-        <View style={[
+const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
+  if (active && payload && payload.length) {
+    return (
+      <View
+        style={[
           styles.tooltip,
           {
-            backgroundColor: isDarkMode ? '#1F2937' : '#fff',
+            backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff',
             borderColor: isDarkMode ? '#374151' : '#e5e7eb',
-          }
-        ]}>
-          <Text style={[
+          },
+        ]}
+      >
+        <Text
+          style={[
             styles.tooltipLabel,
-            { color: isDarkMode ? '#F9FAFB' : '#000' }
-          ]}>
-            {`Match ${label ? label.replace(/^M\s*/, '') : ''}`}
+            { color: isDarkMode ? '#F9FAFB' : '#000' },
+          ]}
+        >
+          {`Match ${label ? label.replace(/^M\\s*/, '') : ''}`}
+        </Text>
+        {payload.map((entry: any, index: number) => (
+          <Text
+            key={index}
+            style={[
+              styles.tooltipValue,
+              { color: isDarkMode ? '#D1D5DB' : '#374151' },
+            ]}
+          >
+            {entry.name === 'current' ? 'Current Team' : 'Average'}: {entry.value.toLocaleString()}
           </Text>
-          {payload.map((entry: any, index: number) => (
-            <Text key={index} style={[styles.tooltipValue, { color: entry.color }]}>
-              {entry.name === 'current' ? 'Current Team' : 'Average'}: {entry.value.toLocaleString()}
-            </Text>
-          ))}
-        </View>
-      );
-    }
-    return null;
-  };
+        ))}
+      </View>
+    );
+  }
+  return null;
+};
 
   const trafficData = [
     {

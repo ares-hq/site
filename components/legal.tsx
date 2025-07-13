@@ -36,7 +36,7 @@ const PrivacyPolicyTerms = ({ onBack, privacyPolicy } : LegalPageProps) => {
       accentHover: darkMode ? "#60A5FA" : "#2563EB",
       success: darkMode ? "#10B981" : "#059669",
       error: darkMode ? "#EF4444" : "#DC2626",
-      tabContainer: darkMode ? "rgba(42, 42, 42, 0.8)" : "#F9FAFB",
+      tabContainer: darkMode ? "rgba(42, 42, 42, 0.8)" : "#F3F4F6",
       tabContainerBorder: darkMode ? "rgba(71, 85, 105, 0.3)" : "#E5E7EB",
       activeTabBackground: darkMode ? "rgba(71, 85, 105, 0.4)" : "#FFFFFF",
       activeTabText: darkMode ? "#F1F5F9" : "#111827",
@@ -299,13 +299,13 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   activeTab: {
     backgroundColor: theme.activeTabBackground,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    // shadowColor: '#000',
+    // shadowOffset: {
+    //   width: 0,
+    //   height: 2,
+    // },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 4,
     elevation: 3,
   },
   tabText: {

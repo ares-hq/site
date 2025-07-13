@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { View, Text, StyleSheet, Pressable, Linking, Image, ActivityIndicator } from "react-native"
+import { View, Text, StyleSheet, Pressable, Linking, Image, ActivityIndicator, Platform } from "react-native"
 import { useRouter } from "expo-router"
 import { Feather } from "@expo/vector-icons"
 import { getAllTeams, getAverageOPRs, getTeamMatchCount } from "@/api/dashboardInfo"
@@ -9,6 +9,13 @@ import { useDarkMode } from "@/context/DarkModeContext"
 import Medal from '../assets/icons/medal.svg';
 import People from '../assets/icons/users.svg';
 import Target from '../assets/icons/target.svg';
+
+const boxShadowStyle = {
+  boxShadow: Platform.OS === 'web'
+    ? "0px 4px 12px rgba(0, 0, 0, 0.1)"
+    : undefined, // fallback if not supported on native
+  elevation: Platform.OS !== 'web' ? 4 : 0,
+}
 
 export default function LandingPage({ darkMode = false }: { darkMode?: boolean }) {
   const [stats, setStats] = useState({
@@ -254,7 +261,8 @@ export default function LandingPage({ darkMode = false }: { darkMode?: boolean }
                   styles.primaryBtn,
                   {
                     backgroundColor: theme.accent,
-                    shadowColor: theme.accent,
+                    // shadowColor: theme.accent,
+                    ...boxShadowStyle,
                   },
                 ]}
                 onPress={() => openLink("https://testflight.apple.com/join/FYFDhmcA")}
@@ -387,10 +395,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
+    ...boxShadowStyle,
     elevation: 4,
   },
   logo: {
@@ -452,9 +457,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
+    ...boxShadowStyle,
     elevation: 4,
   },
   primaryText: {
@@ -505,10 +508,7 @@ const styles = StyleSheet.create({
     position: "relative",
     borderRadius: 24,
     padding: 32,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.15,
-    shadowRadius: 40,
+    ...boxShadowStyle,
     elevation: 8,
   },
   heroImage: {
@@ -525,10 +525,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
+    ...boxShadowStyle,
     elevation: 6,
   },
   liveIndicator: {

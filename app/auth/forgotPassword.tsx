@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   input: {
-    outline: 'none',
+    // outline: 'none',
     borderColor: 'rgba(0, 0, 0, 0.2)',
     borderWidth: 0.5,
     borderRadius: 10,

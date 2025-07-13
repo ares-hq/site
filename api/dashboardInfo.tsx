@@ -296,6 +296,7 @@ export async function updateUserProfile({
     throw new Error(authError.message)
   }
 
+
   // 2. Update team/accountType in user_teams table
   const { error: teamError } = await supabase
     .from("user_teams")
@@ -311,17 +312,40 @@ export async function updateUserProfile({
   }
 }
 
-export async function getName() {
-  const { data, error } = await supabase.auth.getUser()
+export const getName = async () => {
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    const name = userData?.user?.user_metadata.displayName || userData?.user?.user_metadata.display_name;
 
-  if (error || !data?.user) {
-    console.error("Error fetching user:", error)
-    return null
+    if (!name) {
+      console.error('User not logged in');
+      return;
+    }
+
+    return name;
+  } catch (err) {
+    console.error('Unexpected error:', err);
   }
+};
 
-  const name =
-    data.user.user_metadata?.displayName ??
-    null
+export const deleteAccount = async () => {
+  const session = await supabase.auth.getSession();
+  const user = await supabase.auth.getUser();
 
-  return name
-}
+  const res = await fetch('https://api.ares-bot.com/functions/v1/delete-user', {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.data.session?.access_token}`,
+    },
+    body: JSON.stringify({ userId: user.data.user?.id })
+  });
+
+  const result = await res.json();
+
+  if (res.ok) {
+    await supabase.auth.signOut();
+  } else {
+    console.error('Delete error:', result.error);
+  }
+};

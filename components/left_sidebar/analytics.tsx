@@ -29,7 +29,7 @@ const Analytics = ({ close }: AnalyticsProps) => {
     Animated.timing(fadeAnim, {
       toValue: teamsExpanded ? 1 : 0,
       duration: 200,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
   }, [teamsExpanded]);
 
@@ -37,7 +37,7 @@ const Analytics = ({ close }: AnalyticsProps) => {
     Animated.timing(fadeAnimMatch, {
       toValue: matchesExpanded ? 1 : 0,
       duration: 200,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
   }, [matchesExpanded]);
 

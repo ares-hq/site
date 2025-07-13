@@ -61,8 +61,6 @@ export default function AuthWrapper({ children }: Props) {
             ))}
         </View>
         )}
-        
-        {/* Spacer when nav is hidden to center the logo */}
         {!shouldShowNav && <View style={styles.spacer} />}
         
         <View style={styles.headerButtons}>

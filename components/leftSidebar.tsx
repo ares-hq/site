@@ -1,6 +1,5 @@
 import { useState } from "react"
 import { View, Text, StyleSheet, ScrollView } from "react-native"
-
 // Components
 import Analytics from "./left_sidebar/analytics"
 import Dashboards from "./left_sidebar/dashboards"
@@ -10,10 +9,8 @@ import Scouting from "./left_sidebar/scouting"
 import ProfileCard from "./auth/profileCard"
 import AuthCard from "./auth/authCard"
 import ProfileSettingsModal from "./auth/accountInfo"
-
 // Hooks
 import { useUserProfile } from "./auth/useUserProfile"
-
 // Context & API
 import { useDarkMode } from "@/context/DarkModeContext"
 import { useIsLoggedIn } from "@/api/auth"
@@ -26,11 +23,11 @@ type SidebarProps = {
 export default function SettingsStyleSidebar({ close }: SidebarProps) {
   const { isDarkMode } = useDarkMode()
   const isLoggedIn = useIsLoggedIn()
-  const { userProfile, loading, profileCache } = useUserProfile(isLoggedIn)
-
+  const { userProfile, loading } = useUserProfile(isLoggedIn)
+  
   // State
   const [showProfileModal, setShowProfileModal] = useState(false)
-
+  
   // Theme colors
   const colors = {
     backgroundColor: isDarkMode ? "rgba(42, 42, 42, 1)" : "#fff",
@@ -46,6 +43,9 @@ export default function SettingsStyleSidebar({ close }: SidebarProps) {
     setShowProfileModal(false)
   }
 
+  // Don't show loading if we have userProfile data or if user is not logged in
+  const shouldShowLoading = loading && !userProfile && isLoggedIn
+
   return (
     <View style={[styles.container, { borderColor: colors.borderColor, backgroundColor: colors.backgroundColor }]}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -53,7 +53,7 @@ export default function SettingsStyleSidebar({ close }: SidebarProps) {
         {isLoggedIn ? (
           <ProfileCard
             userProfile={userProfile}
-            loading={loading}
+            loading={shouldShowLoading}
             isDarkMode={isDarkMode}
             onPress={openModal}
           />
@@ -64,9 +64,7 @@ export default function SettingsStyleSidebar({ close }: SidebarProps) {
         {/* Sidebar Content */}
         {isLoggedIn && <UsedTabs close={close} />}
         {isLoggedIn && <Dashboards close={close} />}
-        
         <View style={[styles.separator, { backgroundColor: isDarkMode ? "rgba(71, 85, 105, 0.3)" : "#f3f4f6" }]} />
-        
         <Analytics close={close} />
         <Platforms close={close} />
         <Scouting close={close} />
@@ -83,9 +81,7 @@ export default function SettingsStyleSidebar({ close }: SidebarProps) {
       <ProfileSettingsModal
         visible={showProfileModal}
         onClose={closeModal}
-        userProfile={userProfile}
         isDarkMode={isDarkMode}
-        profileCache={profileCache}
       />
     </View>
   )

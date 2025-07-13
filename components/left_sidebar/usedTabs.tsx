@@ -37,7 +37,7 @@ const UsedTabsItem = ({ item }: { item: RecentEntry }) => {
     Animated.timing(translateAnim, {
       toValue: 4,
       duration: 100,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
   };
 
@@ -45,7 +45,7 @@ const UsedTabsItem = ({ item }: { item: RecentEntry }) => {
     Animated.timing(translateAnim, {
       toValue: 0,
       duration: 150,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
   };
 

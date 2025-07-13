@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import AuthWrapper from '@/components/auth/authWrapper';
 import AppleIcon from '@/assets/icons/apple.svg';
 import GoogleIcon from '@/assets/icons/google.svg';
@@ -25,6 +25,20 @@ export default function SignUp() {
   const [wasAttempted, setWasAttempted] = useState(false);
   const [cachedError, setCachedError] = useState('');
   const [passwordStrength, setPasswordStrength] = useState<'Weak' | 'Medium' | 'Strong' | ''>('');
+  const [screenData, setScreenData] = useState(Dimensions.get('window'));
+
+  // Listen for screen dimension changes
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenData(window);
+    });
+
+    return () => subscription?.remove();
+  }, []);
+
+  // Get current screen width and determine if it's small
+  const { width } = screenData;
+  const isSmallScreen = width < 600;
 
   const checkPasswordStrength = (pass: string): typeof passwordStrength => {
     if (!pass) return '';
@@ -60,13 +74,15 @@ export default function SignUp() {
     password === repeatPassword &&
     accepted;
 
+  const containerPadding = isSmallScreen ? 24 : 80;
+
   return (
     <AuthWrapper>
-      <View style={[styles.container, { backgroundColor }]}>
+      <View style={[styles.container, { backgroundColor, padding: containerPadding }]}>
         <Text style={[styles.title, { color: textColor }]}>Sign Up</Text>
         <Text style={[styles.subtitle, { color: mutedText }]}>Your Social Campaigns</Text>
 
-        <View style={styles.buttonRow}>
+        <View style={[styles.buttonRow, { flexDirection: isSmallScreen ? 'column' : 'row' }]}>
           <TouchableOpacity 
             style={[styles.socialButton, { backgroundColor: inputBackground }]} 
             onPress={signInWithApple}
@@ -77,7 +93,7 @@ export default function SignUp() {
               style={styles.icon} 
               fill={isDarkMode ? '#FFFFFF' : '#111827'} 
             />
-            <Text style={[styles.socialText, { color: textColor }]}>Sign up with Apple</Text>
+            {!isSmallScreen && <Text style={[styles.socialText, { color: textColor }]}>Sign up with Apple</Text>}
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -85,7 +101,7 @@ export default function SignUp() {
             onPress={signInWithGoogle}
           >
             <GoogleIcon width={16} height={16} style={styles.icon} />
-            <Text style={[styles.socialText, { color: textColor }]}>Sign up with Google</Text>
+            {!isSmallScreen && <Text style={[styles.socialText, { color: textColor }]}>Sign up with Google</Text>}
           </TouchableOpacity>
         </View>
 
@@ -223,11 +239,9 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 550,
     height: '100%',
-
     alignSelf: 'center',
     justifyContent: 'center',
     borderRadius: 24,
-    padding: 80,
     paddingVertical: 80,
   },
   title: {
@@ -241,7 +255,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   buttonRow: {
-    flexDirection: 'row',
     gap: 12,
     marginBottom: 20,
   },
@@ -251,16 +264,17 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0, 0, 0, 0.2)',
     borderRadius: 10,
     paddingVertical: 10,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    minHeight: 40,
   },
   socialText: {
     fontSize: 14,
   },
   icon: {
-    marginRight: 4,
     height: 16,
     width: 16,
   },
@@ -292,6 +306,7 @@ const styles = StyleSheet.create({
   },
   passwordInput: {
     paddingRight: 50,
+    marginBottom: 12,
   },
   eyeButton: {
     position: 'absolute',
