@@ -14,7 +14,7 @@ import Eyes from "@/assets/icons/eyes.svg"
 import Target from "@/assets/icons/target.svg"
 import { router, useLocalSearchParams } from "expo-router"
 import type { TeamInfo } from "@/api/types"
-import { getAllTeams } from "@/api/dashboardInfo"
+import { getAllTeams, supabase } from "@/api/dashboardInfo"
 import { handleContinueToSupabase } from "@/api/auth/login"
 
 interface UserOnboardProps {
@@ -52,7 +52,7 @@ export default function UserOnboard({ onContinue, onPrevious }: UserOnboardProps
 
   const params = useLocalSearchParams()
   const email = params?.email as string
-  const password = params?.password as string
+  const password = (params?.password as string) || null
   const isContinueDisabled = displayName.trim() === ""
 
   useEffect(() => {
@@ -107,34 +107,67 @@ export default function UserOnboard({ onContinue, onPrevious }: UserOnboardProps
   ]
 
   const handleContinue = async () => {
+    if (!email) {
+      console.error("No email found in params.");
+      return;
+    }
+
+    if (!password) {
+      // OAuth user — update profile only
+      const { data: sessionData, error: sessionError } = await supabase.auth.getUser();
+
+      if (sessionError || !sessionData?.user) {
+        console.error("OAuth user not found in session");
+        return;
+      }
+
+      const user = sessionData.user;
+
+      const teamData = {
+        id: user.id,
+        currentTeam: selectedTeam?.teamNumber?.toString() || query,
+        accountType: accountPlan,
+      };
+
+      const { error: insertError } = await supabase.from("user_teams").upsert(teamData);
+
+      if (insertError) {
+        console.error("Error saving onboarding info:", insertError);
+        return;
+      }
+
+      // Optionally update user_metadata with displayName
+      await supabase.auth.updateUser({
+        data: {
+          displayName: displayName.trim(),
+        },
+      });
+
+      router.replace("/");
+      return;
+    }
+
+    // If password exists (email sign-up flow)
     const result = await handleContinueToSupabase({
-        email,
-        password,
-        selectedTeam: teamAccountNumber || query,
-        accountPlan,
-        displayName,
-    })
+      email,
+      password,
+      selectedTeam: selectedTeam?.teamNumber?.toString() || query,
+      accountPlan,
+      displayName,
+    });
 
     if (!result.success) {
-        console.error(result.error)
-        return
+      console.error(result.error);
+      return;
     }
 
-    if (onContinue) {
-        onContinue({
-        teamSize: "",
-        teamAccountNumber: teamAccountNumber || query,
-        accountPlan,
-        })
-    } else {
-          router.push({
-            pathname: "/auth/signin",
-            params: {
-            verify: "1",
-            },
-        });
-    }
-  }
+    router.push({
+      pathname: "/auth/signin",
+      params: {
+        verify: "1",
+      },
+    });
+  };
 
   const handlePrevious = () => {
     if (onPrevious) {

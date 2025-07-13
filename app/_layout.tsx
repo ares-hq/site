@@ -16,6 +16,7 @@ import Footer from '@/components/footer';
 import Cancel from '../assets/icons/x-circle.svg';
 import { RefreshControl } from 'react-native';
 import { DarkModeProvider, useDarkMode } from '@/context/DarkModeContext';
+import { supabase } from '@/api/dashboardInfo';
 
 export default function Layout() {
   return (
@@ -76,6 +77,52 @@ function InnerLayout() {
     router.replace(usePathname() as any);
     setRefreshing(false);
   };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkOnboardingStatus = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (cancelled || error || !user) return;
+
+      if (pathname.includes('/auth/onBoard')) return;
+
+      const { data, error: userTeamsError } = await supabase
+        .from('user_teams')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+
+      if (cancelled) return;
+
+      if (userTeamsError || !data) {
+        router.push({
+          pathname: '/auth/onBoard',
+          params: {
+            email: user.email || '',
+            userId: user.id,
+            socialProvider: 'oauth',
+          },
+        });
+      }
+    };
+
+    const waitAndCheck = async () => {
+      // Wait for a brief moment to ensure Supabase session is hydrated
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      checkOnboardingStatus();
+    };
+
+    waitAndCheck();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
