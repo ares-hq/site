@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
 import { useDarkMode } from '@/context/DarkModeContext';
+import React, { useState } from 'react';
+import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import LeftSide from './header/leftSide';
 import RightSide from './header/rightSide';
 
@@ -52,6 +52,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 12,
+    zIndex: 100000,  // Ensure header is above main content
+    position: 'relative',
   },
   container: {
     flexDirection: 'row',

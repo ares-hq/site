@@ -31,9 +31,9 @@ export default function LandingPage({ darkMode = false }: { darkMode?: boolean }
 
   useEffect(() => {
     const fetchStats = async () => {
-      const teams = await getAllTeams()
-      const avg = await getAverageOPRs()
-      const matches = await getTeamMatchCount()
+      const teams = await getAllTeams(2024)
+      const avg = await getAverageOPRs(2024)
+      const matches = await getTeamMatchCount(2024)
       const fetchedStats = {
         totalTeams: teams ? teams.length : 0,
         averageOPR: avg.overallOPR.toFixed(2) || 0,
@@ -176,7 +176,7 @@ export default function LandingPage({ darkMode = false }: { darkMode?: boolean }
 
     useEffect(() => {
       const init = async () => {
-        const result = await getAllTeams();
+        const result = await getAllTeams(2024);
         setTeams(result ?? []);
         setLoading(false);
       };
@@ -187,11 +187,9 @@ export default function LandingPage({ darkMode = false }: { darkMode?: boolean }
     return (
       <View style={[
         styles.loadingOverlay,
-        { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' },
       ]}>
         <View style={[
           styles.loadingContainer,
-          { backgroundColor: isDarkMode ? '#1f2937' : '#ffffff' }
         ]}>
           <ActivityIndicator size="large" color={isDarkMode ? '#9CA3AF' : '#6B7280'} />
           <Text style={[

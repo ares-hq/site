@@ -1,23 +1,23 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { View, Text, Modal, Animated, TouchableOpacity, ScrollView, TextInput, Alert, StyleSheet } from "react-native"
 import { router } from "expo-router"
+import { useEffect, useState } from "react"
+import { Alert, Animated, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 
 // Icons
-import Users from "@/assets/icons/users.svg"
 import Eyes from "@/assets/icons/eyes.svg"
-import Cancel from "@/assets/icons/x-circle.svg"
 import Target from "@/assets/icons/target.svg"
+import Users from "@/assets/icons/users.svg"
 import Warning from "@/assets/icons/warning.svg"
+import Cancel from "@/assets/icons/x-circle.svg"
 
 // API
-import { deleteAccount, getAllTeams, getName, supabase, updateUserProfile } from "@/api/dashboardInfo"
+import { deleteAccount, getAllTeams, supabase, updateUserProfile } from "@/api/dashboardInfo"
 import type { TeamInfo } from "@/api/types"
 
 // Types
-import { useUserProfile, type UserProfile } from "./useUserProfile"
 import { useIsLoggedIn } from "@/api/auth"
+import { useUserProfile } from "./useUserProfile"
 
 type Props = {
   visible: boolean
@@ -156,7 +156,7 @@ export default function ProfileSettingsModal({
 
   const fetchTeams = async () => {
     try {
-      const teams = await getAllTeams()
+      const teams = await getAllTeams(2025)
       if (teams) setAllTeams(teams)
     } catch (error) {
       console.error("Error fetching teams:", error)

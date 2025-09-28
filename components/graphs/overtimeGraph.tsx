@@ -1,14 +1,14 @@
-import { AllianceInfo, MatchInfo, TeamInfo } from '@/api/types';
+import { AllianceInfo, TeamInfo } from '@/api/types';
 import { useDarkMode } from '@/context/DarkModeContext';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { ComposedChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Area, ComposedChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface UserGraphSectionProps {
   screenWidth: number;
   teamInfo: TeamInfo;
   matches: AllianceInfo[] | null;
-  averages: AllianceInfo[];
+  averages?: AllianceInfo[]; // Now optional since averages are included in matches
   wins: number;
 }
 
@@ -54,15 +54,18 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
   const matchData = matches
     ?.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .map((match, index) => {
-      const matchHour = new Date(match.date).toISOString().slice(0, 13);
-      const averageMatch = averages.find((a) => a.date.slice(0, 13) === matchHour);
-      
       const activeKey = tabKeyMap[activeTab];
+      
+      // Get the corresponding average key
+      const averageKey = activeKey === 'totalPoints' ? 'averagePoints' :
+                        activeKey === 'tele' ? 'averageTele' :
+                        activeKey === 'penalty' ? 'averagePenalty' : 
+                        'averagePoints';
 
       return {
         name: `M${index + 1}`,
         current: match[activeKey] ?? 0,
-        average: averageMatch?.[activeKey] ?? 0,
+        average: match[averageKey as keyof AllianceInfo] ?? 0,
       };
     }) ?? [];
 

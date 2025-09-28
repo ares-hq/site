@@ -1,6 +1,234 @@
 import { calculateTeamOPR } from './calcOPR';
-import { fetchTeamName } from './dashboardInfo';
+import { fetchTeamName, SupportedYear } from './dashboardInfo';
 import { EventInfo, MatchInfo, TeamInfoSimple } from './types';
+
+// ------------------- YEAR ADAPTERS -------------------
+
+interface ScoreAdapter {
+  endgamePoints(match: any): [number, number]; // [red, blue]
+  penalties(match: any): [number, number]; // [red, blue]
+  teleopPoints(match: any): [number, number]; // [red, blue]
+  mapMatches?(rawMatches: any[]): any[];
+}
+
+class DefaultModernAdapter implements ScoreAdapter {
+  /**
+   * Seasons exposing teleop park/ascent and 'foulPointsCommitted' per alliance.
+   */
+  endgamePoints(match: any): [number, number] {
+    const red = (match.alliances?.[1]?.teleopParkPoints || 0) + (match.alliances?.[1]?.teleopAscentPoints || 0);
+    const blue = (match.alliances?.[0]?.teleopParkPoints || 0) + (match.alliances?.[0]?.teleopAscentPoints || 0);
+    return [red, blue];
+  }
+
+  penalties(match: any): [number, number] {
+    const red = match.alliances?.[1]?.foulPointsCommitted || match.scoreRedFoul || 0;
+    const blue = match.alliances?.[0]?.foulPointsCommitted || match.scoreBlueFoul || 0;
+    return [red, blue];
+  }
+
+  teleopPoints(match: any): [number, number] {
+    const redTotal = match.scoreRedFinal || 0;
+    const blueTotal = match.scoreBlueFinal || 0;
+    const redAuto = match.scoreRedAuto || 0;
+    const blueAuto = match.scoreBlueAuto || 0;
+    return [Math.max(0, redTotal - redAuto), Math.max(0, blueTotal - blueAuto)];
+  }
+}
+
+class Skystone2019Adapter implements ScoreAdapter {
+  /**
+   * 2019 exposes: parkingPoints, capstonePoints, penaltyPoints, totalPoints, autonomousPoints, etc.
+   */
+  endgamePoints(match: any): [number, number] {
+    const red = (match.alliances?.[1]?.parkingPoints || 0) + (match.alliances?.[1]?.capstonePoints || 0);
+    const blue = (match.alliances?.[0]?.parkingPoints || 0) + (match.alliances?.[0]?.capstonePoints || 0);
+    return [red, blue];
+  }
+
+  penalties(match: any): [number, number] {
+    const red = match.alliances?.[1]?.penaltyPoints || match.scoreRedFoul || 0;
+    const blue = match.alliances?.[0]?.penaltyPoints || match.scoreBlueFoul || 0;
+    return [red, blue];
+  }
+
+  teleopPoints(match: any): [number, number] {
+    const redTotal = match.scoreRedFinal || 0;
+    const blueTotal = match.scoreBlueFinal || 0;
+    const redAuto = match.scoreRedAuto || 0;
+    const blueAuto = match.scoreBlueAuto || 0;
+    return [Math.max(0, redTotal - redAuto), Math.max(0, blueTotal - blueAuto)];
+  }
+}
+
+class UltimateGoal2020Adapter implements ScoreAdapter {
+  /**
+   * 2020 exposes: endgamePoints, penaltyPoints, totalPoints, autonomousPoints, etc.
+   */
+  endgamePoints(match: any): [number, number] {
+    const red = match.alliances?.[1]?.endgamePoints || 0;
+    const blue = match.alliances?.[0]?.endgamePoints || 0;
+    return [red, blue];
+  }
+
+  penalties(match: any): [number, number] {
+    const red = match.alliances?.[1]?.penaltyPoints || match.scoreRedFoul || 0;
+    const blue = match.alliances?.[0]?.penaltyPoints || match.scoreBlueFoul || 0;
+    return [red, blue];
+  }
+
+  teleopPoints(match: any): [number, number] {
+    const redTotal = match.scoreRedFinal || 0;
+    const blueTotal = match.scoreBlueFinal || 0;
+    const redAuto = match.scoreRedAuto || 0;
+    const blueAuto = match.scoreBlueAuto || 0;
+    return [Math.max(0, redTotal - redAuto), Math.max(0, blueTotal - blueAuto)];
+  }
+}
+
+class FreightFrenzy2021Adapter implements ScoreAdapter {
+  /**
+   * 2021 exposes: endgamePoints, penaltyPoints, totalPoints, autonomousPoints, etc.
+   */
+  endgamePoints(match: any): [number, number] {
+    if (match.alliances) {
+      const red = match.alliances[1]?.endgamePoints || 0;
+      const blue = match.alliances[0]?.endgamePoints || 0;
+      return [red, blue];
+    }
+    return [0, 0];
+  }
+
+  penalties(match: any): [number, number] {
+    const red = match.alliances?.[1]?.penaltyPoints || match.scoreRedFoul || 0;
+    const blue = match.alliances?.[0]?.penaltyPoints || match.scoreBlueFoul || 0;
+    return [red, blue];
+  }
+
+  teleopPoints(match: any): [number, number] {
+    const redTotal = match.scoreRedFinal || 0;
+    const blueTotal = match.scoreBlueFinal || 0;
+    const redAuto = match.scoreRedAuto || 0;
+    const blueAuto = match.scoreBlueAuto || 0;
+    return [Math.max(0, redTotal - redAuto), Math.max(0, blueTotal - blueAuto)];
+  }
+}
+
+class Powerplay2022Adapter implements ScoreAdapter {
+  /**
+   * 2022 exposes: endgamePoints, penaltyPointsCommitted, totalPoints, autonomousPoints, etc.
+   */
+  endgamePoints(match: any): [number, number] {
+    const red = match.alliances?.[1]?.endgamePoints || 0;
+    const blue = match.alliances?.[0]?.endgamePoints || 0;
+    return [red, blue];
+  }
+
+  penalties(match: any): [number, number] {
+    const red = match.alliances?.[1]?.penaltyPointsCommitted || match.scoreRedFoul || 0;
+    const blue = match.alliances?.[0]?.penaltyPointsCommitted || match.scoreBlueFoul || 0;
+    return [red, blue];
+  }
+
+  teleopPoints(match: any): [number, number] {
+    const redTotal = match.scoreRedFinal || 0;
+    const blueTotal = match.scoreBlueFinal || 0;
+    const redAuto = match.scoreRedAuto || 0;
+    const blueAuto = match.scoreBlueAuto || 0;
+    return [Math.max(0, redTotal - redAuto), Math.max(0, blueTotal - blueAuto)];
+  }
+}
+
+class Centerstage2023Adapter implements ScoreAdapter {
+  /**
+   * 2023 exposes: endgamePoints, penaltyPointsCommitted, totalPoints, autonomousPoints, etc.
+   */
+  endgamePoints(match: any): [number, number] {
+    const red = match.alliances?.[1]?.endgamePoints || 0;
+    const blue = match.alliances?.[0]?.endgamePoints || 0;
+    return [red, blue];
+  }
+
+  penalties(match: any): [number, number] {
+    const red = match.alliances?.[1]?.penaltyPointsCommitted || match.scoreRedFoul || 0;
+    const blue = match.alliances?.[0]?.penaltyPointsCommitted || match.scoreBlueFoul || 0;
+    return [red, blue];
+  }
+
+  teleopPoints(match: any): [number, number] {
+    const redTotal = match.scoreRedFinal || 0;
+    const blueTotal = match.scoreBlueFinal || 0;
+    const redAuto = match.scoreRedAuto || 0;
+    const blueAuto = match.scoreBlueAuto || 0;
+    return [Math.max(0, redTotal - redAuto), Math.max(0, blueTotal - blueAuto)];
+  }
+}
+
+class IntoTheDeep2024Adapter implements ScoreAdapter {
+  /**
+   * Seasons exposing teleop park/ascent and 'foulPointsCommitted' per alliance.
+   */
+  endgamePoints(match: any): [number, number] {
+    const red = (match.alliances?.[1]?.teleopParkPoints || 0) + (match.alliances?.[1]?.teleopAscentPoints || 0);
+    const blue = (match.alliances?.[0]?.teleopParkPoints || 0) + (match.alliances?.[0]?.teleopAscentPoints || 0);
+    return [red, blue];
+  }
+
+  penalties(match: any): [number, number] {
+    const red = match.alliances?.[1]?.foulPointsCommitted || match.scoreRedFoul || 0;
+    const blue = match.alliances?.[0]?.foulPointsCommitted || match.scoreBlueFoul || 0;
+    return [red, blue];
+  }
+
+  teleopPoints(match: any): [number, number] {
+    const redTotal = match.scoreRedFinal || 0;
+    const blueTotal = match.scoreBlueFinal || 0;
+    const redAuto = match.scoreRedAuto || 0;
+    const blueAuto = match.scoreBlueAuto || 0;
+    return [Math.max(0, redTotal - redAuto), Math.max(0, blueTotal - blueAuto)];
+  }
+}
+
+class Decode2025Adapter implements ScoreAdapter {
+  /**
+   * 2025 exposes: endgamePoints, foulPointsCommitted, totalPoints, autonomousPoints, etc.
+   */
+  endgamePoints(match: any): [number, number] {
+    const red = match.alliances?.[1]?.endgamePoints || 0;
+    const blue = match.alliances?.[0]?.endgamePoints || 0;
+    return [red, blue];
+  }
+
+  penalties(match: any): [number, number] {
+    const red = match.alliances?.[1]?.foulPointsCommitted || match.scoreRedFoul || 0;
+    const blue = match.alliances?.[0]?.foulPointsCommitted || match.scoreBlueFoul || 0;
+    return [red, blue];
+  }
+
+  teleopPoints(match: any): [number, number] {
+    const redTotal = match.scoreRedFinal || 0;
+    const blueTotal = match.scoreBlueFinal || 0;
+    const redAuto = match.scoreRedAuto || 0;
+    const blueAuto = match.scoreBlueAuto || 0;
+    return [Math.max(0, redTotal - redAuto), Math.max(0, blueTotal - blueAuto)];
+  }
+}
+
+const SCORE_ADAPTERS: Record<SupportedYear, ScoreAdapter> = {
+  2019: new Skystone2019Adapter(),
+  2020: new UltimateGoal2020Adapter(),
+  2021: new FreightFrenzy2021Adapter(),
+  2022: new Powerplay2022Adapter(),
+  2023: new Centerstage2023Adapter(),
+  2024: new IntoTheDeep2024Adapter(),
+  2025: new Decode2025Adapter(),
+};
+
+const DEFAULT_SCORE_ADAPTER: ScoreAdapter = new DefaultModernAdapter();
+
+function getScoreAdapter(year: SupportedYear): ScoreAdapter {
+  return SCORE_ADAPTERS[year] || DEFAULT_SCORE_ADAPTER;
+}
 
 function formatOrdinal(n: number): string {
   const suffixes = ['th', 'st', 'nd', 'rd'];
@@ -8,11 +236,11 @@ function formatOrdinal(n: number): string {
   return n + (suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]);
 }
 
-async function batchFetchTeamNames(teamNumbers: number[]): Promise<Map<number, string>> {
+async function batchFetchTeamNames(teamNumbers: number[], year: SupportedYear): Promise<Map<number, string>> {
   const uniqueTeams = [...new Set(teamNumbers)];
   const teamNamePromises = uniqueTeams.map(async (teamNum) => {
     try {
-      const name = await fetchTeamName(teamNum);
+      const name = await fetchTeamName(teamNum, year);
       return [teamNum, name || 'none'] as const;
     } catch {
       return [teamNum, 'none'] as const;
@@ -36,10 +264,11 @@ async function fetchWithRetry(url: string, headers: Record<string, string>, retr
   }
 }
 
-export const getFirstAPI = async (events: string[], team: number): Promise<EventInfo[]> => {
+export const getFirstAPI = async (events: string[], team: number, season: SupportedYear): Promise<EventInfo[]> => {
   const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
-  const season = 2024;
   const headers = { apikey: supabaseAnonKey };
+
+  console.log(`Fetching FIRST API data for team ${team}, season ${season}, events:`, events);
 
   const results = await Promise.all(events.map(async (eventCode) => {
     try {
@@ -56,7 +285,7 @@ export const getFirstAPI = async (events: string[], team: number): Promise<Event
       const allMatches = matchRes.matches || [];
 
       if (!eventData || !rankData) {
-        throw new Error(`Missing data for event ${eventCode}`);
+        throw new Error(`Missing data for event ${eventCode} in ${season}`);
       }
 
       const teamMatches = allMatches.filter((match: any) => 
@@ -74,7 +303,7 @@ export const getFirstAPI = async (events: string[], team: number): Promise<Event
         });
       });
 
-      const teamNameMap = await batchFetchTeamNames([...allTeamNumbers]);
+      const teamNameMap = await batchFetchTeamNames([...allTeamNumbers], season);
 
       const createTeam = (teamData: any): TeamInfoSimple => ({
         teamName: teamNameMap.get(teamData?.teamNumber) || 'none',
@@ -88,14 +317,19 @@ export const getFirstAPI = async (events: string[], team: number): Promise<Event
         const redScore = match.scoreRedFinal || 0;
         const blueScore = match.scoreBlueFinal || 0;
 
+        // Use the year-specific adapter
+        const adapter = getScoreAdapter(season);
+        const [redTelePoints, blueTelePoints] = adapter.teleopPoints(match);
+        const [redPenaltyPoints, bluePenaltyPoints] = adapter.penalties(match);
+
         return {
           matchType: match.tournamentLevel === 'Playoff' ? 'PLAYOFF' : 'QUALIFICATION',
           matchNumber: match.tournamentLevel === 'PLAYOFF' ? 'P-' + match.series : 'Q-' + match.matchNumber,
           date: match.actualStartTime ?? match.postResultTime,
           redAlliance: {
             totalPoints: redScore,
-            tele: Math.max(0, redScore - (match.scoreRedAuto || 0)),
-            penalty: match.scoreRedFoul || 0,
+            tele: redTelePoints,
+            penalty: redPenaltyPoints,
             win: redScore > blueScore,
             team_1: createTeam(redTeams[0]),
             team_2: createTeam(redTeams[1]),
@@ -105,8 +339,8 @@ export const getFirstAPI = async (events: string[], team: number): Promise<Event
           },
           blueAlliance: {
             totalPoints: blueScore,
-            tele: Math.max(0, blueScore - (match.scoreBlueAuto || 0)),
-            penalty: match.scoreBlueFoul || 0,
+            tele: blueTelePoints,
+            penalty: bluePenaltyPoints,
             win: blueScore > redScore,
             team_1: createTeam(blueTeams[0]),
             team_2: createTeam(blueTeams[1]),
@@ -208,10 +442,170 @@ export const getFirstAPI = async (events: string[], team: number): Promise<Event
 
       return eventInfo;
     } catch (error) {
-      console.error(`Error processing event ${eventCode}:`, error);
+      console.error(`Error processing event ${eventCode} for season ${season}:`, error);
       throw error;
     }
   }));
 
   return results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+};
+
+// Multi-year utility functions
+
+/**
+ * Get event info for a team across multiple seasons
+ */
+export const getFirstAPIMultiYear = async (
+  events: string[], 
+  team: number, 
+  seasons: SupportedYear[]
+): Promise<Map<SupportedYear, EventInfo[]>> => {
+  const results = new Map<SupportedYear, EventInfo[]>();
+  
+  await Promise.all(
+    seasons.map(async (season) => {
+      try {
+        const eventData = await getFirstAPI(events, team, season);
+        results.set(season, eventData);
+      } catch (error) {
+        console.warn(`Failed to fetch FIRST API data for team ${team} in season ${season}:`, error);
+        results.set(season, []);
+      }
+    })
+  );
+  
+  return results;
+};
+
+/**
+ * Get all events for a team in a specific season
+ */
+export const getAllEventsForTeamInSeason = async (
+  team: number, 
+  season: SupportedYear
+): Promise<EventInfo[]> => {
+  const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+  const headers = { apikey: supabaseAnonKey };
+  
+  try {
+    // First, get all events the team participated in for this season
+    const teamEventsRes = await fetchWithRetry(
+      `https://api.ares-bot.com/functions/v1/first/${season}/teams/${team}/events`, 
+      headers
+    );
+    
+    const eventCodes = teamEventsRes.events?.map((event: any) => event.code) || [];
+    
+    if (eventCodes.length === 0) {
+      return [];
+    }
+    
+    return await getFirstAPI(eventCodes, team, season);
+  } catch (error) {
+    console.error(`Error fetching all events for team ${team} in season ${season}:`, error);
+    return [];
+  }
+};
+
+/**
+ * Compare team performance across seasons
+ */
+export interface SeasonPerformanceSummary {
+  season: SupportedYear;
+  eventsAttended: number;
+  totalMatches: number;
+  averageWinRate: number;
+  averageOPR: number;
+  averageScore: number;
+  totalAwards: number;
+  bestRanking: number;
+  events: EventInfo[];
+}
+
+export const getTeamSeasonSummaries = async (
+  team: number, 
+  seasons: SupportedYear[],
+  events?: string[]
+): Promise<SeasonPerformanceSummary[]> => {
+  const summaries: SeasonPerformanceSummary[] = [];
+  
+  await Promise.all(
+    seasons.map(async (season) => {
+      try {
+        let eventData: EventInfo[] = [];
+        
+        if (events && events.length > 0) {
+          // Use provided events
+          eventData = await getFirstAPI(events, team, season);
+        } else {
+          // Get all events for the team in this season
+          eventData = await getAllEventsForTeamInSeason(team, season);
+        }
+        
+        if (eventData.length === 0) {
+          return;
+        }
+        
+        // Calculate summary statistics
+        const totalMatches = eventData.reduce((sum, event) => sum + event.matches.length, 0);
+        const averageWinRate = eventData.reduce((sum, event) => sum + event.winRate, 0) / eventData.length;
+        const averageOPR = eventData.reduce((sum, event) => sum + event.OPR, 0) / eventData.length;
+        const averageScore = eventData.reduce((sum, event) => sum + event.averageScore, 0) / eventData.length;
+        
+        const totalAwards = eventData.reduce((sum, event) => {
+          return sum + (event.achievements === 'No Awards Received' ? 0 : event.achievements.split(' • ').length);
+        }, 0);
+        
+        const bestRanking = Math.min(...eventData.map(event => {
+          const rank = parseInt(event.place.replace(/\D/g, ''));
+          return isNaN(rank) ? Infinity : rank;
+        }));
+        
+        summaries.push({
+          season,
+          eventsAttended: eventData.length,
+          totalMatches,
+          averageWinRate: Number(averageWinRate.toFixed(1)),
+          averageOPR: Number(averageOPR.toFixed(2)),
+          averageScore: Number(averageScore.toFixed(2)),
+          totalAwards,
+          bestRanking: bestRanking === Infinity ? 0 : bestRanking,
+          events: eventData,
+        });
+      } catch (error) {
+        console.warn(`Failed to generate summary for team ${team} in season ${season}:`, error);
+      }
+    })
+  );
+  
+  return summaries.sort((a, b) => a.season - b.season);
+};
+
+/**
+ * Get team progression metrics across years
+ */
+export interface TeamProgression {
+  seasons: SupportedYear[];
+  winRateProgression: number[];
+  oprProgression: number[];
+  scoreProgression: number[];
+  eventsProgression: number[];
+  awardsProgression: number[];
+}
+
+export const getTeamProgression = async (
+  team: number, 
+  seasons: SupportedYear[],
+  events?: string[]
+): Promise<TeamProgression> => {
+  const summaries = await getTeamSeasonSummaries(team, seasons, events);
+  
+  return {
+    seasons: summaries.map(s => s.season),
+    winRateProgression: summaries.map(s => s.averageWinRate),
+    oprProgression: summaries.map(s => s.averageOPR),
+    scoreProgression: summaries.map(s => s.averageScore),
+    eventsProgression: summaries.map(s => s.eventsAttended),
+    awardsProgression: summaries.map(s => s.totalAwards),
+  };
 };

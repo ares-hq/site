@@ -91,7 +91,7 @@ const LeftSide = ({ toggleSidebar, pageTitle, showRoute }: LeftSideProps) => {
   };
 
   let routeLabel: string | null = null;
-  if (pageTitle === 'AGE' || pageTitle === 'DIVE') {
+  if (pageTitle === 'AGE' || pageTitle === 'DIVE' || pageTitle === 'ENERGIZE' || pageTitle === 'INSHOW' || pageTitle === 'RISE' || pageTitle === 'GAMECHANGERS' || pageTitle === 'FORWARD' || pageTitle === 'INSHOW') {
     routeLabel = 'Dashboards';
   } else if (pageTitle === 'Discord' || pageTitle === 'App') {
     routeLabel = 'Platforms';

@@ -12,12 +12,12 @@ import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  LayoutChangeEvent,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
+    ActivityIndicator,
+    LayoutChangeEvent,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View
 } from 'react-native';
 
 type StatCardProps = {
@@ -64,7 +64,7 @@ const StatCard = ({ title, value, change, positive, color }: StatCardProps) => {
   );
 };
 
-const age = () => {  
+const inShow = () => {  
   const params = useLocalSearchParams();
   const teamParam = Array.isArray(params.teamnumber) ? params.teamnumber[0] : params.teamnumber;
   const yearParamRaw =
@@ -72,10 +72,10 @@ const age = () => {
     (Array.isArray(params.season) ? params.season[0] : (params.season as string | undefined));
   
   // Parse and validate the year
-  const parsedYear = Number(yearParamRaw) || 2025; // Default to 2022 instead of current year
+  const parsedYear = Number(yearParamRaw) || 2023; // Default to 2022 instead of current year
   const seasonYear: SupportedYear = [2019, 2020, 2021, 2022, 2023, 2024, 2025].includes(parsedYear as SupportedYear) 
     ? (parsedYear as SupportedYear) 
-    : 2025; // Default to 2022 if invalid year
+    : 2023; // Default to 2022 if invalid year
     
   const { teamnumber } = useLocalSearchParams();
   const [containerWidth, setContainerWidth] = useState(0);
@@ -491,4 +491,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default age;
+export default inShow;

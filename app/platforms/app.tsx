@@ -1,10 +1,9 @@
+import AppShowcasePage from '@/components/platforms/app';
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 const App = () => (
-  <View style={styles.container}>
-    <Text style={styles.text}>App — Coming Soon</Text>
-  </View>
+  <AppShowcasePage />
 );
 
 const styles = StyleSheet.create({

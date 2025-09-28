@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
-import Search from './search';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import Bell from '../../assets/icons/bell-ringing.svg';
-import House from '../../assets/icons/house.svg';
-import Refresh from '../../assets/icons/arrow-clockwise.svg';
-import Sun from '../../assets/icons/sun.svg';
-import { usePathname, useRouter, useGlobalSearchParams } from 'expo-router';
 import { useDarkMode } from '@/context/DarkModeContext';
+import { useGlobalSearchParams, usePathname, useRouter } from 'expo-router';
+import Refresh from '../../assets/icons/arrow-clockwise.svg';
+import House from '../../assets/icons/house.svg';
+import Sun from '../../assets/icons/sun.svg';
+import SearchDropdown from './search';
 
 const HoverIcon = ({
   children,
@@ -42,6 +41,20 @@ const RightSide = () => {
   const params = useGlobalSearchParams();
   const teamnumber = params.teamnumber ? parseInt(params.teamnumber as string, 10) : NaN;
 
+  // Determine current year based on the dashboard route
+  const getCurrentYear = (): 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 => {
+    if (pathname.includes('/rise')) return 2019;
+    if (pathname.includes('/forward')) return 2020;
+    if (pathname.includes('/gameChangers')) return 2021;
+    if (pathname.includes('/energize')) return 2022;
+    if (pathname.includes('/inShow')) return 2023;
+    if (pathname.includes('/intothedeep')) return 2024;
+    if (pathname.includes('/age')) return 2025;
+    return 2025; // Default fallback
+  };
+
+  const currentYear = getCurrentYear();
+
   let fullPath = pathname;
   if (!isNaN(teamnumber)) {
     fullPath = `${pathname}?teamnumber=${teamnumber}`;
@@ -50,7 +63,22 @@ const RightSide = () => {
   return (
     <View style={styles.container}>
       <View style={styles.search}>
-        <Search />
+        <SearchDropdown
+          year={currentYear}
+          zIndex={999999}
+          onSelectTeam={(num) => {
+            // router.push(`/teams/${num}?year=${currentYear}`);
+            console.log('navigate to team', num, 'for year', currentYear);
+          }}
+          onSelectAux={(id) => {
+            // map to your routes
+            // if (id === 'analysts') router.push('/analysts');
+            // if (id === 'favorites') router.push('/favorites');
+            // if (id === 'watchlist') router.push('/watchlist');
+            // if (id === 'stats') router.push('/stats');
+            console.log('aux', id);
+          }}
+        />
       </View>
 
       <HoverIcon isDarkMode={isDarkMode} onPress={() => setIsDarkMode(!isDarkMode)}>
@@ -86,6 +114,7 @@ const styles = StyleSheet.create({
   },
   search: {
     paddingRight: 7,
+    zIndex: 999999,  // Ensure search container has highest z-index
   },
 });
 

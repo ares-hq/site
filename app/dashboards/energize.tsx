@@ -12,12 +12,12 @@ import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  LayoutChangeEvent,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
+    ActivityIndicator,
+    LayoutChangeEvent,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View
 } from 'react-native';
 
 type StatCardProps = {
@@ -64,7 +64,7 @@ const StatCard = ({ title, value, change, positive, color }: StatCardProps) => {
   );
 };
 
-const age = () => {  
+const energize = () => {  
   const params = useLocalSearchParams();
   const teamParam = Array.isArray(params.teamnumber) ? params.teamnumber[0] : params.teamnumber;
   const yearParamRaw =
@@ -72,10 +72,10 @@ const age = () => {
     (Array.isArray(params.season) ? params.season[0] : (params.season as string | undefined));
   
   // Parse and validate the year
-  const parsedYear = Number(yearParamRaw) || 2025; // Default to 2022 instead of current year
+  const parsedYear = Number(yearParamRaw) || 2022; // Default to 2022 instead of current year
   const seasonYear: SupportedYear = [2019, 2020, 2021, 2022, 2023, 2024, 2025].includes(parsedYear as SupportedYear) 
     ? (parsedYear as SupportedYear) 
-    : 2025; // Default to 2022 if invalid year
+    : 2022; // Default to 2022 if invalid year
     
   const { teamnumber } = useLocalSearchParams();
   const [containerWidth, setContainerWidth] = useState(0);
@@ -123,6 +123,8 @@ useEffect(() => {
         return;
       }
 
+      console.log('Fetching data for team number:', teamNumber, 'year:', seasonYear); // Debug log
+
       // Pass the seasonYear to all API calls
       const data = await getTeamInfo(teamNumber, seasonYear);
       console.log('Team info received:', data); // Debug log
@@ -134,8 +136,8 @@ useEffect(() => {
       }
       
       const avg = await getAverageOPRs(seasonYear);
-      const match = await getTeamMatches(teamNumber, seasonYear);
-      const enhancedMatches = await attachHourlyAverages(match ?? [], seasonYear);
+      const match = await getTeamMatches(teamNumber, 2022);
+      const enhancedMatches = await attachHourlyAverages(match ?? [], 2022);
       const matchType = await getAverageByMatchType(match ?? []);
       const highScore = match?.reduce((max, m) => Math.max(max, m.totalPoints), 0) ?? 0;
       const wins = await getWins(match ?? []);
@@ -491,4 +493,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default age;
+export default energize;

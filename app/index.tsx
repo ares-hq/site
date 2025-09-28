@@ -11,7 +11,7 @@ export default function Index() {
     <View style={styles.container}>
       <LandingPage darkMode={isDarkMode}/>
     </View>
-  );
+  ); 
 }
 
 const styles = StyleSheet.create({

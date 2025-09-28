@@ -1,21 +1,21 @@
-import { useEffect, useState } from "react"
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native"
-import AuthWrapper from "@/components/auth/authWrapper"
-import { useDarkMode } from "@/context/DarkModeContext"
-import Users from "@/assets/icons/users.svg"
+import { handleContinueToSupabase } from "@/api/auth/login"
+import { getAllTeams, supabase } from "@/api/dashboardInfo"
+import type { TeamInfo } from "@/api/types"
 import Eyes from "@/assets/icons/eyes.svg"
 import Target from "@/assets/icons/target.svg"
+import Users from "@/assets/icons/users.svg"
+import AuthWrapper from "@/components/auth/authWrapper"
+import { useDarkMode } from "@/context/DarkModeContext"
 import { router, useLocalSearchParams } from "expo-router"
-import type { TeamInfo } from "@/api/types"
-import { getAllTeams, supabase } from "@/api/dashboardInfo"
-import { handleContinueToSupabase } from "@/api/auth/login"
+import { useEffect, useState } from "react"
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native"
 
 interface UserOnboardProps {
   onContinue?: (data: OnboardingData) => void
@@ -57,7 +57,7 @@ export default function UserOnboard({ onContinue, onPrevious }: UserOnboardProps
 
   useEffect(() => {
     const fetchTeams = async () => {
-      const teams = await getAllTeams()
+      const teams = await getAllTeams(2025)
       if (teams) setAllTeams(teams)
     }
     fetchTeams()

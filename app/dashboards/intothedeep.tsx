@@ -1,25 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  LayoutChangeEvent,
-  ActivityIndicator,
-  FlatList,
-} from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import UserGraphSection from '@/components/graphs/overtimeGraph';
+import { attachHourlyAverages, getAverageByMatchType, getAveragePlace, getAwards } from '@/api/averageMatchScores';
+import { getAverageOPRs, getCurrentUserTeam, getTeamInfo, getTeamMatches, getWins, SupportedYear } from '@/api/dashboardInfo';
+import { getFirstAPI } from '@/api/firstAPI';
+import { AllianceInfo, EventInfo, MatchTypeAverages, TeamInfo } from '@/api/types';
 import EventPerformance from '@/components/graphs/eventPerformace';
 import EventScores from '@/components/graphs/eventScores';
-import InfoBlock from '@/components/teamInfo/infoBlock';
+import UserGraphSection from '@/components/graphs/overtimeGraph';
 import EventCard from '@/components/teamInfo/eventCard';
-import { getAverageOPRs, getCurrentUserTeam, getTeamInfo, getTeamMatches, getWins } from '@/api/dashboardInfo';
-import { getFirstAPI } from '@/api/firstAPI';
-import { AllianceInfo, EventInfo, MatchInfo, MatchTypeAverages, TeamInfo } from '@/api/types';
-import { attachHourlyAverages, getAverageByMatchType, getAveragePlace, getAwards } from '@/api/averageMatchScores';
-import { useLocalSearchParams } from 'expo-router';
+import InfoBlock from '@/components/teamInfo/infoBlock';
 import { useDarkMode } from '@/context/DarkModeContext';
+import { Feather } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  LayoutChangeEvent,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
+} from 'react-native';
 
 type StatCardProps = {
   title: string;
@@ -65,7 +64,19 @@ const StatCard = ({ title, value, change, positive, color }: StatCardProps) => {
   );
 };
 
-const IntoTheDeep = () => {  
+const intothedeep = () => {  
+  const params = useLocalSearchParams();
+  const teamParam = Array.isArray(params.teamnumber) ? params.teamnumber[0] : params.teamnumber;
+  const yearParamRaw =
+    (Array.isArray(params.year) ? params.year[0] : (params.year as string | undefined)) ??
+    (Array.isArray(params.season) ? params.season[0] : (params.season as string | undefined));
+  
+  // Parse and validate the year
+  const parsedYear = Number(yearParamRaw) || 2024; // Default to 2022 instead of current year
+  const seasonYear: SupportedYear = [2019, 2020, 2021, 2022, 2023, 2024, 2025].includes(parsedYear as SupportedYear) 
+    ? (parsedYear as SupportedYear) 
+    : 2024; // Default to 2022 if invalid year
+    
   const { teamnumber } = useLocalSearchParams();
   const [containerWidth, setContainerWidth] = useState(0);
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(null);
@@ -77,6 +88,7 @@ const IntoTheDeep = () => {
   const [highestScore, setHighScore] = useState(0);
   const [loading, setLoading] = useState(true);
   const [noTeamSelected, setNoTeamSelected] = useState(false);
+  const [noDataForYear, setNoDataForYear] = useState(false);
   const { isDarkMode } = useDarkMode();
   const [averageOPR, setAverageOPR] = useState<{
     autoOPR: number;
@@ -87,6 +99,9 @@ const IntoTheDeep = () => {
 
 useEffect(() => {
   const fetchInfo = async () => {
+    setLoading(true);
+    setNoDataForYear(false);
+    
     let teamNumber: number;
     try {
       if (!teamnumber) {
@@ -108,14 +123,19 @@ useEffect(() => {
         return;
       }
 
-      console.log('Fetching data for team number:', teamNumber); // Debug log
-
-      const data = await getTeamInfo(teamNumber);
+      // Pass the seasonYear to all API calls
+      const data = await getTeamInfo(teamNumber, seasonYear);
       console.log('Team info received:', data); // Debug log
       
-      const avg = await getAverageOPRs();
-      const match = await getTeamMatches(teamNumber);
-      const hourlyAverages = await attachHourlyAverages(match ?? []);
+      if (!data) {
+        setNoDataForYear(true);
+        setLoading(false);
+        return;
+      }
+      
+      const avg = await getAverageOPRs(seasonYear);
+      const match = await getTeamMatches(teamNumber, seasonYear);
+      const enhancedMatches = await attachHourlyAverages(match ?? [], seasonYear);
       const matchType = await getAverageByMatchType(match ?? []);
       const highScore = match?.reduce((max, m) => Math.max(max, m.totalPoints), 0) ?? 0;
       const wins = await getWins(match ?? []);
@@ -124,7 +144,7 @@ useEffect(() => {
       const events = data?.events ?? [];
       console.log('Events for team:', events); // Debug log
       
-      const eventData = events.length > 0 ? await getFirstAPI(events, teamNumber) : [];
+      const eventData = events.length > 0 ? await getFirstAPI(events, teamNumber, seasonYear) : [];
       console.log('Event data received:', eventData); // Debug log
 
       if (data) {
@@ -133,42 +153,58 @@ useEffect(() => {
         setTeamInfo(data);
       }
       if (avg) setAverageOPR(avg);
-      if (match) setMatches(match);
-      if (hourlyAverages) setAverages(hourlyAverages);
+      if (enhancedMatches) {
+        setMatches(enhancedMatches); // Now contains both match data AND average data
+        setAverages(enhancedMatches); // Keep for backward compatibility with components that expect averages
+      }
       if (highScore) setHighScore(highScore);
       if (wins) setWins(wins);
       if (eventData) setEventData(eventData);
       if (matchType) setMatchTypeAverages(matchType);
     } catch (err) {
-      console.error('Error fetching dashboard info', err);
+      console.error('Error fetching dashboard info for year', seasonYear, ':', err);
+      setNoDataForYear(true);
     } finally {
       setLoading(false);
     }
   };
   fetchInfo();
-}, [teamnumber]);
+}, [teamnumber, seasonYear]); // Add seasonYear to dependencies
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const { width } = event.nativeEvent.layout;
     setContainerWidth(width);
   };
 
+  const getSeasonDisplayText = () => {
+    // Map years to game names if you have them, otherwise just show the year
+    const gameNames: Record<SupportedYear, string> = {
+      2019: '2019 - Skystone',
+      2020: '2020 - Ultimate Goal',
+      2021: '2021 - Freight Frenzy',
+      2022: '2022 - Power Play',
+      2023: '2023 - Centerstage',
+      2024: '2024 - Into the Deep',
+      2025: '2025 - Decode',
+    };
+    
+    return gameNames[seasonYear] || `${seasonYear} Season`;
+  };
+
   if (loading) {
     return (
       <View style={[
         styles.loadingOverlay,
-        { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' },
       ]} onLayout={handleLayout}>
         <View style={[
           styles.loadingContainer,
-          { backgroundColor: isDarkMode ? '#1f2937' : '#ffffff' }
         ]}>
           <ActivityIndicator size="large" color={isDarkMode ? '#9CA3AF' : '#6B7280'} />
           <Text style={[
             styles.loadingText,
             { color: isDarkMode ? '#9CA3AF' : '#6B7280' }
           ]}>
-            Loading...
+            Loading {getSeasonDisplayText()}...
           </Text>
         </View>
       </View>
@@ -191,6 +227,36 @@ useEffect(() => {
     );
   }
 
+  if (noDataForYear) {
+    return (
+      <View style={[
+        styles.container,
+        { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' }
+      ]}>
+        <View style={styles.headerRow}>
+          <Text style={[
+            styles.header,
+            { color: isDarkMode ? '#F9FAFB' : '#111827' }
+          ]}>
+            Overview - {getSeasonDisplayText()}
+          </Text>
+        </View>
+        <Text style={[
+          styles.errorText,
+          { color: isDarkMode ? '#F87171' : '#DC2626' }
+        ]}>
+          No data available for team {teamParam || 'selected'} in {getSeasonDisplayText()}
+        </Text>
+        <Text style={[
+          styles.subErrorText,
+          { color: isDarkMode ? '#9CA3AF' : '#6B7280' }
+        ]}>
+          Try selecting a different year or check if the team participated in {seasonYear}.
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={[
       styles.container,
@@ -203,6 +269,17 @@ useEffect(() => {
         ]}>
           Overview
         </Text>
+        <View style={styles.seasonBadge}>
+          <Text style={[
+            styles.seasonText,
+            { 
+              color: isDarkMode ? '#E5E7EB' : '#374151',
+              backgroundColor: isDarkMode ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)',
+            }
+          ]}>
+            {getSeasonDisplayText()}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.cardRow}>
@@ -318,11 +395,24 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 9,
   },
   header: {
     fontSize: 15,
     fontWeight: '600',
+  },
+  seasonBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  seasonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   date: {
     fontSize: 13,
@@ -393,6 +483,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 50,
   },
+  subErrorText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 10,
+    paddingHorizontal: 20,
+  },
 });
 
-export default IntoTheDeep;
+export default intothedeep;

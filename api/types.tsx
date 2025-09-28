@@ -37,6 +37,10 @@ export interface AllianceInfo {
   team_1?: TeamInfoSimple;
   team_2?: TeamInfoSimple;
   matchNumber?: string;
+  // Average comparison data
+  averagePoints?: number;
+  averageTele?: number;
+  averagePenalty?: number;
 }
 
 export interface MatchInfo {

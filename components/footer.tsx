@@ -17,13 +17,13 @@ const Footer = () => {
       borderColor: isDarkMode ? '#4B5563' : '#e5e7eb',
     }]}>
       <View style={styles.linkRow}>
-        <Pressable onPress={() => handleLinkPress('https://ares-bot.com/privacy')}>
+        <Pressable onPress={() => router.push('/privacy')}>
           <Text style={[styles.link, { color: isDarkMode ? '#60A5FA' : '#3b82f6' }]}>Privacy Policy</Text>
         </Pressable>
 
         <Text style={[styles.separator, { color: isDarkMode ? '#9CA3AF' : '#9ca3af' }]}>|</Text>
 
-        <Pressable onPress={() => handleLinkPress('https://ares-bot.com/tac')}>
+        <Pressable onPress={() => router.push('/tac')}>
           <Text style={[styles.link, { color: isDarkMode ? '#60A5FA' : '#3b82f6' }]}>Terms & Conditions</Text>
         </Pressable>
 

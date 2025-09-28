@@ -1,4 +1,4 @@
-import { getAllTeams } from '@/api/dashboardInfo';
+import { getAllTeams, SupportedYear } from '@/api/dashboardInfo';
 import DataTable from '@/components/graphs/teamTables';
 import type { TeamInfo } from '@/api/types';
 import React, { useState, useCallback } from 'react';
@@ -22,14 +22,30 @@ const TAuto = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [selectedYear, setSelectedYear] = useState<SupportedYear>(2025);
   const { isDarkMode } = useDarkMode();
 
-  const fetchTeams = useCallback(async (isRefresh = false) => {
+  const availableYears: SupportedYear[] = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
+  
+  const getSeasonName = (year: SupportedYear): string => {
+    const seasonNames: Record<SupportedYear, string> = {
+      2019: 'Skystone',
+      2020: 'Ultimate Goal',
+      2021: 'Freight Frenzy',
+      2022: 'Power Play',
+      2023: 'Centerstage',
+      2024: 'Into the Deep',
+      2025: 'Decode',
+    };
+    return seasonNames[year] || `${year} Season`;
+  };
+
+  const fetchTeams = useCallback(async (isRefresh = false, year = selectedYear) => {
     try {
       if (!isRefresh) setLoading(true);
       setError(null);
       
-      const result = await getAllTeams();
+      const result = await getAllTeams(year);
       const teamsData = result ?? [];
       
       setTeams(teamsData);
@@ -37,21 +53,90 @@ const TAuto = () => {
       
     } catch (err) {
       setError('Failed to load team data. Please try again.');
-      console.error('Error fetching teams:', err);
+      console.error(`Error fetching teams for ${year}:`, err);
     } finally {
       setLoading(false);
       if (isRefresh) setRefreshing(false);
     }
-  }, []);
+  }, [selectedYear]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchTeams(true);
   }, [fetchTeams]);
 
+  const handleYearChange = useCallback((year: SupportedYear) => {
+    setSelectedYear(year);
+    setTeams([]); // Clear current teams while loading
+    fetchTeams(false, year);
+  }, []);
+
   React.useEffect(() => {
     fetchTeams();
   }, [fetchTeams]);
+
+  const YearSelector = () => (
+    <View style={[
+      styles.yearSelectorContainer,
+      { 
+        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F8FAFC',
+        borderColor: isDarkMode ? '#374151' : '#E2E8F0',
+      }
+    ]}>
+      <Text style={[
+        styles.yearSelectorLabel,
+        { color: isDarkMode ? '#9CA3AF' : '#6B7280' }
+      ]}>
+        Season
+      </Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.yearScrollContent}
+        bounces={false}
+      >
+        {availableYears.map((year) => (
+          <TouchableOpacity
+            key={year}
+            style={[
+              styles.yearButton,
+              {
+                backgroundColor: selectedYear === year
+                  ? (isDarkMode ? '#374151' : '#e5e7eb')
+                  : 'transparent',
+                borderColor: selectedYear === year
+                  ? (isDarkMode ? '#374151' : '#e5e7eb')
+                  : (isDarkMode ? '#374151' : '#e5e7eb'),
+              }
+            ]}
+            onPress={() => handleYearChange(year)}
+            activeOpacity={0.7}
+          >
+            <Text style={[
+              styles.yearButtonText,
+              {
+                color: selectedYear === year
+                  ? (isDarkMode ? 'rgba(255, 255, 255, 0.8)' : '#374151')
+                  : (isDarkMode ? '#D1D5DB' : '#374151'),
+              }
+            ]}>
+              {year}
+            </Text>
+            <Text style={[
+              styles.yearButtonSubtext,
+              {
+                color: selectedYear === year
+                  ? (isDarkMode ? 'rgba(255, 255, 255, 0.8)' : '#374151')
+                  : (isDarkMode ? '#9CA3AF' : '#374151'),
+              }
+            ]}>
+              {getSeasonName(year)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
 
   const ErrorState = () => (
     <View style={styles.errorContainer}>
@@ -115,7 +200,7 @@ const TAuto = () => {
                 <View style={styles.statusIndicator}>
                   <View style={[
                     styles.statusDot, 
-                    { backgroundColor: isDarkMode ? '#9CA3AF' : '#6B7280' }
+                    { backgroundColor: '#FF0000' }
                   ]} />
                   <Text style={[styles.statusText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
                     Live
@@ -160,18 +245,16 @@ const TAuto = () => {
     return (
       <View style={[
         styles.loadingOverlay,
-        { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' },
       ]}>
         <View style={[
           styles.loadingContainer,
-          { backgroundColor: isDarkMode ? '#1f2937' : '#ffffff' }
         ]}>
           <ActivityIndicator size="large" color={isDarkMode ? '#9CA3AF' : '#6B7280'} />
           <Text style={[
             styles.loadingText,
             { color: isDarkMode ? '#9CA3AF' : '#6B7280' }
           ]}>
-            Loading...
+            Loading {getSeasonName(selectedYear)} Rankings...
           </Text>
         </View>
       </View>
@@ -185,6 +268,7 @@ const TAuto = () => {
         { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' }
       ]}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        <YearSelector />
         <ErrorState />
       </View>
     );
@@ -216,14 +300,15 @@ const TAuto = () => {
             Autonomous Rankings
           </Text>
           <Text style={[styles.subtitle, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
-            Autonomous period performance standings
+            {getSeasonName(selectedYear)} autonomous period performance
           </Text>
         </View>
 
+        <YearSelector />
         <StatsHeader />
 
         <View style={styles.tableContainer}>
-          <DataTable teams={teams} data='auto' />
+          <DataTable teams={teams} data='auto' selectedYear={selectedYear}/>
         </View>
       </ScrollView>
     </View>
@@ -267,6 +352,46 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '500',
     opacity: 0.8,
+  },
+  yearSelectorContainer: {
+    marginHorizontal: 24,
+    marginBottom: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+  },
+  yearSelectorLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 12,
+    paddingHorizontal: 8,
+  },
+  yearScrollContent: {
+    paddingHorizontal: 4,
+    gap: 8,
+  },
+  yearButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 80,
+  },
+  yearButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  yearButtonSubtext: {
+    fontSize: 10,
+    lineHeight: 12,
+    marginTop: 2,
+    textAlign: 'center',
   },
   statsContainer: {
     marginHorizontal: 24,

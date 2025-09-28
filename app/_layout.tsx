@@ -17,6 +17,7 @@ import Cancel from '../assets/icons/x-circle.svg';
 import { RefreshControl } from 'react-native';
 import { DarkModeProvider, useDarkMode } from '@/context/DarkModeContext';
 import { supabase } from '@/api/dashboardInfo';
+import gameChangers from './dashboards/gameChangers';
 
 export default function Layout() {
   return (
@@ -40,6 +41,11 @@ function InnerLayout() {
   const routeLabels: Record<string, string> = {
     age: 'AGE',
     intothedeep: 'DIVE',
+    energize: 'ENERGIZE',
+    forward: 'FORWARD',
+    gameChangers: 'GAMECHANGERS',
+    inShow: 'INSHOW',
+    rise: 'RISE',
     discord: 'Discord',
     app: 'App',
     ScoutSheet: 'ScoutSheet',

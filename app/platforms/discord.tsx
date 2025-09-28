@@ -1,10 +1,9 @@
+import DiscordBotApp from '@/components/platforms/discord';
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 const Discord = () => (
-  <View style={styles.container}>
-    <Text style={styles.text}>Discord — Coming Soon</Text>
-  </View>
+  <DiscordBotApp />
 );
 
 const styles = StyleSheet.create({

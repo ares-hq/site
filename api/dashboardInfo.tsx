@@ -6,19 +6,37 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZS
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// ------------------- TYPES -------------------
+export type SupportedYear = 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025;
+
 // ------------------- CACHE -------------------
-const allTeamsCache: { data: TeamInfo[] | null } = { data: null };
-const teamInfoCache = new Map<number, TeamInfo>();
-const teamMatchesCache = new Map<number, AllianceInfo[]>();
-const teamNameCache = new Map<number, string>();
-let averageOPRsCache: any | null = null;
+const allTeamsCache = new Map<SupportedYear, TeamInfo[] | null>();
+const teamInfoCache = new Map<string, TeamInfo>();
+const teamMatchesCache = new Map<string, AllianceInfo[]>();
+const teamNameCache = new Map<string, string>();
+const averageOPRsCache = new Map<SupportedYear, any>();
+
+// ------------------- HELPER FUNCTIONS -------------------
+function getSeasonTable(year: SupportedYear): string {
+  return `season_${year}`;
+}
+
+function getMatchesTable(year: SupportedYear): string {
+  return `matches_${year}`;
+}
+
+function getCacheKey(year: SupportedYear, teamNumber: number): string {
+  return `${year}-${teamNumber}`;
+}
 
 // ------------------- TEAMS -------------------
-export async function getAllTeams(): Promise<TeamInfo[] | null> {
-  if (allTeamsCache.data) return allTeamsCache.data;
+export async function getAllTeams(year: SupportedYear): Promise<TeamInfo[] | null> {
+  if (allTeamsCache.has(year) && allTeamsCache.get(year)) {
+    return allTeamsCache.get(year)!;
+  }
 
   const { data } = await supabase
-    .from('season_2024')
+    .from(getSeasonTable(year))
     .select('teamName, teamNumber, overallOPR, overallRank, location, autoOPR, teleOPR, endgameOPR, autoRank, teleRank, endgameRank')
     .order('overallRank', { ascending: true })
     .throwOnError();
@@ -42,15 +60,19 @@ export async function getAllTeams(): Promise<TeamInfo[] | null> {
     achievements: 'None This Season',
   }));
 
-  allTeamsCache.data = result;
+  allTeamsCache.set(year, result);
   return result;
 }
 
-export async function getTeamInfo(teamNumber: number): Promise<TeamInfo | null> {
-  if (teamInfoCache.has(teamNumber)) return teamInfoCache.get(teamNumber)!;
+export async function getTeamInfo(teamNumber: number, year: SupportedYear): Promise<TeamInfo | null> {
+  const cacheKey = getCacheKey(year, teamNumber);
+  
+  if (teamInfoCache.has(cacheKey)) {
+    return teamInfoCache.get(cacheKey)!;
+  }
 
   const { data } = await supabase
-    .from('season_2024')
+    .from(getSeasonTable(year))
     .select(`
       teamName, location, founded, website, sponsors, achievements,
       overallRank, teleRank, autoRank, endgameRank,
@@ -83,16 +105,20 @@ export async function getTeamInfo(teamNumber: number): Promise<TeamInfo | null> 
     averagePlace: data.averagePlace || 0,
   };
 
-  teamInfoCache.set(teamNumber, team);
+  teamInfoCache.set(cacheKey, team);
   return team;
 }
 
 // ------------------- MATCHES -------------------
-export async function getTeamMatches(teamNumber: number): Promise<AllianceInfo[] | null> {
-  if (teamMatchesCache.has(teamNumber)) return teamMatchesCache.get(teamNumber)!;
+export async function getTeamMatches(teamNumber: number, year: SupportedYear): Promise<AllianceInfo[] | null> {
+  const cacheKey = getCacheKey(year, teamNumber);
+  
+  if (teamMatchesCache.has(cacheKey)) {
+    return teamMatchesCache.get(cacheKey)!;
+  }
 
   const { data } = await supabase
-    .from('matches_2024')
+    .from(getMatchesTable(year))
     .select('date, totalPoints, matchType, win, tele, penalty, alliance, team_1, team_2, matchcode')
     .or(`team_1.eq.${teamNumber},team_2.eq.${teamNumber}`)
     .order('date')
@@ -117,13 +143,13 @@ export async function getTeamMatches(teamNumber: number): Promise<AllianceInfo[]
     } : undefined,
   }));
 
-  teamMatchesCache.set(teamNumber, mapped);
+  teamMatchesCache.set(cacheKey, mapped);
   return mapped;
 }
 
-export async function getTeamMatchCount(): Promise<number> {
+export async function getTeamMatchCount(year: SupportedYear): Promise<number> {
   const { count, error } = await supabase
-    .from('matches_2024')
+    .from(getMatchesTable(year))
     .select('*', { count: 'exact', head: true })
 
   if (error) {
@@ -135,11 +161,13 @@ export async function getTeamMatchCount(): Promise<number> {
 }
 
 // ------------------- STATS -------------------
-export async function getAverageOPRs() {
-  if (averageOPRsCache) return averageOPRsCache;
+export async function getAverageOPRs(year: SupportedYear) {
+  if (averageOPRsCache.has(year)) {
+    return averageOPRsCache.get(year);
+  }
 
   const { data } = await supabase
-    .from('season_2024')
+    .from(getSeasonTable(year))
     .select('autoOPR, teleOPR, endgameOPR, overallOPR')
     .limit(500)
     .throwOnError();
@@ -155,14 +183,15 @@ export async function getAverageOPRs() {
     count++;
   }
 
-  averageOPRsCache = {
+  const result = {
     autoOPR: total.auto / count,
     teleOPR: total.tele / count,
     endgameOPR: total.endgame / count,
     overallOPR: total.overall / count,
   };
 
-  return averageOPRsCache;
+  averageOPRsCache.set(year, result);
+  return result;
 }
 
 // ------------------- UTIL -------------------
@@ -191,21 +220,102 @@ export function getMatchesByType(matches: AllianceInfo[]): {
   };
 }
 
-export async function fetchTeamName(teamNumber: number): Promise<string | undefined> {
-  if (teamNameCache.has(teamNumber)) return teamNameCache.get(teamNumber);
+export async function fetchTeamName(teamNumber: number, year: SupportedYear): Promise<string | undefined> {
+  const cacheKey = getCacheKey(year, teamNumber);
+  
+  if (teamNameCache.has(cacheKey)) {
+    return teamNameCache.get(cacheKey);
+  }
 
   const { data } = await supabase
-    .from('season_2024')
+    .from(getSeasonTable(year))
     .select('teamName')
     .eq('teamNumber', teamNumber)
     .single()
     .throwOnError();
 
   const name = data?.teamName;
-  if (name) teamNameCache.set(teamNumber, name);
+  if (name) teamNameCache.set(cacheKey, name);
   return name;
 }
 
+export async function getImage(teamNumber: number, year: SupportedYear): Promise<string | null> {
+  if (teamNumber < 0) return null; 
+  
+  const { data: teamData, error: teamError } = await supabase
+    .from(getSeasonTable(year))
+    .select('teamLogo')
+    .eq('teamNumber', teamNumber)
+    .single()
+    .throwOnError();
+
+  if (teamError) {
+    console.error('Error fetching team logo:', teamError);
+    return null;
+  }
+
+  return teamData?.teamLogo || null;
+}
+
+// ------------------- CACHE MANAGEMENT -------------------
+export function clearCache(): void {
+  allTeamsCache.clear();
+  teamInfoCache.clear();
+  teamMatchesCache.clear();
+  teamNameCache.clear();
+  averageOPRsCache.clear();
+}
+
+export function clearCacheForYear(year: SupportedYear): void {
+  allTeamsCache.delete(year);
+  averageOPRsCache.delete(year);
+  
+  // Clear team-specific caches for the year
+  for (const key of teamInfoCache.keys()) {
+    if (key.startsWith(`${year}-`)) {
+      teamInfoCache.delete(key);
+    }
+  }
+  
+  for (const key of teamMatchesCache.keys()) {
+    if (key.startsWith(`${year}-`)) {
+      teamMatchesCache.delete(key);
+    }
+  }
+  
+  for (const key of teamNameCache.keys()) {
+    if (key.startsWith(`${year}-`)) {
+      teamNameCache.delete(key);
+    }
+  }
+}
+
+// ------------------- MULTI-YEAR UTILITIES -------------------
+export async function getTeamHistoricalData(teamNumber: number, years: SupportedYear[] = [2019, 2020, 2021, 2022, 2023, 2024, 2025]): Promise<Map<SupportedYear, TeamInfo | null>> {
+  const historicalData = new Map<SupportedYear, TeamInfo | null>();
+  
+  await Promise.all(
+    years.map(async (year) => {
+      try {
+        const teamInfo = await getTeamInfo(teamNumber, year);
+        historicalData.set(year, teamInfo);
+      } catch (error) {
+        console.warn(`No data found for team ${teamNumber} in year ${year}`);
+        historicalData.set(year, null);
+      }
+    })
+  );
+  
+  return historicalData;
+}
+
+export async function getAvailableYears(): Promise<SupportedYear[]> {
+  // You could make this dynamic by querying your database for available tables
+  // For now, returning all supported years
+  return [2019, 2020, 2021, 2022, 2023, 2024, 2025];
+}
+
+// ------------------- USER MANAGEMENT (Year-agnostic) -------------------
 export const getCurrentUserTeam = async (): Promise<number | null> => {
   const { data, error } = await supabase.auth.getUser();
   if (error) {
@@ -254,23 +364,6 @@ export const getCurrentUserRole = async (): Promise<string | null> => {
   return roleData?.accountType || null;
 };
 
-export const getImage = async (teamNumber: number): Promise<string | null> => {
-  if (teamNumber < 0) return null; 
-  const { data: teamData, error: teamError } = await supabase
-    .from('season_2024')
-    .select('teamLogo')
-    .eq('teamNumber', teamNumber)
-    .single()
-    .throwOnError();
-
-  if (teamError) {
-    console.error('Error fetching user team:', teamError);
-    return null;
-  }
-
-  return teamData?.teamLogo || null;
-};
-
 export async function updateUserProfile({
   displayName,
   teamNumber,
@@ -286,6 +379,7 @@ export async function updateUserProfile({
     throw new Error(userError?.message || "No user found");
   }
   const userId = userData.user.id;
+  
   // 1. Update the displayName in auth.user_metadata
   const { error: authError } = await supabase.auth.updateUser({
     data: { displayName },
@@ -295,7 +389,6 @@ export async function updateUserProfile({
     console.error("Failed to update auth user metadata:", authError.message)
     throw new Error(authError.message)
   }
-
 
   // 2. Update team/accountType in user_teams table
   const { error: teamError } = await supabase

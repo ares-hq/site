@@ -1,68 +1,103 @@
-import { supabase } from "./dashboardInfo";
+import { supabase, SupportedYear } from "./dashboardInfo";
 import { AllianceInfo, EventInfo, MatchInfo, MatchTypeAverages } from "./types";
 
+/** Shape of rows we read from matches tables */
+type MatchRow = {
+  date: string;
+  totalPoints: number | null;
+  matchType: 'QUALIFICATION' | 'PLAYOFF' | string;
+  win: boolean | null;
+  tele: number | null;
+  penalty: number | null;
+  alliance: 'red' | 'blue';
+  matchcode: string; // treat as string; many datasets use codes like "Q16"
+  team_1?: { teamName?: string | null; teamNumber?: number | null } | null;
+  team_2?: { teamName?: string | null; teamNumber?: number | null } | null;
+};
+
+/** Helper: table name for a given year */
+function getMatchesTable(year: SupportedYear): string {
+  return `matches_${year}`;
+}
+
 /**
- * Fetches complete match data with both red and blue alliance info
- * @param matchNumber Optional specific match number to fetch
- * @returns Array of complete MatchInfo records
+ * Fetch complete match data with both red and blue alliance info.
+ * - Makes ordering valid for Supabase
+ * - Treats matchcode as string keys
+ * - Defensively defaults nullish numeric fields to 0
  */
-export async function getCompleteMatches(matchNumber?: string): Promise<MatchInfo[] | null> {
+export async function getCompleteMatches(
+  year: SupportedYear,
+  matchNumber?: string
+): Promise<MatchInfo[] | null> {
+  // Be explicit about nested columns in case relations are configured
   let query = supabase
-    .from('matches_2024')
-    .select('date, totalPoints, matchType, win, tele, penalty, alliance, team_1, team_2, matchcode')
-    .order('matchcode, alliance');
+    .from(getMatchesTable(year))
+    .select(
+      `
+      date,
+      totalPoints,
+      matchType,
+      win,
+      tele,
+      penalty,
+      alliance,
+      matchcode,
+      team_1 ( teamName, teamNumber ),
+      team_2 ( teamName, teamNumber )
+    `
+    )
+    .order('matchcode', { ascending: true })
+    .order('alliance', { ascending: true });
 
   if (matchNumber) {
     query = query.eq('matchcode', matchNumber);
   }
 
-  const { data, error } = await query;
+  const { data, error } = await query as unknown as { data: MatchRow[] | null; error: { message: string } | null };
 
   if (error) {
-    console.error('Error fetching complete matches:', error.message);
+    console.error(`Error fetching complete matches for ${year}:`, error.message);
     return null;
   }
-
   if (!data || data.length === 0) return [];
 
-  // Pre-allocate Map with expected size for better performance
-  const matchMap = new Map<number, Partial<MatchInfo>>();
-  
-  // Single pass through data with optimized object creation
+  const matchMap = new Map<string, Partial<MatchInfo>>();
+
   for (let i = 0; i < data.length; i++) {
-    const row = data[i];
-    const matchNum = row.matchcode;
-    
-    let match = matchMap.get(matchNum);
+    const row: any = data[i];
+    const matchKey = row.matchcode;
+
+    let match = matchMap.get(matchKey);
     if (!match) {
       match = {
-        matchNumber: matchNum,
-        matchType: row.matchType,
+        matchNumber: row.matchcode,
+        matchType: row.matchType === "QUALIFICATION" || row.matchType === "PLAYOFF"
+          ? row.matchType
+          : undefined,
         date: row.date,
       };
-      matchMap.set(matchNum, match);
+      matchMap.set(matchKey, match);
     }
 
-    // Pre-create alliance data object
-    const allianceData = {
+    const allianceData: AllianceInfo = {
       date: row.date,
       alliance: row.alliance,
-      matchType: row.matchType,
+      matchType: row.matchType === 'QUALIFICATION' || row.matchType === 'PLAYOFF' ? row.matchType : 'QUALIFICATION',
       totalPoints: row.totalPoints ?? 0,
-      tele: row.tele || 0,
-      penalty: row.penalty || 0,
-      win: row.win || false,
+      tele: row.tele ?? 0,
+      penalty: row.penalty ?? 0,
+      win: row.win ?? false,
       team_1: {
-        teamName: row.team_1?.teamName || `Team ${row.team_1?.teamNumber || 0}`,
-        teamNumber: row.team_1?.teamNumber || 0,
+        teamName: row.team_1?.teamName ?? `Team ${row.team_1?.teamNumber ?? 0}`,
+        teamNumber: row.team_1?.teamNumber ?? 0,
       },
       team_2: {
-        teamName: row.team_2?.teamName || `Team ${row.team_2?.teamNumber || 0}`,
-        teamNumber: row.team_2?.teamNumber || 0,
+        teamName: row.team_2?.teamName ?? `Team ${row.team_2?.teamNumber ?? 0}`,
+        teamNumber: row.team_2?.teamNumber ?? 0,
       },
     };
 
-    // Direct assignment instead of conditional
     if (row.alliance === 'red') {
       match.redAlliance = allianceData;
     } else {
@@ -70,120 +105,158 @@ export async function getCompleteMatches(matchNumber?: string): Promise<MatchInf
     }
   }
 
-  // Optimized filtering and mapping
   const results: MatchInfo[] = [];
   for (const match of matchMap.values()) {
     if (match.redAlliance && match.blueAlliance) {
       results.push(match as MatchInfo);
     }
   }
-
   return results;
 }
 
-// Optimized hour window calculation with caching
+// ----- Hour-window cache (keyed by the original date string) -----
+
 const hourWindowCache = new Map<string, { start: string; end: string }>();
 
-function getHourWindow(date: string): { start: string; end: string } {
-  // Use cache to avoid recalculating same hour windows
-  const cached = hourWindowCache.get(date);
+function getHourWindow(dateISO: string): { start: string; end: string } {
+  const cached = hourWindowCache.get(dateISO);
   if (cached) return cached;
 
-  const d = new Date(date);
+  const d = new Date(dateISO);
   d.setMinutes(0, 0, 0);
   const start = d.toISOString();
   d.setHours(d.getHours() + 1);
   const end = d.toISOString();
-  
-  const result = { start, end };
-  hourWindowCache.set(date, result);
-  return result;
+
+  const window = { start, end };
+  hourWindowCache.set(dateISO, window);
+  return window;
 }
 
-export async function attachHourlyAverages(matches: AllianceInfo[]): Promise<AllianceInfo[]> {
+/**
+ * Attach hourly averages (by local hour bucket) for a given year.
+ * Uses a single range fetch, then filters client-side by window.
+ */
+export async function attachHourlyAverages(
+  matches: AllianceInfo[],
+  year: SupportedYear
+): Promise<AllianceInfo[]> {
   if (!matches.length) return matches;
 
-  // Get unique hour windows from matches
   const uniqueWindows = Array.from(
-    new Map(matches.map(match => {
-      const hw = getHourWindow(match.date);
-      return [`${hw.start}-${hw.end}`, hw];
-    })).values()
+    new Map(
+      matches.map((m) => {
+        const hw = getHourWindow(m.date);
+        return [`${hw.start}-${hw.end}`, hw];
+      })
+    ).values()
   );
 
-  // Single database query with optimized date range
-  const allStarts = uniqueWindows.map(hw => hw.start);
-  const allEnds = uniqueWindows.map(hw => hw.end);
-  const minDate = new Date(Math.min(...allStarts.map(d => new Date(d).getTime())));
-  const maxDate = new Date(Math.max(...allEnds.map(d => new Date(d).getTime())));
-    
-  const { data, error } = await supabase
-    .from('matches_2024')
+  const allStarts = uniqueWindows.map((hw) => hw.start);
+  const allEnds = uniqueWindows.map((hw) => hw.end);
+  const minDate = new Date(Math.min(...allStarts.map((d) => new Date(d).getTime())));
+  const maxDate = new Date(Math.max(...allEnds.map((d) => new Date(d).getTime())));
+
+  const { data, error } = (await supabase
+    .from(getMatchesTable(year))
     .select('date, totalPoints, matchType, tele, penalty')
     .gte('date', minDate.toISOString())
     .lt('date', maxDate.toISOString())
-    .order('date');
-  
-  if (error) {
-    console.error('Error fetching data:', error.message);
-    return matches.map(match => ({
-      ...match,
-      totalPoints: 0,
-      tele: 0,
-      penalty: 0,
-    }));
-  }
+    .order('date', { ascending: true })) as unknown as { data: MatchRow[] | null; error: { message: string } | null };
 
+  if (error) {
+    console.error(`Error fetching data for ${year}:`, error.message);
+    return matches;
+  }
   if (!data) return matches;
-  
-  // Pre-compute hourly averages
+
+  // Calculate averages for ALL matches in each hour window (not just team-specific)
   const hourlyAverages = new Map<string, { points: number; tele: number; penalty: number }>();
-  
+
   for (const window of uniqueWindows) {
-    // Filter data for this specific window and take first 50 matches
     const windowData = data
-      .filter(row => row.date >= window.start && row.date < window.end)
-      .slice(0, 50);
-    
+      .filter((row: any) => row.date >= window.start && row.date < window.end);
+
     let totalPoints = 0;
     let totalTele = 0;
     let totalPenalty = 0;
+    let count = 0;
 
     for (const row of windowData) {
-      totalPoints += row.totalPoints || 0;
-      totalTele += row.tele || 0;
-      totalPenalty += row.penalty || 0;
+      if ((row.totalPoints ?? 0) > 0) { // Only count matches with actual scores
+        totalPoints += row.totalPoints ?? 0;
+        totalTele += row.tele ?? 0;
+        totalPenalty += row.penalty ?? 0;
+        count++;
+      }
     }
 
-    const count = windowData.length;
     const windowKey = `${window.start}-${window.end}`;
-    
     if (count > 0) {
       hourlyAverages.set(windowKey, {
         points: Number((totalPoints / count).toFixed(2)),
         tele: Number((totalTele / count).toFixed(2)),
         penalty: Number((totalPenalty / count).toFixed(2)),
       });
-    } else {
-      hourlyAverages.set(windowKey, { points: 0, tele: 0, penalty: 0 });
     }
+    // Don't store empty hours
   }
-  
-  // Apply averages to matches
-  return matches.map(match => {
-    const window = getHourWindow(match.date);
-    const windowKey = `${window.start}-${window.end}`;
-    const avg = hourlyAverages.get(windowKey);
 
+  // Calculate overall averages as final fallback
+  const allValidMatches = data.filter(row => (row.totalPoints ?? 0) > 0);
+  const overallFallback = {
+    points: allValidMatches.length > 0 ? Number((allValidMatches.reduce((sum, row) => sum + (row.totalPoints ?? 0), 0) / allValidMatches.length).toFixed(2)) : 50,
+    tele: allValidMatches.length > 0 ? Number((allValidMatches.reduce((sum, row) => sum + (row.tele ?? 0), 0) / allValidMatches.length).toFixed(2)) : 25,
+    penalty: allValidMatches.length > 0 ? Number((allValidMatches.reduce((sum, row) => sum + (row.penalty ?? 0), 0) / allValidMatches.length).toFixed(2)) : 5,
+  };
+
+  // Return matches with average data attached (but keep original match data intact)
+  return matches.map((match) => {
+    const window = getHourWindow(match.date);
+    let avg = hourlyAverages.get(`${window.start}-${window.end}`);
+    
+    // If no exact hour match, find the closest hour with actual data
+    if (!avg) {
+      const matchTime = new Date(match.date).getTime();
+      let closestAvg = null;
+      let closestDistance = Infinity;
+      
+      // Find the closest hour with actual data
+      for (const [windowKey, avgData] of hourlyAverages) {
+        const windowStart = windowKey.split('-')[0];
+        try {
+          const windowTime = new Date(windowStart).getTime();
+          const distance = Math.abs(windowTime - matchTime);
+          
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestAvg = avgData;
+          }
+        } catch (e) {
+          continue; // Skip invalid dates
+        }
+      }
+      
+      // Use closest if found, otherwise use overall fallback
+      avg = closestAvg || overallFallback;
+    }
+    
+    // Return the original match data PLUS the average data for comparison
     return {
       ...match,
-      totalPoints: avg?.points ?? match.totalPoints,
-      tele: avg?.tele ?? match.tele,
-      penalty: avg?.penalty ?? match.penalty,
+      // Keep original values
+      totalPoints: match.totalPoints ?? 0,
+      tele: match.tele ?? 0,
+      penalty: match.penalty ?? 0,
+      // Add average data for graph comparison
+      averagePoints: avg.points,
+      averageTele: avg.tele,
+      averagePenalty: avg.penalty,
     };
   });
 }
 
+/** Averages by match type with null-safe totals */
 export function getAverageByMatchType(matches: AllianceInfo[]): MatchTypeAverages {
   if (!matches.length) return { qual: 0, finals: 0 };
 
@@ -192,16 +265,15 @@ export function getAverageByMatchType(matches: AllianceInfo[]): MatchTypeAverage
   let qualCount = 0;
   let finalsCount = 0;
 
-  // Single pass through matches
   for (let i = 0; i < matches.length; i++) {
-    const match = matches[i];
-    const points = match.totalPoints;
-    
-    if (match.matchType === 'QUALIFICATION') {
-      qualTotal += points;
+    const m = matches[i];
+    const pts = m.totalPoints ?? 0;
+
+    if (m.matchType === 'QUALIFICATION') {
+      qualTotal += pts;
       qualCount++;
-    } else if (match.matchType === 'PLAYOFF') {
-      finalsTotal += points;
+    } else if (m.matchType === 'PLAYOFF') {
+      finalsTotal += pts;
       finalsCount++;
     }
   }
@@ -214,15 +286,13 @@ export function getAverageByMatchType(matches: AllianceInfo[]): MatchTypeAverage
 
 export const getAveragePlace = (events: EventInfo[]): number => {
   if (!events.length) return 0;
-  
+
   let total = 0;
   let count = 0;
-  
-  // Single pass with optimized number extraction
+
   for (let i = 0; i < events.length; i++) {
     const place = events[i].place;
     if (place) {
-      // More efficient number extraction
       const numStr = place.replace(/\D/g, '');
       if (numStr) {
         total += parseInt(numStr, 10);
@@ -230,30 +300,126 @@ export const getAveragePlace = (events: EventInfo[]): number => {
       }
     }
   }
-  
+
   return count > 0 ? Number((total / count).toFixed(2)) : 0;
 };
 
 export const getAwards = (events: EventInfo[]): string => {
   if (!events.length) return '';
-  
+
   const uniqueAwards = new Set<string>();
 
-  // Single pass with early filtering
   for (let i = 0; i < events.length; i++) {
     const achievements = events[i].achievements;
     if (achievements && achievements !== 'No Awards Received') {
       const trimmed = achievements.trim();
-      if (trimmed) {
-        uniqueAwards.add(trimmed);
-      }
+      if (trimmed) uniqueAwards.add(trimmed);
     }
   }
 
   return uniqueAwards.size > 0 ? Array.from(uniqueAwards).join(' • ') : '';
 };
 
-// Utility function to clear cache if needed (call periodically to prevent memory leaks)
+// ----- Cache utilities -----
+
 export const clearHourWindowCache = (): void => {
   hourWindowCache.clear();
 };
+
+export const clearHourWindowCacheForDateRange = (startDateISO: string, endDateISO: string): void => {
+  for (const key of hourWindowCache.keys()) {
+    if (key >= startDateISO && key <= endDateISO) {
+      hourWindowCache.delete(key);
+    }
+  }
+};
+
+// ----- Multi-year helpers -----
+
+export async function getCompleteMatchesMultiYear(
+  years: SupportedYear[],
+  matchNumber?: string
+): Promise<Map<SupportedYear, MatchInfo[]>> {
+  const results = new Map<SupportedYear, MatchInfo[]>();
+
+  await Promise.all(
+    years.map(async (year) => {
+      try {
+        const matches = await getCompleteMatches(year, matchNumber);
+        results.set(year, matches || []);
+      } catch (err) {
+        console.warn(`Failed to fetch matches for ${year}:`, err);
+        results.set(year, []);
+      }
+    })
+  );
+
+  return results;
+}
+
+export async function getMatchTypeAveragesMultiYear(
+  teamNumber: number,
+  years: SupportedYear[]
+): Promise<Map<SupportedYear, MatchTypeAverages>> {
+  const results = new Map<SupportedYear, MatchTypeAverages>();
+  const { getTeamMatches } = await import('./dashboardInfo');
+
+  await Promise.all(
+    years.map(async (year) => {
+      try {
+        const matches = await getTeamMatches(teamNumber, year);
+        const averages = getAverageByMatchType(matches || []);
+        results.set(year, averages);
+      } catch (err) {
+        console.warn(`Failed to fetch match averages for team ${teamNumber} in ${year}:`, err);
+        results.set(year, { qual: 0, finals: 0 });
+      }
+    })
+  );
+
+  return results;
+}
+
+export interface YearlyPerformance {
+  year: SupportedYear;
+  averageScore: number;
+  totalMatches: number;
+  winRate: number; // percentage 0–100
+  qualAverage: number;
+  playoffAverage: number;
+}
+
+export async function getTeamPerformanceAcrossYears(
+  teamNumber: number,
+  years: SupportedYear[]
+): Promise<YearlyPerformance[]> {
+  const { getTeamMatches, getWins } = await import('./dashboardInfo');
+
+  const performances: YearlyPerformance[] = [];
+
+  await Promise.all(
+    years.map(async (year) => {
+      try {
+        const matches = await getTeamMatches(teamNumber, year);
+        if (!matches || matches.length === 0) return;
+
+        const wins = await getWins(matches);
+        const typeAvgs = getAverageByMatchType(matches);
+        const totalScore = matches.reduce((sum, m) => sum + (m.totalPoints ?? 0), 0);
+
+        performances.push({
+          year,
+          averageScore: Number((totalScore / matches.length).toFixed(2)),
+          totalMatches: matches.length,
+          winRate: Number(((wins / matches.length) * 100).toFixed(1)),
+          qualAverage: typeAvgs.qual,
+          playoffAverage: typeAvgs.finals,
+        });
+      } catch (err) {
+        console.warn(`Failed to get performance for team ${teamNumber} in ${year}:`, err);
+      }
+    })
+  );
+
+  return performances.sort((a, b) => a.year - b.year);
+}

@@ -47,8 +47,8 @@ export const useUserProfile = (isLoggedIn: boolean, refreshInterval: number = 50
       let profile: UserProfile
       if (teamNumber) {
         const [teamName, image] = await Promise.all([
-          fetchTeamName(teamNumber),
-          getImage(teamNumber)
+          fetchTeamName(teamNumber, 2024),
+          getImage(teamNumber, 2024)
         ])
         profile = {
           team_number: "#" + teamNumber.toString(),
@@ -58,7 +58,7 @@ export const useUserProfile = (isLoggedIn: boolean, refreshInterval: number = 50
           display_name: name ?? undefined,
         }
       } else {
-        const image = await getImage(-1)
+        const image = await getImage(-1, 2024)
         profile = {
           display_name: name,
           team_role: teamAccountRole ?? "Player",

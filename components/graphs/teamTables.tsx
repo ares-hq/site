@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { filterTeams } from '@/api/algorithms/filter';
 import { useDarkMode } from '@/context/DarkModeContext';
+import { SupportedYear } from '@/api/dashboardInfo';
 
 const ITEMS_PER_PAGE = 20;
 const router = useRouter();
@@ -23,9 +24,10 @@ const router = useRouter();
 type DataTableProps = {
   teams: TeamInfo[];
   data: 'overall' | 'auto' | 'teleop' | 'endgame';
+  selectedYear?: SupportedYear; 
 };
 
-export default function DataTable({ teams, data }: DataTableProps) {
+export default function DataTable({ teams, data, selectedYear = 2025 }: DataTableProps) {
   const [query, setQuery] = useState('');
   const [sortAsc, setSortAsc] = useState(true);
   const [page, setPage] = useState(0);
@@ -42,6 +44,19 @@ export default function DataTable({ teams, data }: DataTableProps) {
     { label: 'Rank', value: 'rank' },
     { label: 'Location', value: 'location' },
   ];
+
+  const getRoutePath = (year: SupportedYear) => {
+    const routePaths: Record<SupportedYear, string> = {
+      2019: 'rise',
+      2020: 'forward', 
+      2021: 'gameChangers',
+      2022: 'energize',
+      2023: 'inShow',
+      2024: 'intothedeep',
+      2025: 'age',
+    };
+    return routePaths[year] || 'freightfrenzy'; // fallback to 2021
+  };
 
   const [visibleColumns, setVisibleColumns] = useState<string[]>([
     'teamNumber',
@@ -160,7 +175,11 @@ export default function DataTable({ teams, data }: DataTableProps) {
 
   const renderItem = ({ item }: { item: TeamInfo }) => (
     <Pressable
-      onPress={() => router.push(`/dashboards/intothedeep?teamnumber=${item.teamNumber}`)}
+      onPress={() => {
+        if (item.teamNumber) {
+          router.push(`/dashboards/${getRoutePath(selectedYear)}?teamnumber=${item.teamNumber}` as any);
+        }
+      }}
       style={({ hovered }) => [
         styles.row,
         hovered && styles.rowHovered,
