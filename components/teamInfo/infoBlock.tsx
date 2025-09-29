@@ -1,14 +1,14 @@
-import React from 'react';
-import { View, Text, StyleSheet, Pressable, Linking, Alert } from 'react-native';
+import { TeamInfo } from '@/api/types';
+import CalendarIcon from '@/assets/icons/calendar.svg';
+import UsersIcon from '@/assets/icons/handshake.svg';
+import ShieldIcon from '@/assets/icons/identification-card.svg';
+import GlobeIcon from '@/assets/icons/link-simple-horizontal.svg';
 import LocationIcon from '@/assets/icons/map-pin.svg';
 import TrophyIcon from '@/assets/icons/ranking.svg';
 import TopScore from '@/assets/icons/trophy.svg';
-import UsersIcon from '@/assets/icons/handshake.svg';
-import CalendarIcon from '@/assets/icons/calendar.svg';
-import ShieldIcon from '@/assets/icons/identification-card.svg';
-import GlobeIcon from '@/assets/icons/link-simple-horizontal.svg';
-import { TeamInfo } from '@/api/types';
 import { useDarkMode } from '@/context/DarkModeContext';
+import React from 'react';
+import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 interface InfoSectionProps {
   screenWidth: number;
@@ -28,7 +28,7 @@ const InfoBox = ({ screenWidth, teamInfo, highScore }: InfoSectionProps) => {
         Team Profile
       </Text>
       <View style={styles.contentContainer}>
-        <View style={{ gap: 30 }}>
+        <View style={styles.infoColumn}>
           <InfoRow icon={<ShieldIcon fill={isDarkMode ? '#fff' : '#000'}/>} label="Team Name" value={teamInfo.teamName || 'N/A'} />
           <InfoRow icon={<LocationIcon fill={isDarkMode ? '#fff' : '#000'}/>} label="Location" value={teamInfo.location || 'N/A'} />
           <InfoRow icon={<CalendarIcon fill={isDarkMode ? '#fff' : '#000'}/>} label="Founded" value={teamInfo.founded || 'N/A'} />
@@ -62,7 +62,7 @@ const InfoBox = ({ screenWidth, teamInfo, highScore }: InfoSectionProps) => {
       <View style={[
         styles.container, 
         { 
-          width: 550,
+          width: 700,
           backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9FAFB',
           borderColor: isDarkMode ? '#374151' : 'transparent',
           // borderWidth: 1 ,
@@ -139,8 +139,14 @@ const InfoRow = ({
         ) : (
           <Text style={[
             styles.value,
-            { color: isDarkMode ? '#F9FAFB' : '#111827' }
-          ]}>
+            { 
+              color: isDarkMode ? '#F9FAFB' : '#111827',
+              flexShrink: 1,
+            }
+          ]}
+          numberOfLines={value.length > 80 ? undefined : 3}
+          ellipsizeMode={value.length > 80 ? undefined : "tail"}
+          >
             {value}
           </Text>
         )}
@@ -154,7 +160,6 @@ const styles = StyleSheet.create({
     padding: 10,
     paddingTop: 8,
     flex: 1,
-    maxHeight: 300,
     borderRadius: 16,
   },
   title: {
@@ -167,6 +172,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 30,
     flexWrap: 'wrap',
+    maxWidth: '100%',
   },
   row: {
     flexDirection: 'row',
@@ -178,14 +184,20 @@ const styles = StyleSheet.create({
     marginRight: 12,
     marginTop: 1,
   },
+  infoColumn: {
+    minWidth: 1,
+    maxWidth: 150,
+    gap: 20,
+  },
   offsetColumn: {
     flex: 1,
-    minWidth: 150,
     gap: 10,
   },
   textContainer: {
     flex: 1,
     minWidth: 0,
+    maxWidth: '100%',
+    overflow: 'hidden',
   },
   label: {
     fontSize: 12,
@@ -198,6 +210,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 18,
     flexWrap: 'wrap',
+    maxWidth: '100%',
   },
   link: {
     textDecorationLine: 'underline',

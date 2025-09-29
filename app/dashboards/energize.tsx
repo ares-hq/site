@@ -179,7 +179,6 @@ useEffect(() => {
   };
 
   const getSeasonDisplayText = () => {
-    // Map years to game names if you have them, otherwise just show the year
     const gameNames: Record<SupportedYear, string> = {
       2019: '2019 - Skystone',
       2020: '2020 - Ultimate Goal',
@@ -353,7 +352,7 @@ useEffect(() => {
           {matchTypeAverages && <EventPerformance matchType={matchTypeAverages}/>}
           {teamInfo && <EventScores teamInfo={teamInfo} />}
           {teamInfo && (
-            <View style={{ minWidth: 550, flexShrink: 0 }}>
+            <View style={{ minWidth: 550, flexShrink: 0, alignSelf: 'stretch' }}>
               <InfoBlock screenWidth={containerWidth} teamInfo={teamInfo} highScore={highestScore}/>
             </View>
           )}
@@ -460,6 +459,7 @@ const styles = StyleSheet.create({
     gap: 16,
     marginBottom: 20,
     flexDirection: 'row',
+    alignItems: 'stretch', // This makes all child components have equal height
   },
   eventContainer: {
     marginBottom: -20,

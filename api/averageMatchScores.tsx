@@ -210,36 +210,96 @@ export async function attachHourlyAverages(
     penalty: allValidMatches.length > 0 ? Number((allValidMatches.reduce((sum, row) => sum + (row.penalty ?? 0), 0) / allValidMatches.length).toFixed(2)) : 5,
   };
 
-  // Return matches with average data attached (but keep original match data intact)
-  return matches.map((match) => {
-    const window = getHourWindow(match.date);
-    let avg = hourlyAverages.get(`${window.start}-${window.end}`);
+  // Helper function to get smooth average using expanding time window
+  const getSmoothAverage = (matchDate: string, previousAverage?: { points: number; tele: number; penalty: number }) => {
+    const matchTime = new Date(matchDate).getTime();
     
-    // If no exact hour match, find the closest hour with actual data
-    if (!avg) {
-      const matchTime = new Date(match.date).getTime();
-      let closestAvg = null;
-      let closestDistance = Infinity;
+    // Try expanding time windows until we find enough data
+    const windowSizes = [1, 2, 4, 8, 12, 24]; // hours
+    
+    for (const windowSize of windowSizes) {
+      const startTime = new Date(matchTime - (windowSize * 60 * 60 * 1000));
+      const endTime = new Date(matchTime + (windowSize * 60 * 60 * 1000));
       
-      // Find the closest hour with actual data
-      for (const [windowKey, avgData] of hourlyAverages) {
-        const windowStart = windowKey.split('-')[0];
-        try {
-          const windowTime = new Date(windowStart).getTime();
-          const distance = Math.abs(windowTime - matchTime);
-          
-          if (distance < closestDistance) {
-            closestDistance = distance;
-            closestAvg = avgData;
-          }
-        } catch (e) {
-          continue; // Skip invalid dates
+      const relevantMatches = data.filter(row => {
+        const rowTime = new Date(row.date).getTime();
+        return rowTime >= startTime.getTime() && 
+               rowTime <= endTime.getTime() && 
+               (row.totalPoints ?? 0) > 0;
+      });
+      
+      // Reduce minimum matches required for smaller windows to make it more responsive
+      const minMatches = windowSize <= 2 ? 3 : windowSize <= 8 ? 5 : 8;
+      
+      if (relevantMatches.length >= minMatches) {
+        let totalPoints = 0;
+        let totalTele = 0;
+        let totalPenalty = 0;
+        
+        for (const row of relevantMatches) {
+          totalPoints += row.totalPoints ?? 0;
+          totalTele += row.tele ?? 0;
+          totalPenalty += row.penalty ?? 0;
         }
+        
+        const newAverage = {
+          points: Number((totalPoints / relevantMatches.length).toFixed(2)),
+          tele: Number((totalTele / relevantMatches.length).toFixed(2)),
+          penalty: Number((totalPenalty / relevantMatches.length).toFixed(2)),
+        };
+        
+        // If we have a previous average, smooth the transition (blend 70% new, 30% previous)
+        if (previousAverage) {
+          return {
+            points: Number((0.7 * newAverage.points + 0.3 * previousAverage.points).toFixed(2)),
+            tele: Number((0.7 * newAverage.tele + 0.3 * previousAverage.tele).toFixed(2)),
+            penalty: Number((0.7 * newAverage.penalty + 0.3 * previousAverage.penalty).toFixed(2)),
+          };
+        }
+        
+        return newAverage;
       }
-      
-      // Use closest if found, otherwise use overall fallback
-      avg = closestAvg || overallFallback;
     }
+    
+    // If no good window found, use overall average (possibly blended with previous)
+    if (previousAverage) {
+      return {
+        points: Number((0.8 * overallFallback.points + 0.2 * previousAverage.points).toFixed(2)),
+        tele: Number((0.8 * overallFallback.tele + 0.2 * previousAverage.tele).toFixed(2)),
+        penalty: Number((0.8 * overallFallback.penalty + 0.2 * previousAverage.penalty).toFixed(2)),
+      };
+    }
+    
+    return overallFallback;
+  };
+
+  // Create a smoothed average cache for better interpolation
+  const sortedMatches = matches.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const smoothedAverages = new Map<string, { points: number; tele: number; penalty: number }>();
+  
+  // Pre-calculate smooth averages for each unique time point with progressive smoothing
+  const uniqueTimes = [...new Set(sortedMatches.map(m => m.date))];
+  let previousAverage: { points: number; tele: number; penalty: number } | undefined;
+  
+  for (const time of uniqueTimes) {
+    const window = getHourWindow(time);
+    const windowKey = `${window.start}-${window.end}`;
+    
+    // First try exact hour match
+    let avg = hourlyAverages.get(windowKey);
+    
+    // If no exact match, use smooth averaging with previous context
+    if (!avg) {
+      avg = getSmoothAverage(time, previousAverage);
+    }
+    
+    smoothedAverages.set(time, avg);
+    previousAverage = avg; // Store for next iteration
+  }
+
+  // Return matches with smoothed average data
+  return matches.map((match) => {
+    const avg = smoothedAverages.get(match.date) || overallFallback;
     
     // Return the original match data PLUS the average data for comparison
     return {
@@ -248,7 +308,7 @@ export async function attachHourlyAverages(
       totalPoints: match.totalPoints ?? 0,
       tele: match.tele ?? 0,
       penalty: match.penalty ?? 0,
-      // Add average data for graph comparison
+      // Add smoothed average data for graph comparison
       averagePoints: avg.points,
       averageTele: avg.tele,
       averagePenalty: avg.penalty,
@@ -272,7 +332,7 @@ export function getAverageByMatchType(matches: AllianceInfo[]): MatchTypeAverage
     if (m.matchType === 'QUALIFICATION') {
       qualTotal += pts;
       qualCount++;
-    } else if (m.matchType === 'PLAYOFF') {
+    } else if (m.matchType === 'PLAYOFF' || (typeof m.matchType === 'string' && (m.matchType as string).includes('FINAL'))) {
       finalsTotal += pts;
       finalsCount++;
     }

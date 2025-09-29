@@ -60,9 +60,39 @@ const SearchDropdown: React.FC<Props> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [hoveredIndex, setHoveredIndex] = useState(-1);
   const [results, setResults] = useState<Item[]>([]);
+  const [allTeamsData, setAllTeamsData] = useState<any[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const inputRef = useRef<TextInput>(null);
   const listRef = useRef<FlatList<Item>>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Preload teams data when component mounts or year changes
+  useEffect(() => {
+    const preloadTeamsData = async () => {
+      // Don't reload if we already have data for this year
+      if (allTeamsData && !isLoading) {
+        return;
+      }
+      
+      setIsLoading(true);
+      try {
+        const teams = await getAllTeams(year);
+        if (teams && teams.length > 0) {
+          setAllTeamsData(teams);
+        } else {
+          console.warn('No teams data returned for year:', year);
+          setAllTeamsData([]);
+        }
+      } catch (error) {
+        console.error('Failed to preload teams data:', error);
+        setAllTeamsData([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    preloadTeamsData();
+  }, [year]); // Remove allTeamsData dependency to prevent infinite loops
 
   const theme = {
     bg: isDarkMode ? 'rgba(255,255,255,0.06)' : '#f3f4f6',
@@ -88,18 +118,25 @@ const SearchDropdown: React.FC<Props> = ({
     }
     
     try {
-      // Use the year prop for search data instead of hardcoded 2024
-      const allTeams = await getAllTeams(year);
-      if (!allTeams) {
-        console.warn('No teams data available');
+      // Use preloaded data if available, otherwise fetch
+      let teamsData = allTeamsData;
+      if (!teamsData || teamsData.length === 0) {
+        teamsData = await getAllTeams(year);
+        if (teamsData) {
+          setAllTeamsData(teamsData); // Cache it for next time
+        }
+      }
+      
+      if (!teamsData || teamsData.length === 0) {
+        console.warn('No teams data available for year:', year);
         setResults([]);
-        setOpen(false);
+        setOpen(trimmed.length > 0); // Show "No results" if user was searching
         setSelectedIndex(0);
         return;
       }
 
       // Use the same filterTeams function as teamTables for consistent search behavior
-      const filteredTeams = filterTeams(allTeams, trimmed);
+      const filteredTeams = filterTeams(teamsData, trimmed);
       
       // Convert filtered teams to search result items
       const teamItems: Item[] = filteredTeams.slice(0, maxResults).map((team) => ({
@@ -114,14 +151,14 @@ const SearchDropdown: React.FC<Props> = ({
       setOpen(trimmed.length > 0); // Show dropdown if user is searching, even with no results
       setSelectedIndex(0);
     } catch (error) {
-      console.warn('Team search error:', error);
+      console.error('Team search error:', error);
       setResults([]);
       setOpen(trimmed.length > 0); // Show dropdown with 'No results' if user was searching
       setSelectedIndex(0);
     }
   };
 
-  // Debounce - include year dependency since we use it for data fetching
+  // Debounce search - no need to depend on year since we preload data
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => runSearch(query), DEBOUNCE_MS);
@@ -129,7 +166,7 @@ const SearchDropdown: React.FC<Props> = ({
       if (timerRef.current) clearTimeout(timerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, year]); // Re-added year dependency
+  }, [query, allTeamsData]); // Depend on allTeamsData instead of year
 
   const onFocus = () => {
     if (results.length > 0) {
@@ -269,13 +306,14 @@ const SearchDropdown: React.FC<Props> = ({
           onChangeText={setQuery}
           onFocus={onFocus}
           onBlur={onBlur}
-          placeholder={placeholder}
+          placeholder={isLoading ? "Loading teams..." : placeholder}
           placeholderTextColor={theme.sub}
           style={[styles.input, { color: theme.text }]}
           autoCorrect={false}
           autoCapitalize="none"
           returnKeyType="search"
           onSubmitEditing={() => results[0] && handleSelect(results[0])}
+          editable={!isLoading} // Disable input while loading
         />
         <View style={[styles.keyHint, { backgroundColor: theme.hintBg, borderColor: theme.hintBorder }]}>
           <Text style={[styles.keyText, { color: theme.chipText }]}>/</Text>
@@ -297,7 +335,13 @@ const SearchDropdown: React.FC<Props> = ({
           // allow clicks through outside the box
           pointerEvents="box-none"
         >
-          {results.length > 0 ? (
+          {isLoading ? (
+            <View style={styles.noResults}>
+              <Text style={[styles.noResultsText, { color: theme.sub }]}>
+                Loading teams...
+              </Text>
+            </View>
+          ) : results.length > 0 ? (
             <FlatList
               ref={listRef}
               data={results}

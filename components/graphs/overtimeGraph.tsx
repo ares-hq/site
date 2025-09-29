@@ -53,7 +53,7 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
 
   const matchData = matches
     ?.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .map((match, index) => {
+    .map((match, index, sortedMatches) => {
       const activeKey = tabKeyMap[activeTab];
       
       // Get the corresponding average key
@@ -62,10 +62,21 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: Us
                         activeKey === 'penalty' ? 'averagePenalty' : 
                         'averagePoints';
 
+      let averageValue = Number(match[averageKey as keyof AllianceInfo] ?? 0);
+      
+      // Apply smoothing to make the average line more fluid
+      if (index > 0 && index < sortedMatches.length - 1) {
+        const prevAvg = Number(sortedMatches[index - 1][averageKey as keyof AllianceInfo] ?? averageValue);
+        const nextAvg = Number(sortedMatches[index + 1][averageKey as keyof AllianceInfo] ?? averageValue);
+        
+        // Simple moving average smoothing (30% of neighboring values)
+        averageValue = Number((0.4 * averageValue + 0.3 * prevAvg + 0.3 * nextAvg).toFixed(2));
+      }
+
       return {
         name: `M${index + 1}`,
         current: match[activeKey] ?? 0,
-        average: match[averageKey as keyof AllianceInfo] ?? 0,
+        average: averageValue,
       };
     }) ?? [];
 

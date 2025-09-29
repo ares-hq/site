@@ -30,38 +30,63 @@ function getCacheKey(year: SupportedYear, teamNumber: number): string {
 }
 
 // ------------------- TEAMS -------------------
-export async function getAllTeams(year: SupportedYear): Promise<TeamInfo[] | null> {
+export async function getAllTeams(year: SupportedYear, retryCount = 0): Promise<TeamInfo[] | null> {
   if (allTeamsCache.has(year) && allTeamsCache.get(year)) {
-    return allTeamsCache.get(year)!;
+    const cachedData = allTeamsCache.get(year)!;
+    if (cachedData.length > 0) {
+      return cachedData;
+    }
   }
 
-  const { data } = await supabase
-    .from(getSeasonTable(year))
-    .select('teamName, teamNumber, overallOPR, overallRank, location, autoOPR, teleOPR, endgameOPR, autoRank, teleRank, endgameRank')
-    .order('overallRank', { ascending: true })
-    .throwOnError();
+  try {
+    const { data, error } = await supabase
+      .from(getSeasonTable(year))
+      .select('teamName, teamNumber, overallOPR, overallRank, location, autoOPR, teleOPR, endgameOPR, autoRank, teleRank, endgameRank')
+      .order('overallRank', { ascending: true });
 
-  const result = data.map(row => ({
-    teamName: row.teamName || `Team ${row.teamNumber}`,
-    teamNumber: row.teamNumber,
-    overallOPR: row.overallOPR || 0,
-    overallRank: row.overallRank || 0,
-    location: row.location || 'N/A',
-    autoOPR: row.autoOPR || 0,
-    teleOPR: row.teleOPR || 0,
-    endgameOPR: row.endgameOPR || 0,
-    autoRank: row.autoRank || 0,
-    teleRank: row.teleRank || 0,
-    endgameRank: row.endgameRank || 0,
-    founded: 'N/A',
-    highestScore: '',
-    website: 'None',
-    sponsors: '',
-    achievements: 'None This Season',
-  }));
+    if (error) {
+      throw error;
+    }
 
-  allTeamsCache.set(year, result);
-  return result;
+    if (!data || data.length === 0) {
+      console.warn(`No teams data found for year ${year}`);
+      return [];
+    }
+
+    const result = data.map(row => ({
+      teamName: row.teamName || `Team ${row.teamNumber}`,
+      teamNumber: row.teamNumber,
+      overallOPR: row.overallOPR || 0,
+      overallRank: row.overallRank || 0,
+      location: row.location || 'N/A',
+      autoOPR: row.autoOPR || 0,
+      teleOPR: row.teleOPR || 0,
+      endgameOPR: row.endgameOPR || 0,
+      autoRank: row.autoRank || 0,
+      teleRank: row.teleRank || 0,
+      endgameRank: row.endgameRank || 0,
+      founded: 'N/A',
+      highestScore: '',
+      website: 'None',
+      sponsors: '',
+      achievements: 'None This Season',
+    }));
+
+    allTeamsCache.set(year, result);
+    return result;
+  } catch (error) {
+    console.error(`Error fetching teams for year ${year}:`, error);
+    
+    // Retry up to 2 times with exponential backoff
+    if (retryCount < 2) {
+      const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s delays
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return getAllTeams(year, retryCount + 1);
+    }
+    
+    // Return empty array instead of null to prevent UI issues
+    return [];
+  }
 }
 
 export async function getTeamInfo(teamNumber: number, year: SupportedYear): Promise<TeamInfo | null> {
