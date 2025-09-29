@@ -57,7 +57,7 @@ export default function UserOnboard({ onContinue, onPrevious }: UserOnboardProps
 
   useEffect(() => {
     const fetchTeams = async () => {
-      const teams = await getAllTeams(2025)
+      const teams = await getAllTeams(2024)
       if (teams) setAllTeams(teams)
     }
     fetchTeams()

@@ -156,7 +156,7 @@ export default function ProfileSettingsModal({
 
   const fetchTeams = async () => {
     try {
-      const teams = await getAllTeams(2025)
+      const teams = await getAllTeams(2024)
       if (teams) setAllTeams(teams)
     } catch (error) {
       console.error("Error fetching teams:", error)

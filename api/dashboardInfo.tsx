@@ -342,51 +342,59 @@ export async function getAvailableYears(): Promise<SupportedYear[]> {
 
 // ------------------- USER MANAGEMENT (Year-agnostic) -------------------
 export const getCurrentUserTeam = async (): Promise<number | null> => {
-  const { data, error } = await supabase.auth.getUser();
-  if (error) {
-    console.error('Error fetching user:', error.message);
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      console.error('Error fetching user:', error.message);
+      return null;
+    }
+    
+    if (!data.user) return null;
+
+    const { data: teamData, error: teamError } = await supabase
+      .from('user_teams')
+      .select('currentTeam')
+      .eq('id', data.user.id)
+      .maybeSingle(); // Use maybeSingle instead of single to handle 0 or 1 rows gracefully
+
+    if (teamError) {
+      console.error('Error fetching user team:', teamError);
+      return null;
+    }
+
+    return teamData?.currentTeam || null;
+  } catch (error) {
+    console.error('Unexpected error in getCurrentUserTeam:', error);
     return null;
   }
-  
-  if (!data.user) return null;
-
-  const { data: teamData, error: teamError } = await supabase
-    .from('user_teams')
-    .select('currentTeam')
-    .eq('id', data.user.id)
-    .single()
-    .throwOnError();
-
-  if (teamError) {
-    console.error('Error fetching user team:', teamError);
-    return null;
-  }
-
-  return teamData?.currentTeam || null;
 };
 
 export const getCurrentUserRole = async (): Promise<string | null> => {
-  const { data, error } = await supabase.auth.getUser();
-  if (error) {
-    console.error('Error fetching user:', error.message);
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      console.error('Error fetching user:', error.message);
+      return null;
+    }
+
+    if (!data.user) return null;
+
+    const { data: roleData, error: roleError } = await supabase
+      .from('user_teams')
+      .select('accountType')
+      .eq('id', data.user.id)
+      .maybeSingle(); // Use maybeSingle instead of single
+
+    if (roleError) {
+      console.error('Error fetching user role:', roleError);
+      return null;
+    }
+
+    return roleData?.accountType || null;
+  } catch (error) {
+    console.error('Unexpected error in getCurrentUserRole:', error);
     return null;
   }
-
-  if (!data.user) return null;
-
-  const { data: roleData, error: roleError } = await supabase
-    .from('user_teams')
-    .select('accountType')
-    .eq('id', data.user.id)
-    .single()
-    .throwOnError();
-
-  if (roleError) {
-    console.error('Error fetching user role:', roleError);
-    return null;
-  }
-
-  return roleData?.accountType || null;
 };
 
 export async function updateUserProfile({

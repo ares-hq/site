@@ -1,4 +1,3 @@
-import { useState, useEffect, useCallback, useRef } from "react"
 import {
   fetchTeamName,
   getCurrentUserRole,
@@ -6,6 +5,7 @@ import {
   getImage,
   getName,
 } from "@/api/dashboardInfo"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 export type UserProfile = {
   team_number?: string
@@ -38,31 +38,71 @@ export const useUserProfile = (isLoggedIn: boolean, refreshInterval: number = 50
     }
 
     try {
-      const [teamNumber, teamAccountRole, name] = await Promise.all([
-        getCurrentUserTeam(),
-        getCurrentUserRole(),
-        getName()
-      ])
+      // Safely attempt to get user data, ignoring errors
+      let teamNumber: number | null = null
+      let teamAccountRole: string | null = null
+      let name: string | null = null
+
+      try {
+        teamNumber = await getCurrentUserTeam()
+      } catch (error) {
+        console.warn("Could not fetch user team (this is ok for spectators):", error)
+      }
+
+      try {
+        teamAccountRole = await getCurrentUserRole()
+      } catch (error) {
+        console.warn("Could not fetch user role (this is ok for spectators):", error)
+      }
+
+      try {
+        name = await getName()
+      } catch (error) {
+        console.warn("Could not fetch user name (this is ok):", error)
+      }
 
       let profile: UserProfile
-      if (teamNumber) {
-        const [teamName, image] = await Promise.all([
-          fetchTeamName(teamNumber, 2024),
-          getImage(teamNumber, 2024)
-        ])
+      if (teamNumber && teamNumber > 0) {
+        // User has a valid team - try to get team info
+        let teamName: string | null = null
+        let image: string | null = null
+
+        try {
+          const fetchedTeamName = await fetchTeamName(teamNumber, 2024)
+          teamName = fetchedTeamName || null
+        } catch (error) {
+          console.warn("Could not fetch team name:", error)
+        }
+
+        try {
+          const fetchedImage = await getImage(teamNumber, 2024)
+          image = fetchedImage || null
+        } catch (error) {
+          console.warn("Could not fetch team image:", error)
+        }
+
         profile = {
           team_number: "#" + teamNumber.toString(),
-          team_name: teamName,
-          team_role: teamAccountRole ?? undefined,
-          profile_picture: image ?? undefined,
-          display_name: name ?? undefined,
+          team_name: teamName || undefined,
+          team_role: teamAccountRole || undefined,
+          profile_picture: image || undefined,
+          display_name: name || undefined,
         }
       } else {
-        const image = await getImage(-1, 2024)
+        // User is a spectator - minimal profile
+        let image: string | null = null
+        
+        try {
+          const fetchedImage = await getImage(-1, 2024)
+          image = fetchedImage || null
+        } catch (error) {
+          console.warn("Could not fetch default image:", error)
+        }
+
         profile = {
-          display_name: name,
-          team_role: teamAccountRole ?? "Player",
-          profile_picture: image ?? undefined,
+          display_name: name || undefined,
+          team_role: teamAccountRole || undefined,
+          profile_picture: image || undefined,
         }
       }
 
@@ -74,8 +114,17 @@ export const useUserProfile = (isLoggedIn: boolean, refreshInterval: number = 50
       }
     } catch (error) {
       console.error("Error fetching user profile:", error)
+      
+      // Create a minimal fallback profile so the UI doesn't break
+      const fallbackProfile: UserProfile = {
+        display_name: undefined,
+        team_role: undefined,
+        profile_picture: undefined,
+      }
+      
+      profileCache = fallbackProfile
       if (isMountedRef.current) {
-        // Don't clear existing data on error, just stop loading
+        setUserProfile(fallbackProfile)
         setLoading(false)
       }
     }

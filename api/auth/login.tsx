@@ -20,7 +20,7 @@ export const signInWithApple = async () => {
     provider: 'apple',
   });
   if (error) {
-    console.log('Apple sign-in error:', error);
+    console.error('Apple sign-in error:', error);
     throw new Error(error.message || 'Apple sign-in failed');
   }
   return data;

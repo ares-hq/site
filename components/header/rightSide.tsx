@@ -50,7 +50,7 @@ const RightSide = () => {
     if (pathname.includes('/inShow')) return 2023;
     if (pathname.includes('/intothedeep')) return 2024;
     if (pathname.includes('/age')) return 2025;
-    return 2025; // Default fallback
+    return 2024; // Default fallback
   };
 
   const currentYear = getCurrentYear();

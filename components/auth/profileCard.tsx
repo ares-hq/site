@@ -1,6 +1,6 @@
-import React from "react"
-import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
+import React from "react"
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 
 type UserProfile = {
   team_number?: string
@@ -27,10 +27,16 @@ export default function ProfileCard({ userProfile, loading, isDarkMode, onPress 
   }
 
   const getDisplayText = () => {
+    // Always prefer display name if available
+    if (userProfile?.display_name) {
+      return userProfile.display_name
+    }
+    // If no display name but has team number, show team number
     if (userProfile?.team_number) {
       return userProfile.team_number
     }
-    return userProfile?.display_name || "Loading"
+    // Only if no display name AND no team number, show Spectator
+    return "Spectator"
   }
 
   const getProfilePicture = () => {
@@ -40,8 +46,22 @@ export default function ProfileCard({ userProfile, loading, isDarkMode, onPress 
   return (
     <TouchableOpacity
       style={[styles.profileCard, { backgroundColor: colors.cardBg }]}
-      onPress={onPress}
+      onPress={() => {
+        try {
+          console.log('ProfileCard pressed', { userProfile, loading })
+          onPress()
+        } catch (error) {
+          console.error('Error in ProfileCard onPress:', error)
+          // Still call onPress even if there's an error to ensure settings access
+          try {
+            onPress()
+          } catch (fallbackError) {
+            console.error('Fallback onPress also failed:', fallbackError)
+          }
+        }
+      }}
       activeOpacity={0.7}
+      disabled={false} // Always keep the button enabled for settings access
     >
       <View style={styles.profileHeader}>
         <View style={styles.avatarContainer}>
@@ -49,9 +69,17 @@ export default function ProfileCard({ userProfile, loading, isDarkMode, onPress 
         </View>
         <View style={styles.profileInfo}>
           <Text style={[styles.teamLabel, { color: colors.headerColor }]}>
-            {loading ? "Loading..." : userProfile?.team_role?.toLocaleUpperCase()}
+            {loading 
+              ? "Loading..." 
+              : (userProfile?.team_role?.toLocaleUpperCase() || 
+                 (userProfile?.team_number ? "TEAM MEMBER" : "SPECTATOR"))
+            }
           </Text>
-          <Text style={[styles.teamNumber, { color: colors.textColor }]}>
+          <Text 
+            style={[styles.teamNumber, { color: colors.textColor }]}
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
             {loading ? "Loading..." : getDisplayText()}
           </Text>
         </View>
@@ -67,6 +95,8 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderRadius: 12,
     padding: 16,
+    // Ensure touch events are handled
+    pointerEvents: 'auto',
   },
   profileHeader: {
     flexDirection: "row",
