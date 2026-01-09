@@ -27,7 +27,7 @@ const TAuto = () => {
   const { isDarkMode } = useDarkMode();
   const { setPageTitleInfo } = usePageTitleContext();
 
-  const availableYears: SupportedYear[] = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
+  const availableYears: SupportedYear[] = [2025, 2024, 2023, 2022, 2021, 2020, 2019];
   
   const getSeasonName = (year: SupportedYear): string => {
     const seasonNames: Record<SupportedYear, string> = {

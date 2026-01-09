@@ -1,16 +1,42 @@
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { useDarkMode } from "@/context/DarkModeContext";
 import { useNavigation } from "@react-navigation/native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function NotFoundScreen() {
   const navigation = useNavigation();
+  const { isDarkMode } = useDarkMode();
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>404</Text>
-      <Text style={styles.subtitle}>Page not found</Text>
+    <View style={[
+      styles.container,
+      { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' }
+    ]}>
+      <Text style={[
+        styles.title,
+        { color: isDarkMode ? '#F9FAFB' : '#111827' }
+      ]}>
+        404
+      </Text>
+      <Text style={[
+        styles.subtitle,
+        { color: isDarkMode ? '#9CA3AF' : '#6b7280' }
+      ]}>
+        Page not found
+      </Text>
 
-      <Pressable onPress={() => navigation.goBack()} style={styles.button}>
-        <Text style={styles.buttonText}>Go back</Text>
+      <Pressable 
+        onPress={() => navigation.goBack()} 
+        style={[
+          styles.button,
+          { backgroundColor: isDarkMode ? '#4B5563' : '#000' }
+        ]}
+      >
+        <Text style={[
+          styles.buttonText,
+          { color: isDarkMode ? '#F3F4F6' : '#fff' }
+        ]}>
+          Go back
+        </Text>
       </Pressable>
     </View>
   );
@@ -22,7 +48,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
-    backgroundColor: "#fff",
   },
   title: {
     fontSize: 72,
@@ -31,17 +56,14 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 18,
-    color: "#666",
     marginBottom: 24,
   },
   button: {
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: "#000",
   },
   buttonText: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "600",
   },
