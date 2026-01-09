@@ -31,9 +31,9 @@ export default function LandingPage({ darkMode = false }: { darkMode?: boolean }
 
   useEffect(() => {
     const fetchStats = async () => {
-      const teams = await getAllTeams(2024)
-      const avg = await getAverageOPRs(2024)
-      const matches = await getTeamMatchCount(2024)
+      const teams = await getAllTeams(2025)
+      const avg = await getAverageOPRs(2025)
+      const matches = await getTeamMatchCount(2025)
       const fetchedStats = {
         totalTeams: teams ? teams.length : 0,
         averageOPR: avg.overallOPR.toFixed(2) || 0,
@@ -176,7 +176,7 @@ export default function LandingPage({ darkMode = false }: { darkMode?: boolean }
 
     useEffect(() => {
       const init = async () => {
-        const result = await getAllTeams(2024);
+        const result = await getAllTeams(2025);
         setTeams(result ?? []);
         setLoading(false);
       };

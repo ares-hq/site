@@ -1,20 +1,21 @@
 import { getAllTeams, SupportedYear } from '@/api/dashboardInfo';
-import DataTable from '@/components/graphs/teamTables';
 import type { TeamInfo } from '@/api/types';
-import React, { useState, useCallback } from 'react';
+import { usePageTitleContext } from '@/app/_layout';
+import DataTable from '@/components/graphs/teamTables';
+import { useDarkMode } from '@/context/DarkModeContext';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
   ActivityIndicator,
   RefreshControl,
   ScrollView,
-  TouchableOpacity,
   StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from 'react-native';
-import { useDarkMode } from '@/context/DarkModeContext';
-import { Ionicons } from '@expo/vector-icons';
-import { useWindowDimensions } from 'react-native';
 
 const TAuto = () => {
   const [teams, setTeams] = useState<TeamInfo[]>([]);
@@ -24,21 +25,29 @@ const TAuto = () => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [selectedYear, setSelectedYear] = useState<SupportedYear>(2025);
   const { isDarkMode } = useDarkMode();
+  const { setPageTitleInfo } = usePageTitleContext();
 
   const availableYears: SupportedYear[] = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
   
   const getSeasonName = (year: SupportedYear): string => {
     const seasonNames: Record<SupportedYear, string> = {
-      2019: 'Skystone',
-      2020: 'Ultimate Goal',
-      2021: 'Freight Frenzy',
-      2022: 'Power Play',
-      2023: 'Centerstage',
-      2024: 'Into the Deep',
-      2025: 'Decode',
+      2019: '2019 - Skystone',
+      2020: '2020 - Ultimate Goal',
+      2021: '2021 - Freight Frenzy',
+      2022: '2022 - Power Play',
+      2023: '2023 - Centerstage',
+      2024: '2024 - Into the Deep',
+      2025: '2025 - Decode',
     };
     return seasonNames[year] || `${year} Season`;
   };
+
+  // Update browser tab title with season and ranking type
+  useEffect(() => {
+    setPageTitleInfo({
+      customSuffix: `(${getSeasonName(selectedYear)})`,
+    });
+  }, [selectedYear, setPageTitleInfo]);
 
   const fetchTeams = useCallback(async (isRefresh = false, year = selectedYear) => {
     try {

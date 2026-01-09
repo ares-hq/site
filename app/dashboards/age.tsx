@@ -2,6 +2,7 @@ import { attachHourlyAverages, getAverageByMatchType, getAveragePlace, getAwards
 import { getAverageOPRs, getCurrentUserTeam, getTeamInfo, getTeamMatches, getWins, SupportedYear } from '@/api/dashboardInfo';
 import { getFirstAPI } from '@/api/firstAPI';
 import { AllianceInfo, EventInfo, MatchTypeAverages, TeamInfo } from '@/api/types';
+import { usePageTitleContext } from '@/app/_layout';
 import EventPerformance from '@/components/graphs/eventPerformace';
 import EventScores from '@/components/graphs/eventScores';
 import UserGraphSection from '@/components/graphs/overtimeGraph';
@@ -66,16 +67,27 @@ const StatCard = ({ title, value, change, positive, color }: StatCardProps) => {
 
 const age = () => {  
   const params = useLocalSearchParams();
+  const { setPageTitleInfo } = usePageTitleContext();
   const teamParam = Array.isArray(params.teamnumber) ? params.teamnumber[0] : params.teamnumber;
   const yearParamRaw =
     (Array.isArray(params.year) ? params.year[0] : (params.year as string | undefined)) ??
     (Array.isArray(params.season) ? params.season[0] : (params.season as string | undefined));
   
   // Parse and validate the year
-  const parsedYear = Number(yearParamRaw) || 2025; // Default to 2022 instead of current year
+  const parsedYear = Number(yearParamRaw) || 2025;
   const seasonYear: SupportedYear = [2019, 2020, 2021, 2022, 2023, 2024, 2025].includes(parsedYear as SupportedYear) 
     ? (parsedYear as SupportedYear) 
-    : 2025; // Default to 2022 if invalid year
+    : 2025;
+  
+  const gameNames: Record<SupportedYear, string> = {
+    2019: '2019 - Skystone',
+    2020: '2020 - Ultimate Goal',
+    2021: '2021 - Freight Frenzy',
+    2022: '2022 - Power Play',
+    2023: '2023 - Centerstage',
+    2024: '2024 - Into the Deep',
+    2025: '2025 - Decode',
+  };
     
   const { teamnumber } = useLocalSearchParams();
   const [containerWidth, setContainerWidth] = useState(0);
@@ -96,6 +108,16 @@ const age = () => {
     endgameOPR: number;
     overallOPR: number;
   } | null>(null);
+
+  // Update browser tab title with team and season
+  useEffect(() => {
+    if (teamnumber) {
+      const seasonName = gameNames[seasonYear];
+      setPageTitleInfo({
+        customSuffix: `Team ${teamnumber} (${seasonName})`,
+      });
+    }
+  }, [teamnumber, seasonYear, setPageTitleInfo, gameNames]);
 
 useEffect(() => {
   const fetchInfo = async () => {
