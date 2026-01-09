@@ -30,7 +30,6 @@ type Props = {
 
 const DEBOUNCE_MS = 160;
 
-// Route path mapping function - same as in teamTables
 const getRoutePath = (year: SupportedYear) => {
   const routePaths: Record<SupportedYear, string> = {
     2019: 'rise',
@@ -41,7 +40,7 @@ const getRoutePath = (year: SupportedYear) => {
     2024: 'intothedeep',
     2025: 'age',
   };
-  return routePaths[year] || 'age'; // fallback to 2025
+  return routePaths[year] || 'age';
 };
 
 const SearchDropdown: React.FC<Props> = ({
@@ -66,23 +65,14 @@ const SearchDropdown: React.FC<Props> = ({
   const listRef = useRef<FlatList<Item>>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Preload teams data when component mounts or year changes
   useEffect(() => {
     const preloadTeamsData = async () => {
-      // Don't reload if we already have data for this year
-      if (allTeamsData && !isLoading) {
-        return;
-      }
+      if (allTeamsData && !isLoading) return;
       
       setIsLoading(true);
       try {
         const teams = await getAllTeams(year);
-        if (teams && teams.length > 0) {
-          setAllTeamsData(teams);
-        } else {
-          console.warn('No teams data returned for year:', year);
-          setAllTeamsData([]);
-        }
+        setAllTeamsData(teams || []);
       } catch (error) {
         console.error('Failed to preload teams data:', error);
         setAllTeamsData([]);
@@ -90,27 +80,27 @@ const SearchDropdown: React.FC<Props> = ({
         setIsLoading(false);
       }
     };
-
     preloadTeamsData();
-  }, [year]); // Remove allTeamsData dependency to prevent infinite loops
+  }, [year]);
 
+  // THEME: Neutralized Dark Mode (Removed Blues)
   const theme = {
     bg: isDarkMode ? 'rgba(255,255,255,0.06)' : '#f3f4f6',
     text: isDarkMode ? '#f9fafb' : '#111827',
     sub: isDarkMode ? '#9ca3af' : '#6b7280',
     hintBg: isDarkMode ? 'rgba(255,255,255,0.04)' : '#fff',
     hintBorder: isDarkMode ? '#4b5563' : '#e5e7eb',
-    chipBg: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
-    chipText: isDarkMode ? '#6b7280' : '#9ca3af',
-    rowHover: isDarkMode ? 'rgba(59,130,246,0.18)' : 'rgba(59,130,246,0.10)',
-    border: isDarkMode ? '#374151' : '#e5e7eb',
-    panel: isDarkMode ? '#1f2937' : '#ffffff',
+    chipBg: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+    chipText: isDarkMode ? '#9ca3af' : '#6b7280',
+    // FIXED: Neutral grayscale hover instead of blue
+    rowHover: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+    border: isDarkMode ? '#4b5563' : '#e5e7eb',
+    panel: isDarkMode ? '#262626' : '#ffffff',
   };
 
   const runSearch = async (q: string) => {
     const trimmed = q.trim();
     if (!trimmed) {
-      // Clear results when no search query
       setResults([]);
       setOpen(false);
       setSelectedIndex(0);
@@ -118,27 +108,19 @@ const SearchDropdown: React.FC<Props> = ({
     }
     
     try {
-      // Use preloaded data if available, otherwise fetch
       let teamsData = allTeamsData;
       if (!teamsData || teamsData.length === 0) {
         teamsData = await getAllTeams(year);
-        if (teamsData) {
-          setAllTeamsData(teamsData); // Cache it for next time
-        }
+        if (teamsData) setAllTeamsData(teamsData);
       }
       
       if (!teamsData || teamsData.length === 0) {
-        console.warn('No teams data available for year:', year);
         setResults([]);
-        setOpen(trimmed.length > 0); // Show "No results" if user was searching
-        setSelectedIndex(0);
+        setOpen(trimmed.length > 0);
         return;
       }
 
-      // Use the same filterTeams function as teamTables for consistent search behavior
       const filteredTeams = filterTeams(teamsData, trimmed);
-      
-      // Convert filtered teams to search result items
       const teamItems: Item[] = filteredTeams.slice(0, maxResults).map((team) => ({
         id: String(team.teamNumber),
         type: 'team',
@@ -148,136 +130,84 @@ const SearchDropdown: React.FC<Props> = ({
       }));
       
       setResults(teamItems);
-      setOpen(trimmed.length > 0); // Show dropdown if user is searching, even with no results
+      setOpen(trimmed.length > 0);
       setSelectedIndex(0);
     } catch (error) {
-      console.error('Team search error:', error);
       setResults([]);
-      setOpen(trimmed.length > 0); // Show dropdown with 'No results' if user was searching
-      setSelectedIndex(0);
+      setOpen(trimmed.length > 0);
     }
   };
 
-  // Debounce search - no need to depend on year since we preload data
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => runSearch(query), DEBOUNCE_MS);
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, allTeamsData]); // Depend on allTeamsData instead of year
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [query, allTeamsData]);
 
-  const onFocus = () => {
-    if (results.length > 0) {
-      setOpen(true);
-    }
-    // Don't show anything when focusing on empty search - user needs to type
-  };
-  // Give clicks time to fire before closing
+  const onFocus = () => { if (results.length > 0) setOpen(true); };
   const onBlur = () => setTimeout(() => setOpen(false), 80);
 
   const handleSelect = useCallback((item: Item) => {
     if (item.type === 'team' && item.teamNumber != null) {
-      // Navigate to the team's dashboard page
       const routePath = getRoutePath(year);
       router.push(`/dashboards/${routePath}?teamnumber=${item.teamNumber}` as any);
-      
-      // Also call the callback if provided
       onSelectTeam?.(item.teamNumber);
     }
     setOpen(false);
-    setQuery(''); // Clear search after selection
+    setQuery('');
     inputRef.current?.blur();
   }, [onSelectTeam, router, year]);
 
-  // Web keyboard nav + "/" focus
   useEffect(() => {
     if (Platform.OS !== 'web') return;
-    
     const onKey = (e: KeyboardEvent) => {
-      // Global "/" focus shortcut
       if (e.key === '/' && document.activeElement !== inputRef.current) {
         e.preventDefault();
         inputRef.current?.focus();
         return;
       }
-      
-      // Only handle navigation when dropdown is open and has results
       if (!open || results.length === 0) return;
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        const newIndex = Math.min(selectedIndex + 1, results.length - 1);
-        setSelectedIndex(newIndex);
-        // Scroll to item if needed
-        try {
-          listRef.current?.scrollToIndex({ 
-            index: newIndex, 
-            animated: true,
-            viewPosition: 0.5 
-          });
-        } catch (error) {
-          // Ignore scroll errors
-        }
+        setSelectedIndex(prev => Math.min(prev + 1, results.length - 1));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        const newIndex = Math.max(selectedIndex - 1, 0);
-        setSelectedIndex(newIndex);
-        // Scroll to item if needed
-        try {
-          listRef.current?.scrollToIndex({ 
-            index: newIndex, 
-            animated: true,
-            viewPosition: 0.5 
-          });
-        } catch (error) {
-          // Ignore scroll errors
-        }
+        setSelectedIndex(prev => Math.max(prev - 1, 0));
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        const item = results[selectedIndex];
-        if (item) {
-          handleSelect(item);
-        }
+        if (results[selectedIndex]) handleSelect(results[selectedIndex]);
       } else if (e.key === 'Escape') {
-        e.preventDefault();
         setOpen(false);
         inputRef.current?.blur();
       }
     };
-    
-    // Add event listener
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [open, results, selectedIndex, handleSelect]);
 
-  const iconFor = (item: Item) => {
-    return 'users' as const; // All items are now teams
-  };
-
   const renderItem = ({ item, index }: { item: Item; index: number }) => {
-    const selected = index === selectedIndex;
-    const hovered = index === hoveredIndex;
+    const isSelected = index === selectedIndex;
+    const isHovered = index === hoveredIndex;
     
     return (
       <Pressable
         onPressIn={() => handleSelect(item)}
         onHoverIn={() => {
           setHoveredIndex(index);
-          setSelectedIndex(index); // Update selection on hover
+          setSelectedIndex(index);
         }}
         onHoverOut={() => setHoveredIndex(-1)}
         style={[
           styles.row,
           { 
-            backgroundColor: (selected || hovered) ? theme.rowHover : 'transparent', 
+            backgroundColor: (isSelected || isHovered) ? theme.rowHover : 'transparent', 
             borderBottomColor: theme.border 
           },
         ]}
       >
         <View style={[styles.iconWrap, { backgroundColor: theme.chipBg }]}>
-          <Feather name={iconFor(item)} size={14} color={theme.sub} />
+          <Feather name="users" size={14} color={theme.sub} />
         </View>
         <View style={styles.rowText}>
           <Text style={[styles.rowTitle, { color: theme.text }]} numberOfLines={1}>
@@ -311,9 +241,7 @@ const SearchDropdown: React.FC<Props> = ({
           style={[styles.input, { color: theme.text }]}
           autoCorrect={false}
           autoCapitalize="none"
-          returnKeyType="search"
-          onSubmitEditing={() => results[0] && handleSelect(results[0])}
-          editable={!isLoading} // Disable input while loading
+          editable={!isLoading}
         />
         <View style={[styles.keyHint, { backgroundColor: theme.hintBg, borderColor: theme.hintBorder }]}>
           <Text style={[styles.keyText, { color: theme.chipText }]}>/</Text>
@@ -321,26 +249,9 @@ const SearchDropdown: React.FC<Props> = ({
       </Pressable>
 
       {open && (
-        <View
-          style={[
-            styles.panel,
-            {
-              backgroundColor: theme.panel,
-              borderColor: theme.border,
-              // make sure we float above neighbors on both platforms
-              zIndex: zIndex + 10,
-              elevation: 999,
-            },
-          ]}
-          // allow clicks through outside the box
-          pointerEvents="box-none"
-        >
+        <View style={[styles.panel, { backgroundColor: theme.panel, borderColor: theme.border, zIndex: zIndex + 10, elevation: 999 }]} pointerEvents="box-none">
           {isLoading ? (
-            <View style={styles.noResults}>
-              <Text style={[styles.noResultsText, { color: theme.sub }]}>
-                Loading teams...
-              </Text>
-            </View>
+            <View style={styles.noResults}><Text style={[styles.noResultsText, { color: theme.sub }]}>Loading teams...</Text></View>
           ) : results.length > 0 ? (
             <FlatList
               ref={listRef}
@@ -350,14 +261,9 @@ const SearchDropdown: React.FC<Props> = ({
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               style={{ maxHeight: 280 }}
-              getItemLayout={(_, index) => ({ length: 52, offset: 52 * index, index })}
             />
           ) : (
-            <View style={styles.noResults}>
-              <Text style={[styles.noResultsText, { color: theme.sub }]}>
-                No results found
-              </Text>
-            </View>
+            <View style={styles.noResults}><Text style={[styles.noResultsText, { color: theme.sub }]}>No results found</Text></View>
           )}
         </View>
       )}
@@ -366,87 +272,21 @@ const SearchDropdown: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  wrap: {
-    position: 'relative',        // critical for absolute dropdown positioning
-    width: 200,
-    zIndex: 99999,              // ensure the wrapper has extremely high z-index
-  },
-  inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 11,
-    paddingVertical: 4,
-    borderRadius: 9,
-  },
+  wrap: { position: 'relative', width: 200, zIndex: 99999 },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 11, paddingVertical: 4, borderRadius: 9 },
   searchIcon: { marginRight: 7 },
-  input: { 
-    fontSize: 13, 
-    padding: 0, 
-    borderWidth: 0, 
-    width: 140, 
-    outline: 'none' as any, // Cast to any to avoid TS issues with web-specific property
-  },
-  keyHint: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-  },
+  input: { fontSize: 13, padding: 0, borderWidth: 0, width: 140, outlineStyle: 'none' } as any,
+  keyHint: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 4, borderWidth: 1 },
   keyText: { fontSize: 10, fontWeight: '500' },
-  panel: {
-    position: 'absolute',
-    top: '100%',                 // sits directly below the input
-    left: 0,
-    right: 0,
-    marginTop: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    overflow: 'hidden',
-    zIndex: 999999,             // maximum z-index for the dropdown panel
-  },
-  row: {
-    minHeight: 52,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  iconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  panel: { position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 6, borderRadius: 10, borderWidth: 1, overflow: 'hidden' },
+  row: { minHeight: 52, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  iconWrap: { width: 28, height: 28, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
   rowText: { flex: 1 },
   rowTitle: { fontSize: 14, fontWeight: '500' },
   rowDesc: { fontSize: 12 },
-  rowType: {
-    fontSize: 10,
-    textTransform: 'uppercase',
-    fontWeight: '600',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  footer: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  footerText: { fontSize: 11, textAlign: 'center' },
-  noResults: {
-    paddingVertical: 20,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-  },
-  noResultsText: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
+  rowType: { fontSize: 10, textTransform: 'uppercase', fontWeight: '600', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, overflow: 'hidden' },
+  noResults: { paddingVertical: 20, paddingHorizontal: 12, alignItems: 'center' },
+  noResultsText: { fontSize: 14, textAlign: 'center' },
 });
 
 export default SearchDropdown;

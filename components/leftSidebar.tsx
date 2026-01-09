@@ -1,5 +1,4 @@
-import { useState } from "react"
-import { View, Text, StyleSheet, ScrollView } from "react-native"
+import { ScrollView, StyleSheet, Text, View } from "react-native"
 // Components
 import Analytics from "./left_sidebar/analytics"
 import Platforms from "./left_sidebar/platforms"
@@ -30,7 +29,7 @@ export default function SettingsStyleSidebar({ close }: SidebarProps) {
 
         {/* Sidebar Content */}
         <Home close={close} />
-        <View style={[styles.separator, { backgroundColor: isDarkMode ? "rgba(71, 85, 105, 0.3)" : "#f3f4f6" }]} />
+        {/* <View style={[styles.separator, { backgroundColor: isDarkMode ? "rgba(71, 85, 105, 0.3)" : "#f3f4f6" }]} /> */}
         <Analytics close={close} />
         <Platforms close={close} />
         <Scouting close={close} />
@@ -57,7 +56,8 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     marginHorizontal: 10,
-    marginBottom: 16,
+    marginBottom: 8,
+    marginTop: 8,
   },
   footer: {
     paddingVertical: 18,
