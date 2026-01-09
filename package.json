@@ -53,7 +53,7 @@
     "react-native-web": "^0.20.0",
     "react-native-webview": "13.13.5",
     "recharts": "^2.15.3",
-    "victory-native": "^41.17.3"
+    "victory": "^37.3.6"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",
