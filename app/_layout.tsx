@@ -66,7 +66,7 @@ function InnerLayout() {
     energize: 'ENERGIZE',
     forward: 'FORWARD',
     gameChangers: 'GAMECHANGERS',
-    inShow: 'INSHOW',
+    inshow: 'INSHOW',
     rise: 'RISE',
     discord: 'Discord',
     app: 'App',
@@ -79,6 +79,9 @@ function InnerLayout() {
     qual: 'Qualifiers',
     finals: 'Finals',
     premier: 'Premier',
+    tac: 'Terms & Conditions',
+    privacy: 'Privacy Policy',
+    systemstatus: 'Systems Status',
   };
   
   const currentPage = routeLabels[pathname?.split('/').pop() || ''] || '';
@@ -93,8 +96,18 @@ function InnerLayout() {
     const lastSegment = pathSegments[pathSegments.length - 1] || 'index';
     const pageTitle = routeLabels[lastSegment] || 'ARES';
     
+    // Check if current page is a dashboard (any page in the dashboards folder)
+    const isDashboard = pathname?.includes('/dashboards/');
+    // Check if current page is a rankings page
+    const isRankingsPage = lastSegment === 'tranks' || lastSegment === 'mranks' || lastSegment === 'tauto' || lastSegment === 'ttele' || lastSegment === 'tendgame';
+    
     let fullTitle = pageTitle;
-    if (customSuffix) {
+    
+    // If it's a dashboard, use "Team [number]" from customSuffix
+    if (isDashboard) {
+      fullTitle = customSuffix ? `${customSuffix}` : 'Team';
+    } else if (isRankingsPage && customSuffix) {
+      // Add customSuffix (year) to rankings pages
       fullTitle += ` - ${customSuffix}`;
     }
     
