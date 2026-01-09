@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
   seasonBadge: {
     paddingHorizontal: 15,
     paddingVertical: 6,
-    borderRadius: 20,
+    // borderRadius: 20,
   },
   picker: {
     height: 28,
