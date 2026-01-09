@@ -327,6 +327,9 @@ export const DashboardTemplate: React.FC<DashboardProps> = ({ seasonYear: initia
         </Text>
         <View style={[
           styles.seasonBadge,
+          {
+            backgroundColor: isDarkMode ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
+          }
         ]}>
           <Picker
             selectedValue={seasonYear}
@@ -338,10 +341,12 @@ export const DashboardTemplate: React.FC<DashboardProps> = ({ seasonYear: initia
             }}
             style={[
               styles.picker,
-              { color: isDarkMode ? '#F9FAFB' : '#111827',
+              { 
+                color: isDarkMode ? '#F9FAFB' : '#111827',
                 outline: 'none',
                 borderWidth: 0,
-                backgroundColor: isDarkMode ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)',
+                backgroundColor: 'transparent',
+                // backgroundColor: isDarkMode ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)',
                 fontWeight: '500',
                }
             ]}
@@ -478,14 +483,17 @@ const styles = StyleSheet.create({
     marginBottom: 9,
   },
   header: {
-    paddingHorizontal: 15,
+    // paddingHorizontal: 15,
+    // marginHorizontal: 20,
     fontSize: 15,
     fontWeight: '600',
   },
   seasonBadge: {
-    paddingHorizontal: 15,
-    paddingVertical: 6,
-    // borderRadius: 20,
+    // marginHorizontal: 20,
+    paddingHorizontal: 7,
+    // paddingVertical: 6,
+    borderRadius: 20,
+    // backgroundColor: '#fff'
   },
   picker: {
     height: 28,
