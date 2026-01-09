@@ -17,7 +17,7 @@ export const signInWithGoogle = async () => {
 
 export const signInWithApple = async () => {
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'apple',
+    provider: 'apple'
   });
   if (error) {
     console.error('Apple sign-in error:', error);

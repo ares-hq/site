@@ -1,5 +1,4 @@
 import { MatchInfo } from './types';
-import * as math from 'mathjs';
 import { Matrix, SingularValueDecomposition, pseudoInverse } from 'ml-matrix';
 
 export class MatrixBuilder {

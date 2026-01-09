@@ -64,12 +64,12 @@ export async function toggleFavorite(userId: string, item: string) {
 
   const index = favorites.indexOf(item);
   if (index > -1) {
-    favorites.splice(index, 1); // remove favorite
+    favorites.splice(index, 1);
   } else {
-    favorites.push(item); // add favorite
+    favorites.push(item);
   }
 
-  const updatedFavorites = favorites.join(','); // no extra spaces
+  const updatedFavorites = favorites.join(',');
 
   const { error: updateError } = await supabase
     .from('user_teams')
