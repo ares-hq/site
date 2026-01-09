@@ -50,7 +50,7 @@ const RightSide = () => {
     if (pathname.includes('/inShow')) return 2023;
     if (pathname.includes('/intothedeep')) return 2024;
     if (pathname.includes('/age')) return 2025;
-    return 2024; // Default fallback
+    return 2025; // Default fallback
   };
 
   const currentYear = getCurrentYear();
@@ -64,7 +64,7 @@ const RightSide = () => {
     <View style={styles.container}>
       <View style={styles.search}>
         <SearchDropdown
-          year={currentYear}
+          year={2025}
           zIndex={999999}
           onSelectTeam={(num) => {
             // router.push(`/teams/${num}?year=${currentYear}`);
