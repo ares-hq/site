@@ -1,20 +1,19 @@
+import { useDarkMode } from '@/context/DarkModeContext';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
-import App from '../../assets/icons/app-store-logo.svg';
-import Robot from '../../assets/icons/robot.svg';
-import { useRouter } from 'expo-router';
-import { useDarkMode } from '@/context/DarkModeContext';
+import House from '../../assets/icons/house.svg';
 
-type PlatformsProps = {
+type HomeProps = {
   close?: () => void;
 };
 
-const Platforms = ({ close }: PlatformsProps) => {
+const Home = ({ close }: HomeProps) => {
   const router = useRouter();
   const { isDarkMode } = useDarkMode();
 
@@ -24,35 +23,40 @@ const Platforms = ({ close }: PlatformsProps) => {
 
   return (
     <View style={[styles.sidebar, { backgroundColor }]}>
-      <Text style={[styles.sectionTitle, { color: titleColor }]}>Platforms</Text>
+      <View style={[styles.topCard, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.02)' : '#f8fafc', borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.04)' : '#e2e8f0' }]}>
+        <Pressable
+          onPress={() => router.push('/')}
+          style={({ pressed, hovered }) => [
+            styles.homePressable,
+            hovered && { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.02)' : '#f0f4ff' },
+            pressed && { opacity: 0.8, transform: [{ scale: 0.96 }] },
+          ]}
+        >
+          <View style={styles.homeRow}>
+            <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#e0e7ff' }]}>
+              <House width={18} height={18} fill={iconColor} />
+            </View>
 
-      <SidebarItem
-        label="Discord Bot"
+            <View style={styles.titleBlock}>
+              <Text style={[styles.homeTitle, { color: isDarkMode ? '#fff' : '#0f172a' }]}>ARES</Text>
+              <Text style={[styles.homeSubtitle, { color: titleColor }]}>Dashboard</Text>
+            </View>
+          </View>
+        </Pressable>
+      </View>
+
+      {/* <SidebarItem
+        label="Home"
         icon={
           <View style={styles.teamIcons}>
-            <Robot width={18} height={18} fill={iconColor} />
+            <House width={18} height={18} fill={iconColor} />
           </View>
         }
         onPress={() => {
-          router.push('/platforms/discord');
-          // close?.();
+          router.push('/');
         }}
         isDarkMode={isDarkMode}
-      />
-
-      <SidebarItem
-        label="Mobile App"
-        icon={
-          <View style={styles.teamIcons}>
-            <App width={18} height={18} fill={iconColor} />
-          </View>
-        }
-        onPress={() => {
-          router.push('/platforms/app');
-          // close?.();
-        }}
-        isDarkMode={isDarkMode}
-      />
+      /> */}
     </View>
   );
 };
@@ -60,7 +64,6 @@ const Platforms = ({ close }: PlatformsProps) => {
 const SidebarItem = ({
   label,
   icon,
-  isSelected = false,
   onPress,
   isDarkMode,
 }: {
@@ -99,6 +102,42 @@ const styles = StyleSheet.create({
     gap: 2.2,
     paddingVertical: 9,
     marginBottom: 9,
+  },
+  topCard: {
+    borderRadius: 10,
+    padding: 6,
+    marginHorizontal: 6,
+    marginBottom: 8,
+  },
+  homePressable: {
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+  },
+  homeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  iconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  titleBlock: {
+    flexDirection: 'column',
+    flex: 1,
+  },
+  homeTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  homeSubtitle: {
+    fontSize: 10,
+    marginTop: 1,
+    fontWeight: '600',
   },
   sectionTitle: {
     fontSize: 15,
@@ -142,4 +181,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Platforms;
+export default Home;

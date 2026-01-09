@@ -296,6 +296,10 @@ export const getFirstAPI = async (events: string[], team: number, season: Suppor
         match.tournamentLevel === "QUALIFICATION"
       );
 
+      const practiceMatches = allMatches.filter((match: any) => 
+        match.tournamentLevel === "PRACTICE"
+      );
+
       const allTeamNumbers = new Set<number>();
       teamMatches.forEach((match: any) => {
         match.teams.forEach((t: any) => {
@@ -323,8 +327,8 @@ export const getFirstAPI = async (events: string[], team: number, season: Suppor
         const [redPenaltyPoints, bluePenaltyPoints] = adapter.penalties(match);
 
         return {
-          matchType: match.tournamentLevel === 'Playoff' ? 'PLAYOFF' : 'QUALIFICATION',
-          matchNumber: match.tournamentLevel === 'PLAYOFF' ? 'P-' + match.series : 'Q-' + match.matchNumber,
+          matchType: match.tournamentLevel === 'PLAYOFF' ? 'PLAYOFF' : match.tournamentLevel === 'QUALIFICATION' ? 'QUALIFICATION' : 'PRACTICE',
+          matchNumber: match.tournamentLevel === 'PLAYOFF' ? 'P-' + match.series : match.tournamentLevel === 'QUALIFICATION' ? 'Q-' + match.matchNumber : 'Pr-' + match.matchNumber,
           date: match.actualStartTime ?? match.postResultTime,
           redAlliance: {
             totalPoints: redScore,
@@ -335,7 +339,7 @@ export const getFirstAPI = async (events: string[], team: number, season: Suppor
             team_2: createTeam(redTeams[1]),
             date: match.actualStartTime ?? match.postResultTime,
             alliance: 'red',
-            matchType: match.tournamentLevel === 'Playoff' ? 'PLAYOFF' : 'QUALIFICATION',
+            matchType: match.tournamentLevel === 'Playoff' ? 'PLAYOFF' : match.tournamentLevel === 'Practice' ? 'PRACTICE' : 'QUALIFICATION',
           },
           blueAlliance: {
             totalPoints: blueScore,
@@ -346,7 +350,7 @@ export const getFirstAPI = async (events: string[], team: number, season: Suppor
             team_2: createTeam(blueTeams[1]),
             date: match.actualStartTime ?? match.postResultTime,
             alliance: 'blue',
-            matchType: match.tournamentLevel === 'Playoff' ? 'PLAYOFF' : 'QUALIFICATION',
+            matchType: match.tournamentLevel === 'Playoff' ? 'PLAYOFF' : match.tournamentLevel === 'Practice' ? 'PRACTICE' : 'QUALIFICATION',
           },
         };
       });
@@ -394,8 +398,11 @@ export const getFirstAPI = async (events: string[], team: number, season: Suppor
 
       let winCount = 0, tieCount = 0, totalScore = 0;
       const teamSet = new Set<number>();
+      
+      // Exclude practice matches from win rate calculation
+      const nonPracticeMatches = matches.filter(m => m.matchType !== 'PRACTICE');
 
-      for (const match of matches) {
+      for (const match of nonPracticeMatches) {
         const { redAlliance, blueAlliance } = match;
         const redScore = redAlliance.totalPoints;
         const blueScore = blueAlliance.totalPoints;
@@ -415,9 +422,9 @@ export const getFirstAPI = async (events: string[], team: number, season: Suppor
           .forEach(t => t?.teamNumber && teamSet.add(t.teamNumber));
       }
 
-      const totalMatches = matches.length;
+      const totalMatches = nonPracticeMatches.length;
       const lossCount = totalMatches - winCount - tieCount;
-      const averageScore = totalMatches ? Number((totalScore / totalMatches).toFixed(2)) : 0;
+      const averageScore = nonPracticeMatches.length ? Number((totalScore / nonPracticeMatches.length).toFixed(2)) : 0;
       const winRate = totalMatches ? Number(((winCount / totalMatches) * 100).toFixed(1)) : 0;
 
       const oprResults = calculateTeamOPR(allMatchesForOPR, team);

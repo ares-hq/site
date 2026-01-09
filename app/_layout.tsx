@@ -1,28 +1,48 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  StyleSheet,
-  Animated,
-  ScrollView,
-  TouchableOpacity,
-  Dimensions,
-  useColorScheme,
-} from 'react-native';
+import Footer from '@/components/footer';
+import HeaderBar from '@/components/header';
+import LeftSidebar from '@/components/leftSidebar';
+import { DarkModeProvider, useDarkMode } from '@/context/DarkModeContext';
 import { useFonts } from 'expo-font';
 import { router, Slot, usePathname } from 'expo-router';
-import LeftSidebar from '@/components/leftSidebar';
-import HeaderBar from '@/components/header';
-import Footer from '@/components/footer';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  Dimensions,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import Cancel from '../assets/icons/x-circle.svg';
-import { RefreshControl } from 'react-native';
-import { DarkModeProvider, useDarkMode } from '@/context/DarkModeContext';
-import { supabase } from '@/api/dashboardInfo';
-import gameChangers from './dashboards/gameChangers';
+
+// Context for page title metadata
+export const PageTitleContext = createContext<{
+  customSuffix?: string;
+  setPageTitleInfo: (info: { customSuffix?: string }) => void;
+}>({
+  setPageTitleInfo: () => {},
+});
+
+export function usePageTitleContext() {
+  return useContext(PageTitleContext);
+}
 
 export default function Layout() {
+  const [customSuffix, setCustomSuffix] = useState<string>();
+
   return (
     <DarkModeProvider>
-      <InnerLayout />
+      <PageTitleContext.Provider
+        value={{
+          customSuffix,
+          setPageTitleInfo: (info) => {
+            setCustomSuffix(info.customSuffix);
+          },
+        }}
+      >
+        <InnerLayout />
+      </PageTitleContext.Provider>
     </DarkModeProvider>
   );
 }
@@ -37,8 +57,10 @@ function InnerLayout() {
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const pathname = usePathname();
   const [refreshing, setRefreshing] = useState(false);
+  const { customSuffix } = usePageTitleContext();
   
   const routeLabels: Record<string, string> = {
+    index: 'Home',
     age: 'AGE',
     intothedeep: 'DIVE',
     energize: 'ENERGIZE',
@@ -65,6 +87,22 @@ function InnerLayout() {
   const overlayOpacity = useRef(new Animated.Value(sidebarVisible ? 1 : 0)).current;
   const sidebarWidth = useRef(new Animated.Value(180)).current;
 
+  // Set browser tab title based on current page and context
+  useEffect(() => {
+    const pathSegments = pathname?.split('/').filter(Boolean) || [];
+    const lastSegment = pathSegments[pathSegments.length - 1] || 'index';
+    const pageTitle = routeLabels[lastSegment] || 'ARES';
+    
+    let fullTitle = pageTitle;
+    if (customSuffix) {
+      fullTitle += ` - ${customSuffix}`;
+    }
+    
+    if (typeof document !== 'undefined') {
+      document.title = `${fullTitle} | ARES`;
+    }
+  }, [pathname, customSuffix, routeLabels]);
+
   const isDesktop = screenWidth > 800;
 
   // Create theme object to avoid repetitive conditional styling
@@ -83,52 +121,6 @@ function InnerLayout() {
     router.replace(usePathname() as any);
     setRefreshing(false);
   };
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const checkOnboardingStatus = async () => {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-
-      if (cancelled || error || !user) return;
-
-      if (pathname.includes('/auth/onBoard')) return;
-
-      const { data, error: userTeamsError } = await supabase
-        .from('user_teams')
-        .select('id')
-        .eq('id', user.id)
-        .single();
-
-      if (cancelled) return;
-
-      if (userTeamsError || !data) {
-        router.push({
-          pathname: '/auth/onBoard',
-          params: {
-            email: user.email || '',
-            userId: user.id,
-            socialProvider: 'oauth',
-          },
-        });
-      }
-    };
-
-    const waitAndCheck = async () => {
-      // Wait for a brief moment to ensure Supabase session is hydrated
-      await new Promise((resolve) => setTimeout(resolve, 250));
-      checkOnboardingStatus();
-    };
-
-    waitAndCheck();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [pathname]);
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {

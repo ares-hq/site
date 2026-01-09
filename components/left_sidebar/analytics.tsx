@@ -11,7 +11,6 @@ import CaretRight from '../../assets/icons/caret-right.svg';
 import Controller from '../../assets/icons/game-controller.svg';
 import { useRouter } from 'expo-router';
 import { useDarkMode } from '@/context/DarkModeContext';
-import { addRecentItem } from './usedTabs';
 
 type AnalyticsProps = {
   close?: () => void;
@@ -52,9 +51,7 @@ const Analytics = ({ close }: AnalyticsProps) => {
   });
 
   const go = (path: string, label: string) => {
-    addRecentItem(label, path); // Save human-friendly name
     router.push(path as any);
-    // close?.();
   };
 
   const textColor = isDarkMode ? '#fff' : '#000';

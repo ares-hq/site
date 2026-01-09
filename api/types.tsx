@@ -33,7 +33,7 @@ export interface AllianceInfo {
   tele: number;
   penalty: number;
   alliance: 'red' | 'blue';
-  matchType: 'QUALIFICATION' | 'PLAYOFF';
+  matchType: 'QUALIFICATION' | 'PLAYOFF' | 'PRACTICE';
   team_1?: TeamInfoSimple;
   team_2?: TeamInfoSimple;
   matchNumber?: string;
@@ -44,7 +44,7 @@ export interface AllianceInfo {
 }
 
 export interface MatchInfo {
-  matchType: 'QUALIFICATION' | 'PLAYOFF';
+  matchType: 'QUALIFICATION' | 'PLAYOFF' | 'PRACTICE';
   matchNumber: string;
   date: string;
   redAlliance: AllianceInfo;

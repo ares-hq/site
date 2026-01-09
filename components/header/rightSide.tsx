@@ -89,9 +89,9 @@ const RightSide = () => {
         <Refresh width={15} height={15} fill={isDarkMode ? '#fff' : '#000'}/>
       </HoverIcon>
 
-      <HoverIcon isDarkMode={isDarkMode} onPress={() => router.replace('/')}>
+      {/* <HoverIcon isDarkMode={isDarkMode} onPress={() => router.replace('/')}>
         <House width={15} height={15} fill={isDarkMode ? '#fff' : '#000'}/>
-      </HoverIcon>
+      </HoverIcon> */}
     </View>
   );
 };
