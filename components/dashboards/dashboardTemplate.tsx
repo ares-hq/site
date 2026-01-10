@@ -332,9 +332,6 @@ export const DashboardTemplate: React.FC<DashboardProps> = ({ seasonYear: initia
           }
         ]}>
           <Picker
-            dropdownIconRippleColor={'transparent'}
-            // dropdownIconColor={isDarkMode ? '#F9FAFB' : '#111827'}
-            dropdownIconColor={'red'}
             selectedValue={seasonYear}
             onValueChange={(itemValue: SupportedYear) => {
               const selectedYear = itemValue as SupportedYear;
@@ -345,20 +342,22 @@ export const DashboardTemplate: React.FC<DashboardProps> = ({ seasonYear: initia
             style={[
               styles.picker,
               { 
-                // color: isDarkMode ? '#F9FAFB' : '#111827',
-                color: 'grey',
+                color: isDarkMode ? '#F9FAFB' : '#111827',
                 outline: 'none',
                 borderWidth: 0,
                 backgroundColor: 'transparent',
                 fontWeight: '600',
                 fontSize: 12,
-                // paddingRight: 24, 
-                // zIndex: 2, 
+                opacity: 0,
+                // position: 'absolute',
                }
             ]}
             itemStyle={[
               styles.pickerItem,
-              // { color: isDarkMode ? '#F9FAFB' : '#111827' }
+              { 
+                // color: isDarkMode ? '#F9FAFB' : '#111827',
+                color: 'red'
+              }
             ]}
           >
             {availableYears.map((year) => (
@@ -369,6 +368,14 @@ export const DashboardTemplate: React.FC<DashboardProps> = ({ seasonYear: initia
               />
             ))}
           </Picker>
+          {/* <Text style={{
+            fontSize: 12,
+            fontWeight: '600',
+            color: isDarkMode ? '#F9FAFB' : '#111827',
+            pointerEvents: 'none'
+          }}>
+            {GAME_NAMES[seasonYear]}
+          </Text> */}
         </View>
       </View>
 
