@@ -10,6 +10,7 @@ import {
   Dimensions,
   RefreshControl,
   ScrollView,
+  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View
@@ -183,6 +184,7 @@ function InnerLayout() {
   if (pathname.includes('/auth')) {
     return (
       <View style={[{ flex: 1 }, { backgroundColor: theme.backgroundColor }]}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={theme.backgroundColor} />
         <Slot />
       </View>
     );
@@ -191,6 +193,7 @@ function InnerLayout() {
   if (isDesktop) {
     return (
       <View style={[styles2.container, { backgroundColor: theme.backgroundColor }]}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={theme.backgroundColor} />
         <Animated.View style={[styles2.sidebar, { width: sidebarWidth, backgroundColor: theme.sidebarBackground }]}>
           {sidebarVisible && <LeftSidebar close={() => setSidebarVisible(false)} />}
         </Animated.View>
@@ -215,6 +218,7 @@ function InnerLayout() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={theme.backgroundColor} />
       <View style={[styles.contentArea, { backgroundColor: theme.backgroundColor }]}>
         <HeaderBar toggleSidebar={() => setSidebarVisible(!sidebarVisible)} currentPage={currentPage} />
         <ScrollView 

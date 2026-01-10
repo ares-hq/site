@@ -318,6 +318,7 @@ export default function DataTable({ teams, data, selectedYear = 2025 }: DataTabl
         data={paginated}
         keyExtractor={(item) => item.teamNumber?.toString() || 'unknown'}
         renderItem={renderItem}
+        scrollEnabled={false}
         ListEmptyComponent={<Text style={{ textAlign: 'center', padding: 20, color: isDarkMode ? '#fff' : '#000' }}>No results.</Text>}
       />
 
