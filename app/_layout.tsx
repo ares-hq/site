@@ -231,7 +231,13 @@ function InnerLayout() {
       </View>
 
       {sidebarVisible && (
-        <Animated.View style={[styles.blurOverlay, { opacity: overlayOpacity }]} />
+        <Animated.View style={[styles.blurOverlay, { opacity: overlayOpacity }]}>
+          <TouchableOpacity 
+            style={{ flex: 1 }}
+            onPress={() => setSidebarVisible(false)}
+            activeOpacity={1}
+          />
+        </Animated.View>
       )}
 
       <Animated.View style={[

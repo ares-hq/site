@@ -332,6 +332,7 @@ export const DashboardTemplate: React.FC<DashboardProps> = ({ seasonYear: initia
           }
         ]}>
           <Picker
+            dropdownIconColor={isDarkMode ? '#F9FAFB' : '#111827'}
             selectedValue={seasonYear}
             onValueChange={(itemValue: SupportedYear) => {
               const selectedYear = itemValue as SupportedYear;
@@ -343,16 +344,16 @@ export const DashboardTemplate: React.FC<DashboardProps> = ({ seasonYear: initia
               styles.picker,
               { 
                 color: isDarkMode ? '#F9FAFB' : '#111827',
+                textDecorationColor: isDarkMode ? '#F9FAFB' : '#111827',
                 outline: 'none',
                 borderWidth: 0,
                 backgroundColor: 'transparent',
-                // backgroundColor: isDarkMode ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)',
                 fontWeight: '500',
                }
             ]}
             itemStyle={[
               styles.pickerItem,
-              { color: isDarkMode ? '#E5E7EB' : '#374151' }
+              { color: isDarkMode ? '#F9FAFB' : '#111827' }
             ]}
           >
             {availableYears.map((year) => (
@@ -480,20 +481,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 9,
+    marginBottom: 13,
   },
   header: {
-    // paddingHorizontal: 15,
-    // marginHorizontal: 20,
     fontSize: 15,
     fontWeight: '600',
   },
   seasonBadge: {
-    // marginHorizontal: 20,
     paddingHorizontal: 7,
-    // paddingVertical: 6,
     borderRadius: 20,
-    // backgroundColor: '#fff'
   },
   picker: {
     height: 28,

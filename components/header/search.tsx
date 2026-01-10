@@ -206,9 +206,9 @@ const SearchDropdown: React.FC<Props> = ({
           },
         ]}
       >
-        <View style={[styles.iconWrap, { backgroundColor: theme.chipBg }]}>
+        {/* <View style={[styles.iconWrap, { backgroundColor: theme.chipBg }]}>
           <Feather name="users" size={14} color={theme.sub} />
-        </View>
+        </View> */}
         <View style={styles.rowText}>
           <Text style={[styles.rowTitle, { color: theme.text }]} numberOfLines={1}>
             {item.title}
@@ -272,10 +272,10 @@ const SearchDropdown: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  wrap: { position: 'relative', width: 200, zIndex: 99999 },
+  wrap: { position: 'relative', width: 225, zIndex: 99999 },
   inputWrap: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 11, paddingVertical: 4, borderRadius: 9 },
   searchIcon: { marginRight: 7 },
-  input: { fontSize: 13, padding: 0, borderWidth: 0, width: 140, outlineStyle: 'none' } as any,
+  input: { fontSize: 13, padding: 0, borderWidth: 0, width: 175, outlineStyle: 'none' } as any,
   keyHint: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 4, borderWidth: 1 },
   keyText: { fontSize: 10, fontWeight: '500' },
   panel: { position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 6, borderRadius: 10, borderWidth: 1, overflow: 'hidden' },

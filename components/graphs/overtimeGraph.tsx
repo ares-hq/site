@@ -435,8 +435,8 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
                 tickLine={false}
                 tick={{ 
                   fontSize: 10, 
-                  fill: isDarkMode ? '#6B7280' : '#9ca3af', 
-                  fontFamily: 'Inter' 
+                  fill: isDarkMode ? '#9CA3AF' : '#6b7280', 
+                  fontFamily: 'Arial' 
                 }}
                 tickMargin={15}
                 interval={(matchData.length > 9) ? Math.ceil((matchData.length - 2) / 8) : 0}
@@ -446,8 +446,8 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
                 tickLine={false}
                 tick={{ 
                   fontSize: 10, 
-                  fill: isDarkMode ? '#6B7280' : '#9ca3af', 
-                  fontFamily: 'Inter' 
+                  fill: isDarkMode ? '#9CA3AF' : '#6b7280', 
+                  fontFamily: 'Arial' 
                 }}
                 tickCount={4}
                 tickMargin={15}

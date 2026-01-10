@@ -236,6 +236,7 @@ export default function DataTable({ teams, data, selectedYear = 2025 }: DataTabl
           style={[
             styles.input,
             {
+              outline: 'none',
               backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#fff',
               borderColor: isDarkMode ? '#4B5563' : '#e5e7eb',
               color: isDarkMode ? '#fff' : '#000'
@@ -363,6 +364,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   input: {
+    outline: 'none',
     borderWidth: 1,
     padding: 10,
     borderRadius: 8,

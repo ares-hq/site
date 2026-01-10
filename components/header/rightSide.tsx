@@ -66,18 +66,6 @@ const RightSide = () => {
         <SearchDropdown
           year={2025}
           zIndex={999999}
-          onSelectTeam={(num) => {
-            // router.push(`/teams/${num}?year=${currentYear}`);
-            console.log('navigate to team', num, 'for year', currentYear);
-          }}
-          onSelectAux={(id) => {
-            // map to your routes
-            // if (id === 'analysts') router.push('/analysts');
-            // if (id === 'favorites') router.push('/favorites');
-            // if (id === 'watchlist') router.push('/watchlist');
-            // if (id === 'stats') router.push('/stats');
-            console.log('aux', id);
-          }}
         />
       </View>
 
