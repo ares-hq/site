@@ -344,11 +344,13 @@ export const DashboardTemplate: React.FC<DashboardProps> = ({ seasonYear: initia
               styles.picker,
               { 
                 color: isDarkMode ? '#F9FAFB' : '#111827',
-                textDecorationColor: isDarkMode ? '#F9FAFB' : '#111827',
                 outline: 'none',
                 borderWidth: 0,
                 backgroundColor: 'transparent',
-                fontWeight: '500',
+                fontWeight: '600',
+                fontSize: 12,
+                paddingRight: 24, 
+                zIndex: 2, 
                }
             ]}
             itemStyle={[
