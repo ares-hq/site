@@ -8,7 +8,6 @@ import EventScores from '@/components/graphs/eventScores';
 import UserGraphSection from '@/components/graphs/overtimeGraph';
 import EventCard from '@/components/teamInfo/eventCard';
 import InfoBlock from '@/components/teamInfo/infoBlock';
-import Caret from '../../assets/icons/caret-up-down-bold.svg';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { Feather } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
@@ -22,6 +21,7 @@ import {
   Text,
   View
 } from 'react-native';
+import Caret from '../../assets/icons/caret-up-down-bold.svg';
 
 type StatCardProps = {
   title: string;
@@ -29,9 +29,10 @@ type StatCardProps = {
   change: string;
   positive: boolean;
   color: 'blue' | 'indigo';
+  isMobile?: boolean;
 };
 
-const StatCard = ({ title, value, change, positive, color }: StatCardProps) => {
+const StatCard = ({ title, value, change, positive, color, isMobile }: StatCardProps) => {
   const { isDarkMode } = useDarkMode();
   
   const getBackgroundColor = () => {
@@ -44,23 +45,26 @@ const StatCard = ({ title, value, change, positive, color }: StatCardProps) => {
   const textColor = positive ? '#16a34a' : '#dc2626';
 
   return (
-    <View style={[styles.card, { backgroundColor: getBackgroundColor() }]}>
+    <View style={[
+      isMobile ? styles.cardMobile : styles.card,
+      { backgroundColor: getBackgroundColor() }
+    ]}>
       <Text style={[
-        styles.title,
+        isMobile ? styles.titleMobile : styles.title,
         { color: isDarkMode ? '#D1D5DB' : '#6b7280' }
       ]}>
         {title}
       </Text>
-      <View style={styles.row}>
+      <View style={isMobile ? styles.rowMobile : styles.row}>
         <Text style={[
-          styles.value,
+          isMobile ? styles.valueMobile : styles.value,
           { color: isDarkMode ? '#F9FAFB' : '#000' }
         ]}>
           {value}
         </Text>
         <View style={styles.changeRow}>
           <Text style={[styles.change, { color: textColor }]}>{change}</Text>
-          <Feather name={positive ? 'trending-up' : 'trending-down'} size={11} color={textColor} />
+          <Feather name={positive ? 'trending-up' : 'trending-down'} size={isMobile ? 9 : 11} color={textColor} />
         </View>
       </View>
     </View>
@@ -246,7 +250,13 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const { width } = event.nativeEvent.layout;
-    setContainerWidth(width);
+    // Only update if width changed significantly (more than 5px difference)
+    setContainerWidth((prevWidth) => {
+      if (Math.abs(width - prevWidth) > 5) {
+        return width;
+      }
+      return prevWidth;
+    });
   };
 
   const getSeasonDisplayText = () => {
@@ -338,119 +348,73 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
           }
         ]}>
           <View style={{ position: 'relative' }}>
-  <Picker
-    selectedValue={seasonYear}
-    onValueChange={(itemValue: SupportedYear) => {
-      const selectedYear = itemValue as SupportedYear;
-      const route = YEAR_TO_ROUTE[selectedYear];
-      const queryString = teamnumber ? `?teamnumber=${teamnumber}` : '';
-      router.push(`/dashboards/${route}${queryString}` as any);
-    }}
-    style={[
-      styles.picker,
-      { 
-        outline: 'none',
-        borderWidth: 0,
-        backgroundColor: 'transparent',
-        fontWeight: '600',
-        fontSize: 12,
-        opacity: 0.0, // Nearly invisible but still clickable
-        position: 'absolute',
-        height: '100%',
-        width: '100%',
-        zIndex: 10,
-      }
-    ]}
-    itemStyle={[
-      styles.pickerItem,
-      { 
-        color: 'red'
-      }
-    ]}
-  >
-    {availableYears.map((year) => (
-      <Picker.Item 
-        key={year} 
-        label={GAME_NAMES[year]} 
-        value={year}
-        style={{color: 'red'}}
-      />
-    ))}
-  </Picker>
+            <Picker
+              selectedValue={seasonYear}
+              onValueChange={(itemValue: SupportedYear) => {
+                const selectedYear = itemValue as SupportedYear;
+                const route = YEAR_TO_ROUTE[selectedYear];
+                const queryString = teamnumber ? `?teamnumber=${teamnumber}` : '';
+                router.push(`/dashboards/${route}${queryString}` as any);
+              }}
+              style={[
+                styles.picker,
+                { 
+                  outline: 'none',
+                  borderWidth: 0,
+                  backgroundColor: 'transparent',
+                  fontWeight: '600',
+                  fontSize: 12,
+                  opacity: 0.0, // Nearly invisible but still clickable
+                  position: 'absolute',
+                  height: '100%',
+                  width: '100%',
+                  zIndex: 10,
+                }
+              ]}
+              itemStyle={[
+                styles.pickerItem,
+                { 
+                  color: 'red'
+                }
+              ]}
+            >
+              {availableYears.map((year) => (
+                <Picker.Item 
+                  key={year} 
+                  label={GAME_NAMES[year]} 
+                  value={year}
+                  style={{color: 'red'}}
+                />
+              ))}
+            </Picker>
 
-  {/* Custom Icon Overlay */}
-  <View 
-    style={{
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 8,
-      paddingVertical: 8,
-      pointerEvents: 'none',
-      width: 160,
-    }}
-  >
-    <Text style={{
-      color: isDarkMode ? '#F9FAFB' : '#111827',
-      fontSize: 12,
-      fontWeight: '600',
-      flex: 1,
-      // alignSelf: 'flex-end'
-    }}>
-      {GAME_NAMES[seasonYear]}
-    </Text>
-        <Caret width={12} height={12} fill={isDarkMode ? '#F9FAFB' : '#111827'} stroke={isDarkMode ? '#F9FAFB' : '#111827'} strokeWidth={7}/>
-  </View>
-</View>
-          {/* <Picker
-            selectedValue={seasonYear}
-            onValueChange={(itemValue: SupportedYear) => {
-              const selectedYear = itemValue as SupportedYear;
-              const route = YEAR_TO_ROUTE[selectedYear];
-              const queryString = teamnumber ? `?teamnumber=${teamnumber}` : '';
-              router.push(`/dashboards/${route}${queryString}` as any);
-            }}
-            style={[
-              styles.picker,
-              { 
-                // color: isDarkMode ? '#F9FAFB' : '#111827',
-                outline: 'none',
-                borderWidth: 0,
-                backgroundColor: 'transparent',
-                fontWeight: '600',
+            {/* Custom Icon Overlay */}
+            <View 
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 7,
+                paddingVertical: 7,
+                pointerEvents: 'none',
+                width: 160,
+              }}
+            >
+              <Text style={{
+                color: isDarkMode ? '#F9FAFB' : '#111827',
                 fontSize: 12,
-                // opacity: 0,
-                // position: 'absolute',
-               }
-            ]}
-            itemStyle={[
-              styles.pickerItem,
-              { 
-                // color: isDarkMode ? '#F9FAFB' : '#111827',
-                color: 'red'
-              }
-            ]}
-          >
-            {availableYears.map((year) => (
-              <Picker.Item 
-                key={year} 
-                label={GAME_NAMES[year]} 
-                value={year}
-                style={{color: 'red'}}
-              />
-            ))}
-          </Picker> */}
-          {/* <Text style={{
-            fontSize: 12,
-            fontWeight: '600',
-            color: isDarkMode ? '#F9FAFB' : '#111827',
-            pointerEvents: 'none'
-          }}>
-            {GAME_NAMES[seasonYear]}
-          </Text> */}
+                fontWeight: '600',
+                flex: 1,
+                // alignSelf: 'flex-end'
+              }}>
+                {GAME_NAMES[seasonYear]}
+              </Text>
+                  <Caret width={12} height={12} fill={isDarkMode ? '#F9FAFB' : '#111827'} stroke={isDarkMode ? '#F9FAFB' : '#111827'} strokeWidth={7}/>
+            </View>
+          </View>
         </View>
       </View>
 
-      <View style={styles.cardRow}>
+      <View style={containerWidth < 900 ? styles.cardRowMobile : styles.cardRow}>
         <StatCard 
           title={`Auto OPR`}
           value={teamInfo?.autoOPR?.toFixed(2) ?? '--'} 
@@ -460,7 +424,8 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
               : '--'
           }
           positive={!!(averageOPR && teamInfo?.autoOPR != null && teamInfo.autoOPR - averageOPR.autoOPR >= 0)}
-          color="indigo" 
+          color="indigo"
+          isMobile={containerWidth < 900}
         />
         <StatCard 
           title="TeleOp OPR" 
@@ -471,7 +436,8 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
               : '--'
           }
           positive={!!(averageOPR && teamInfo?.teleOPR != null && teamInfo.teleOPR - averageOPR.teleOPR >= 0)}
-          color="blue" 
+          color="blue"
+          isMobile={containerWidth < 900}
         />
         <StatCard 
           title="Endgame OPR" 
@@ -482,7 +448,8 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
               : '--'
           }
           positive={!!(averageOPR && teamInfo?.endgameOPR != null && teamInfo.endgameOPR - averageOPR.endgameOPR >= 0)}
-          color="indigo" 
+          color="indigo"
+          isMobile={containerWidth < 900}
         />
         <StatCard 
           title="Overall OPR" 
@@ -493,7 +460,8 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
               : '--'
           }
           positive={!!(averageOPR && teamInfo?.overallOPR != null && teamInfo.overallOPR - averageOPR.overallOPR >= 0)}
-          color="blue" 
+          color="blue"
+          isMobile={containerWidth < 900}
         />
       </View>
 
@@ -592,6 +560,12 @@ const styles = StyleSheet.create({
     gap: 13,
     marginBottom: 13,
   },
+  cardRowMobile: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 10,
+  },
   card: {
     flex: 1,
     minWidth: 220,
@@ -599,9 +573,21 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     padding: 20,
   },
+  cardMobile: {
+    flex: 1,
+    minWidth: 160,
+    height: 80,
+    borderRadius: 10,
+    padding: 12,
+    justifyContent: 'center',
+  },
   title: {
     fontSize: 15,
     marginBottom: 9,
+  },
+  titleMobile: {
+    fontSize: 12,
+    marginBottom: 10,
   },
   row: {
     flexDirection: 'row',
@@ -609,8 +595,17 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 20,
   },
+  rowMobile: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
   value: {
     fontSize: 26,
+    fontWeight: '700',
+  },
+  valueMobile: {
+    fontSize: 18,
     fontWeight: '700',
   },
   changeRow: {
