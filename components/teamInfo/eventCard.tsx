@@ -106,14 +106,14 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
           <View style={[styles.mobileAllianceCell, styles.redAlliance, { backgroundColor: isDarkMode ? '#3B1F1F' : '#FEF2F2' }]}>
             {[teamRed.team_1, teamRed.team_2].filter(Boolean).map((t, idx) => (
               <Text key={idx} style={[styles.mobileTeamText, { color: isDarkMode ? '#FCA5A5' : '#DC2626' }]} numberOfLines={1}>
-                {t?.teamNumber} • {t?.teamName}
+                <Text style={{ fontWeight: '700' }}>{t?.teamNumber}</Text> • {t?.teamName}
               </Text>
             ))}
           </View>
           <View style={[styles.mobileAllianceCell, styles.blueAlliance, { backgroundColor: isDarkMode ? '#1F2F3F' : '#EFF6FF' }]}>
             {[teamBlue.team_1, teamBlue.team_2].filter(Boolean).map((t, idx) => (
               <Text key={idx} style={[styles.mobileTeamText, { color: isDarkMode ? '#93C5FD' : '#2563EB' }]} numberOfLines={1}>
-                {t?.teamNumber} • {t?.teamName}
+                <Text style={{ fontWeight: '800' }}>{t?.teamNumber}</Text> • {t?.teamName}
               </Text>
             ))}
           </View>
@@ -403,6 +403,18 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
             </View>
               </View>
             )}
+            {isSmallDevice && (
+              <View style={[
+                styles.mobileTableHeader,
+                {
+                  backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9FAFB',
+                  borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB',
+                }
+              ]}>
+                <Text style={[styles.mobileHeaderText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Match</Text>
+                <Text style={[styles.mobileHeaderText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Score</Text>
+              </View>
+            )}
             {matches.map(renderMatchRow)}
           </View>
         </View>
@@ -599,7 +611,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderBottomWidth: 1,
     minHeight: 50,
-    transition: 'background-color 0.2s ease',
   },
   tableRowSmall: {
     minHeight: 50,
@@ -609,6 +620,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     paddingVertical: 12,
     paddingHorizontal: 8,
+  },
+  mobileTableHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+  },
+  mobileHeaderText: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   mobileMatchInfo: {
     flexDirection: 'row',
