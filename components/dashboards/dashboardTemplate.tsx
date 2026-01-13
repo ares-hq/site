@@ -348,7 +348,7 @@ export const DashboardTemplate: React.FC<DashboardProps> = ({ seasonYear: initia
                 backgroundColor: 'transparent',
                 fontWeight: '600',
                 fontSize: 12,
-                opacity: 0,
+                // opacity: 0,
                 // position: 'absolute',
                }
             ]}
