@@ -1,5 +1,6 @@
 import { useDarkMode } from "@/context/DarkModeContext";
 import { useNavigation } from "@react-navigation/native";
+import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function NotFoundScreen() {
@@ -25,7 +26,7 @@ export default function NotFoundScreen() {
       </Text>
 
       <Pressable 
-        onPress={() => navigation.goBack()} 
+        onPress={() => router.push('/')} 
         style={[
           styles.button,
           { backgroundColor: isDarkMode ? '#4B5563' : '#000' }
@@ -35,7 +36,7 @@ export default function NotFoundScreen() {
           styles.buttonText,
           { color: isDarkMode ? '#F3F4F6' : '#fff' }
         ]}>
-          Go back
+          Go Home
         </Text>
       </Pressable>
     </View>

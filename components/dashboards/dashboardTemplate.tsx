@@ -8,8 +8,10 @@ import EventScores from '@/components/graphs/eventScores';
 import UserGraphSection from '@/components/graphs/overtimeGraph';
 import EventCard from '@/components/teamInfo/eventCard';
 import InfoBlock from '@/components/teamInfo/infoBlock';
+import Caret from '../../assets/icons/caret-up-down-bold.svg';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { Feather } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -20,7 +22,6 @@ import {
   Text,
   View
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 
 type StatCardProps = {
   title: string;
@@ -90,15 +91,14 @@ interface DashboardProps {
   seasonYear: SupportedYear;
 }
 
-export const DashboardTemplate: React.FC<DashboardProps> = ({ seasonYear: initialSeasonYear }) => {
+export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { setPageTitleInfo } = usePageTitleContext();
   const teamParam = Array.isArray(params.teamnumber) ? params.teamnumber[0] : params.teamnumber;
-  
+
   const { teamnumber } = useLocalSearchParams();
   const [containerWidth, setContainerWidth] = useState(0);
-  const [seasonYear, setSeasonYear] = useState<SupportedYear>(initialSeasonYear);
   const [availableYears, setAvailableYears] = useState<SupportedYear[]>([]);
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(null);
   const [matches, setMatches] = useState<AllianceInfo[] | null>(null);
@@ -192,8 +192,10 @@ export const DashboardTemplate: React.FC<DashboardProps> = ({ seasonYear: initia
           return;
         }
 
-        const data = await getTeamInfo(teamNumber, seasonYear);
-        console.log('Team info received:', data);
+        const [data, avg] = await Promise.all([
+          getTeamInfo(teamNumber, seasonYear),
+          getAverageOPRs(seasonYear),
+        ]);
         
         if (!data) {
           setNoDataForYear(true);
@@ -201,12 +203,16 @@ export const DashboardTemplate: React.FC<DashboardProps> = ({ seasonYear: initia
           return;
         }
         
-        const avg = await getAverageOPRs(seasonYear);
         const match = await getTeamMatches(teamNumber, seasonYear);
-        const enhancedMatches = await attachHourlyAverages(match ?? [], seasonYear);
-        const matchType = await getAverageByMatchType(match ?? []);
+
+        const [enhancedMatches, matchType, wins] = await Promise.all([
+          attachHourlyAverages(match ?? [], seasonYear),
+          getAverageByMatchType(match ?? []),
+          getWins(match ?? []),
+        ]);
+        
+        
         const highScore = match?.reduce((max, m) => Math.max(max, m.totalPoints), 0) ?? 0;
-        const wins = await getWins(match ?? []);
         
         const events = data?.events ?? [];
         console.log('Events for team:', events);
@@ -331,7 +337,71 @@ export const DashboardTemplate: React.FC<DashboardProps> = ({ seasonYear: initia
             backgroundColor: isDarkMode ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
           }
         ]}>
-          <Picker
+          <View style={{ position: 'relative' }}>
+  <Picker
+    selectedValue={seasonYear}
+    onValueChange={(itemValue: SupportedYear) => {
+      const selectedYear = itemValue as SupportedYear;
+      const route = YEAR_TO_ROUTE[selectedYear];
+      const queryString = teamnumber ? `?teamnumber=${teamnumber}` : '';
+      router.push(`/dashboards/${route}${queryString}` as any);
+    }}
+    style={[
+      styles.picker,
+      { 
+        outline: 'none',
+        borderWidth: 0,
+        backgroundColor: 'transparent',
+        fontWeight: '600',
+        fontSize: 12,
+        opacity: 0.0, // Nearly invisible but still clickable
+        position: 'absolute',
+        height: '100%',
+        width: '100%',
+        zIndex: 10,
+      }
+    ]}
+    itemStyle={[
+      styles.pickerItem,
+      { 
+        color: 'red'
+      }
+    ]}
+  >
+    {availableYears.map((year) => (
+      <Picker.Item 
+        key={year} 
+        label={GAME_NAMES[year]} 
+        value={year}
+        style={{color: 'red'}}
+      />
+    ))}
+  </Picker>
+
+  {/* Custom Icon Overlay */}
+  <View 
+    style={{
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 8,
+      paddingVertical: 8,
+      pointerEvents: 'none',
+      width: 160,
+    }}
+  >
+    <Text style={{
+      color: isDarkMode ? '#F9FAFB' : '#111827',
+      fontSize: 12,
+      fontWeight: '600',
+      flex: 1,
+      // alignSelf: 'flex-end'
+    }}>
+      {GAME_NAMES[seasonYear]}
+    </Text>
+        <Caret width={12} height={12} fill={isDarkMode ? '#F9FAFB' : '#111827'} stroke={isDarkMode ? '#F9FAFB' : '#111827'} strokeWidth={7}/>
+  </View>
+</View>
+          {/* <Picker
             selectedValue={seasonYear}
             onValueChange={(itemValue: SupportedYear) => {
               const selectedYear = itemValue as SupportedYear;
@@ -342,7 +412,7 @@ export const DashboardTemplate: React.FC<DashboardProps> = ({ seasonYear: initia
             style={[
               styles.picker,
               { 
-                color: isDarkMode ? '#F9FAFB' : '#111827',
+                // color: isDarkMode ? '#F9FAFB' : '#111827',
                 outline: 'none',
                 borderWidth: 0,
                 backgroundColor: 'transparent',
@@ -365,9 +435,10 @@ export const DashboardTemplate: React.FC<DashboardProps> = ({ seasonYear: initia
                 key={year} 
                 label={GAME_NAMES[year]} 
                 value={year}
+                style={{color: 'red'}}
               />
             ))}
-          </Picker>
+          </Picker> */}
           {/* <Text style={{
             fontSize: 12,
             fontWeight: '600',
