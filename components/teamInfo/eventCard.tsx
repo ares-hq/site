@@ -1,19 +1,18 @@
-import React, { useMemo } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Linking,
-  TouchableOpacity,
-  ScrollView,
-  useWindowDimensions,
-} from 'react-native';
-import TrophyIcon from '@/assets/icons/trophy.svg';
-import LocationIcon from '@/assets/icons/map-pin.svg';
-import CalendarIcon from '@/assets/icons/calendar.svg';
-import TopScore from '@/assets/icons/ranking.svg';
 import { AllianceInfo, EventInfo, MatchInfo } from '@/api/types';
+import CalendarIcon from '@/assets/icons/calendar.svg';
+import LocationIcon from '@/assets/icons/map-pin.svg';
+import TopScore from '@/assets/icons/ranking.svg';
+import TrophyIcon from '@/assets/icons/trophy.svg';
 import { useDarkMode } from '@/context/DarkModeContext';
+import React, { useState } from 'react';
+import {
+  Linking,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View
+} from 'react-native';
 
 interface UserGraphSectionProps {
   eventData: EventInfo;
@@ -35,7 +34,7 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
   };
 
   const status = getEventStatus(eventData.date);
-  const isSmallDevice = width < 380;
+  const isSmallDevice = width < 768;
   const isLargeDevice = width >= 768;
   const matches = eventData.matches || [];
 
@@ -61,8 +60,8 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
         teams.map((t, index) => (
           <View key={index} style={[styles.teamRow, isSmallDevice && styles.teamRowSmall]}>
             <View style={styles.teamInfo}>
-              <Text style={[styles.teamNumber, { color: isDarkMode ? (isRedAlliance ? '#FCA5A5' : '#93C5FD') : isRedAlliance ? '#DC2626' : '#2563EB' }, isSmallDevice && styles.teamNumberSmall]}>Team {t?.teamNumber}</Text>
-              <Text style={[styles.teamName, { color: isDarkMode ? (isRedAlliance ? '#F87171' : '#60A5FA') : isRedAlliance ? '#B91C1C' : '#1D4ED8' }, isSmallDevice && styles.teamNameSmall]}>{t?.teamName}</Text>
+              <Text style={[styles.teamNumber, { color: isDarkMode ? (isRedAlliance ? '#FCA5A5' : '#93C5FD') : isRedAlliance ? '#DC2626' : '#2563EB' }, isSmallDevice && styles.teamNumberSmall]} numberOfLines={1}>Team {t?.teamNumber}</Text>
+              <Text style={[styles.teamName, { color: isDarkMode ? (isRedAlliance ? '#F87171' : '#60A5FA') : isRedAlliance ? '#B91C1C' : '#1D4ED8' }, isSmallDevice && styles.teamNameSmall]} numberOfLines={2} ellipsizeMode="tail">{t?.teamName}</Text>
             </View>
           </View>
         ))
@@ -71,6 +70,7 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
   };
 
   const renderMatchRow = (match: MatchInfo, index: number) => {
+    const [isHovered, setIsHovered] = useState(false);
     const isLastRow = index === matches.length - 1;
     const teamRed = match.redAlliance;
     const teamBlue = match.blueAlliance;
@@ -84,8 +84,58 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
     const badgeTextColor = teamColor === 'red'
       ? isDarkMode ? '#FCA5A5' : '#DC2626'
       : isDarkMode ? '#93C5FD' : '#2563EB';
+    
+    const hoverColor = teamColor === 'red'
+      ? isDarkMode ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.05)'
+      : isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)';
+    
+    if (isSmallDevice) {
+      // Mobile layout: fully stacked vertically, each alliance full width
+      return (
+        <View key={index} style={[styles.tableRowMobileStacked, { borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB' }, isLastRow && styles.lastRow]}>
+          <View style={styles.mobileMatchInfo}>
+            <View style={[styles.matchBadge, badgeStyle]}>
+              <Text style={[styles.matchText, { color: badgeTextColor }, styles.matchTextSmall]}>{match.matchNumber}</Text>
+            </View>
+            <View style={styles.mobileScoreDisplay}>
+              <Text style={[styles.scoreNumber, match.redAlliance.win ? styles.winningScore : styles.losingScore, styles.scoreNumberSmall]}>{redScore}</Text>
+              <Text style={[styles.scoreDivider, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }, styles.scoreDividerSmall]}>-</Text>
+              <Text style={[styles.scoreNumber, match.blueAlliance.win ? styles.winningScore : styles.losingScore, styles.scoreNumberSmall]}>{blueScore}</Text>
+            </View>
+          </View>
+          <View style={[styles.mobileAllianceCell, styles.redAlliance, { backgroundColor: isDarkMode ? '#3B1F1F' : '#FEF2F2' }]}>
+            {[teamRed.team_1, teamRed.team_2].filter(Boolean).map((t, idx) => (
+              <Text key={idx} style={[styles.mobileTeamText, { color: isDarkMode ? '#FCA5A5' : '#DC2626' }]} numberOfLines={1}>
+                {t?.teamNumber} • {t?.teamName}
+              </Text>
+            ))}
+          </View>
+          <View style={[styles.mobileAllianceCell, styles.blueAlliance, { backgroundColor: isDarkMode ? '#1F2F3F' : '#EFF6FF' }]}>
+            {[teamBlue.team_1, teamBlue.team_2].filter(Boolean).map((t, idx) => (
+              <Text key={idx} style={[styles.mobileTeamText, { color: isDarkMode ? '#93C5FD' : '#2563EB' }]} numberOfLines={1}>
+                {t?.teamNumber} • {t?.teamName}
+              </Text>
+            ))}
+          </View>
+        </View>
+      );
+    }
+    
+    // Desktop layout: horizontal
     return (
-      <View key={index} style={[styles.tableRow, { borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB' }, isLastRow && styles.lastRow, isSmallDevice && styles.tableRowSmall]}>
+      <View 
+        key={index} 
+        style={[
+          styles.tableRow, 
+          { borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB' }, 
+          isLastRow && styles.lastRow, 
+          isSmallDevice && styles.tableRowSmall,
+          isHovered && { backgroundColor: hoverColor }
+        ]}
+        // @ts-ignore - Web only props
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         <View style={[styles.matchCell, isSmallDevice && styles.matchCellSmall]}>
           <View style={[styles.matchBadge, badgeStyle]}>
             <Text style={[styles.matchText, { color: badgeTextColor }, isSmallDevice && styles.matchTextSmall]}>{match.matchNumber}</Text>
@@ -303,64 +353,11 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
           ]}>
             Match Results
           </Text>
-          {width < 600 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={[
-                styles.table,
-                { borderColor: isDarkMode ? '#374151' : '#E5E7EB' }
-              ]}>
-                <View style={[
-                  styles.tableHeader,
-                  {
-                    backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9FAFB',
-                    borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB',
-                  }
-                ]}>
-                  <View style={[styles.matchHeaderCell, isSmallDevice && styles.matchHeaderCellSmall]}>
-                  <Text style={[
-                    styles.headerText,
-                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                    isSmallDevice && styles.headerTextSmall
-                  ]}>
-                    Match
-                  </Text>
-                </View>
-                <View style={[styles.scoreHeaderCell, isSmallDevice && styles.scoreHeaderCellSmall]}>
-                  <Text style={[
-                    styles.headerText,
-                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                    isSmallDevice && styles.headerTextSmall
-                  ]}>
-                    Score
-                  </Text>
-                </View>
-                <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
-                  <Text style={[
-                    styles.headerText,
-                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                    isSmallDevice && styles.headerTextSmall
-                  ]}>
-                    Red Alliance
-                  </Text>
-                </View>
-                <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
-                  <Text style={[
-                    styles.headerText,
-                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                    isSmallDevice && styles.headerTextSmall
-                  ]}>
-                    Blue Alliance
-                  </Text>
-                </View>
-                </View>
-                {matches.map(renderMatchRow)}
-              </View>
-            </ScrollView>
-          ) : (
-            <View style={[
-              styles.table,
-              { borderColor: isDarkMode ? '#374151' : '#E5E7EB' }
-            ]}>
+          <View style={[
+            styles.table,
+            { borderColor: isDarkMode ? '#374151' : '#E5E7EB' }
+          ]}>
+            {!isSmallDevice && (
               <View style={[
                 styles.tableHeader,
                 {
@@ -369,45 +366,45 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
                 }
               ]}>
                 <View style={[styles.matchHeaderCell, isSmallDevice && styles.matchHeaderCellSmall]}>
-                  <Text style={[
-                    styles.headerText,
-                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                    isSmallDevice && styles.headerTextSmall
-                  ]}>
-                    Match
-                  </Text>
-                </View>
-                <View style={[styles.scoreHeaderCell, isSmallDevice && styles.scoreHeaderCellSmall]}>
-                  <Text style={[
-                    styles.headerText,
-                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                    isSmallDevice && styles.headerTextSmall
-                  ]}>
-                    Score
-                  </Text>
-                </View>
-                <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
-                  <Text style={[
-                    styles.headerText,
-                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                    isSmallDevice && styles.headerTextSmall
-                  ]}>
-                    Red Alliance
-                  </Text>
-                </View>
-                <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
-                  <Text style={[
-                    styles.headerText,
-                    { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                    isSmallDevice && styles.headerTextSmall
-                  ]}>
-                    Blue Alliance
-                  </Text>
-                </View>
+                <Text style={[
+                  styles.headerText,
+                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                  isSmallDevice && styles.headerTextSmall
+                ]}>
+                  Match
+                </Text>
               </View>
-              {matches.map(renderMatchRow)}
+              <View style={[styles.scoreHeaderCell, isSmallDevice && styles.scoreHeaderCellSmall]}>
+                <Text style={[
+                  styles.headerText,
+                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                  isSmallDevice && styles.headerTextSmall
+                ]}>
+                  Score
+                </Text>
+              </View>
+              <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
+                <Text style={[
+                  styles.headerText,
+                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                  isSmallDevice && styles.headerTextSmall
+                ]}>
+                  Red Alliance
+                </Text>
+              </View>
+              <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
+                <Text style={[
+                  styles.headerText,
+                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
+                isSmallDevice && styles.headerTextSmall
+              ]}>
+                Blue Alliance
+              </Text>
             </View>
-          )}
+              </View>
+            )}
+            {matches.map(renderMatchRow)}
+          </View>
         </View>
       </View>
     </View>
@@ -592,7 +589,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
     overflow: 'hidden',
-    minWidth: 600,
     width: '100%',
   },
   tableHeader: {
@@ -602,46 +598,84 @@ const styles = StyleSheet.create({
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    minHeight: 80,
+    minHeight: 50,
+    transition: 'background-color 0.2s ease',
   },
   tableRowSmall: {
-    minHeight: 70,
+    minHeight: 50,
+  },
+  tableRowMobileStacked: {
+    flexDirection: 'column',
+    borderBottomWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  mobileMatchInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingBottom: 6,
+  },
+  mobileScoreDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  mobileAllianceCell: {
+    width: '100%',
+    padding: 6,
+    borderLeftWidth: 4,
+    marginBottom: 4,
+  },
+  mobileTeamText: {
+    fontSize: 9,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  mobileRowHeader: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  mobileAlliancesRow: {
+    flexDirection: 'row',
+    gap: 4,
   },
   lastRow: {
     borderBottomWidth: 0,
   },
   matchHeaderCell: {
     flex: 1,
-    minWidth: 70,
-    padding: 16,
+    padding: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   matchHeaderCellSmall: {
-    minWidth: 60,
-    padding: 12,
+    flex: 1,
+    minWidth: 0,
+    padding: 8,
   },
   scoreHeaderCell: {
     flex: 1.2,
-    minWidth: 80,
-    padding: 16,
+    padding: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   scoreHeaderCellSmall: {
-    minWidth: 70,
-    padding: 12,
+    flex: 1.2,
+    minWidth: 0,
+    padding: 8,
   },
   allianceHeaderCell: {
     flex: 2.5,
-    minWidth: 140,
-    padding: 16,
+    padding: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   allianceHeaderCellSmall: {
-    minWidth: 120,
-    padding: 12,
+    flex: 1,
+    minWidth: 0,
+    padding: 8,
   },
   headerText: {
     fontSize: 13,
@@ -655,19 +689,19 @@ const styles = StyleSheet.create({
   },
   matchCell: {
     flex: 1,
-    minWidth: 70,
-    padding: 16,
+    padding: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   matchCellSmall: {
-    minWidth: 60,
-    padding: 12,
+    flex: 0.8,
+    minWidth: 0,
+    padding: 4,
   },
   matchBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
     borderWidth: 1,
   },
   redMatchBadge: {
@@ -683,7 +717,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   matchTextSmall: {
-    fontSize: 11,
+    fontSize: 9,
   },
   redMatchText: {
     color: '#DC2626',
@@ -693,14 +727,14 @@ const styles = StyleSheet.create({
   },
   scoreCell: {
     flex: 1.2,
-    minWidth: 80,
-    padding: 16,
+    padding: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   scoreCellSmall: {
-    minWidth: 70,
-    padding: 12,
+    flex: 1,
+    minWidth: 0,
+    padding: 4,
   },
   scoreContainer: {
     flexDirection: 'row',
@@ -710,7 +744,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   scoreNumberSmall: {
-    fontSize: 16,
+    fontSize: 12,
   },
   winningScore: {
     color: '#34C759',
@@ -723,18 +757,19 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   scoreDividerSmall: {
-    fontSize: 14,
-    marginHorizontal: 6,
+    fontSize: 12,
+    marginHorizontal: 4,
   },
   teamCell: {
     flex: 2.5,
-    minWidth: 140,
-    padding: 12,
+    padding: 8,
     justifyContent: 'center',
   },
   teamCellSmall: {
-    minWidth: 120,
-    padding: 8,
+    flex: 1,
+    minWidth: 0,
+    width: '100%',
+    padding: 4,
   },
   redAlliance: {
     borderLeftWidth: 4,
@@ -748,7 +783,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   teamRowSmall: {
-    marginBottom: 6,
+    marginBottom: 4,
   },
   teamInfo: {
     flexDirection: 'column',
@@ -758,15 +793,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   teamNumberSmall: {
-    fontSize: 12,
+    fontSize: 8,
   },
   teamName: {
     fontSize: 11,
     marginTop: 2,
   },
   teamNameSmall: {
-    fontSize: 9,
-    marginTop: 1,
+    fontSize: 6,
+    marginTop: 0.5,
   },
   redTeamText: {
     color: '#DC2626',
