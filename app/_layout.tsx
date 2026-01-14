@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   container: { flex: 1, flexDirection: 'row' },
   contentArea: { flex: 1, flexDirection: 'column' },
-  pageContent: { flex: 1, padding: 20 },
+  pageContent: { flex: 1, padding: 15 },
   scrollContent: { flexGrow: 1, justifyContent: 'space-between' },
   sidebar: { position: 'absolute', top: 0, left: 0, width: 209, height: '100%', zIndex: 1000 },
   blurOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.3)', zIndex: 999 },

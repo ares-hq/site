@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 0,
+    gap: 10,
     marginBottom: 20,
     paddingHorizontal: 0,
     backgroundColor: 'transparent',
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   containerTablet: {
-    gap: 18,
+    gap: 10,
   },
   infoItemsGrid: {
     flexDirection: 'row',

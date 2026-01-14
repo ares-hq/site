@@ -344,7 +344,7 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
           styles.header,
           { color: isDarkMode ? '#F9FAFB' : '#111827' }
         ]}>
-          Overview - {teamInfo?.teamName} ({teamInfo?.teamNumber})
+          {teamInfo?.teamName} ({teamInfo?.teamNumber}) Overview
         </Text>
         <View style={[
           styles.seasonBadge,
@@ -528,12 +528,12 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
       <View style={styles.eventContainer}>
         {upcomingEvents && upcomingEvents.map((event, index) => (
           <View key={`upcoming-${index}`} style={{ marginBottom: 5, flexShrink: 0 }}>
-            <EventCard eventData={event} teamNumber={teamInfo?.teamNumber || 0} />
+            <EventCard eventData={event} teamNumber={teamInfo?.teamNumber || 0} seasonYear={seasonYear} />
           </View>
         ))}
         {eventData && eventData.map((event, index) => (
           <View key={index} style={{ marginBottom: 5, flexShrink: 0 }}>
-            <EventCard eventData={event} teamNumber={teamInfo?.teamNumber || 0} />
+            <EventCard eventData={event} teamNumber={teamInfo?.teamNumber || 0} seasonYear={seasonYear} />
           </View>
         ))}
       </View>
