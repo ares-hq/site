@@ -616,3 +616,72 @@ export const getTeamProgression = async (
     awardsProgression: summaries.map(s => s.totalAwards),
   };
 };
+
+// ------------------- UPCOMING EVENTS -------------------
+export const getUpcomingEvents = async (season: SupportedYear, team?: number): Promise<EventInfo[]> => {
+  const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+  const headers = { apikey: supabaseAnonKey };
+  
+  try {
+    const eventsRes = await fetchWithRetry(`https://api.ares-bot.com/functions/v1/first/${season}/events?teamNumber=${team}`, headers);
+    
+    if (!eventsRes.events || eventsRes.events.length === 0) {
+      console.log('No events found for season');
+      return [];
+    }
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Filter for future and in-progress events based on end date
+    const upcomingEvents = eventsRes.events.filter((event: any) => {
+      if (!event.dateEnd && !event.dateStart) return false;
+      
+      // Use end date if available, otherwise use start date
+      const eventDate = new Date(event.dateEnd || event.dateStart);
+      eventDate.setHours(23, 59, 59, 999);
+      
+      // Include events that haven't ended yet
+      return eventDate >= today;
+    });
+        
+    // If a team is specified, filter for events where the team is participating
+    let teamEvents = upcomingEvents;
+    
+    // Convert to EventInfo format - simplified for upcoming events
+    const eventPromises = teamEvents.slice(0, 10).map(async (event: any) => {
+      const eventInfo: EventInfo = {
+        name: event.name || 'Unknown Event',
+        location: event.venue || event.city || 'TBD',
+        date: event.dateStart 
+          ? new Date(event.dateStart).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) 
+          : 'TBD',
+        teamCount: 0,
+        winRate: 0,
+        OPR: 0,
+        averageScore: 0,
+        place: 'TBD',
+        record: 'TBD',
+        matches: [],
+        achievements: 'Event Not Started',
+      };
+      
+      return eventInfo;
+    });
+    
+    const eventsWithData = await Promise.all(eventPromises);
+    
+    eventsWithData.sort((b, a) => {
+      const dateA = new Date(a.date || '');
+      const dateB = new Date(b.date || '');
+      return dateA.getTime() - dateB.getTime();
+    });
+    
+    console.log(`Returning ${eventsWithData.length} upcoming events to display`);
+    
+    return eventsWithData;
+  } catch (error) {
+    console.error('Error fetching upcoming events:', error);
+    return [];
+  }
+};

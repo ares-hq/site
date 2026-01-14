@@ -1,6 +1,6 @@
 import { attachHourlyAverages, getAverageByMatchType, getAveragePlace, getAwards } from '@/api/averageMatchScores';
 import { getAverageOPRs, getCurrentUserTeam, getTeamHistoricalData, getTeamInfo, getTeamMatches, getWins, SupportedYear } from '@/api/dashboardInfo';
-import { getFirstAPI } from '@/api/firstAPI';
+import { getFirstAPI, getUpcomingEvents } from '@/api/firstAPI';
 import { AllianceInfo, EventInfo, MatchTypeAverages, TeamInfo } from '@/api/types';
 import { usePageTitleContext } from '@/app/_layout';
 import EventPerformance from '@/components/graphs/eventPerformace';
@@ -106,6 +106,7 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(null);
   const [matches, setMatches] = useState<AllianceInfo[] | null>(null);
   const [eventData, setEventData] = useState<EventInfo[] | null>(null);
+  const [upcomingEvents, setUpcomingEvents] = useState<EventInfo[] | null>(null);
   const [averages, setAverages] = useState<AllianceInfo[] | null>(null);
   const [matchTypeAverages, setMatchTypeAverages] = useState<MatchTypeAverages | null>(null);
   const [wins, setWins] = useState<number | null>(0);
@@ -220,8 +221,12 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
         const events = data?.events ?? [];
         console.log('Events for team:', events);
         
-        const eventData = events.length > 0 ? await getFirstAPI(events, teamNumber, seasonYear) : [];
+        const [eventData, upcomingEventData] = await Promise.all([
+          events.length > 0 ? getFirstAPI(events, teamNumber, seasonYear) : Promise.resolve([]),
+          getUpcomingEvents(seasonYear, teamNumber)
+        ]);
         console.log('Event data received:', eventData);
+        console.log('Upcoming events received:', upcomingEventData);
 
         if (data) {
           data.averagePlace = getAveragePlace(eventData ?? []);
@@ -236,6 +241,7 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
         if (highScore) setHighScore(highScore);
         if (wins) setWins(wins);
         if (eventData) setEventData(eventData);
+        if (upcomingEventData) setUpcomingEvents(upcomingEventData);
         if (matchType) setMatchTypeAverages(matchType);
       } catch (err) {
         console.error('Error fetching dashboard info for year', seasonYear, ':', err);
@@ -520,6 +526,11 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
       </View>
       
       <View style={styles.eventContainer}>
+        {upcomingEvents && upcomingEvents.map((event, index) => (
+          <View key={`upcoming-${index}`} style={{ marginBottom: 5, flexShrink: 0 }}>
+            <EventCard eventData={event} teamNumber={teamInfo?.teamNumber || 0} />
+          </View>
+        ))}
         {eventData && eventData.map((event, index) => (
           <View key={index} style={{ marginBottom: 5, flexShrink: 0 }}>
             <EventCard eventData={event} teamNumber={teamInfo?.teamNumber || 0} />

@@ -38,6 +38,8 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
   const isLargeDevice = width >= 768;
   const matches = eventData.matches || [];
 
+  const isUpcomingEvent = status.label === 'Not Yet Occurred' || status.label === 'Ongoing';
+
   const handleWebsitePress = async () => {
     const url = 'https://www.google.com/search?q=' + eventData.location.replace(/\s+/g, '+');
     try {
@@ -163,6 +165,90 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
     );
   };
 
+  // Simplified view for upcoming events
+  if (isUpcomingEvent) {
+    return (
+      <View style={[
+        // styles.container,
+        { 
+          // backgroundColor: isDarkMode ? 'rgba(254, 243, 199, 0.08)' : 'rgba(254, 243, 199, 0.15)', 
+          marginBottom: 20,
+          borderRadius: 12,
+        }
+      ]}>
+        <View style={[
+          styles.card,
+          {
+            // backgroundColor: isDarkMode ? 'rgba(254, 243, 199, 0.06)' : 'rgba(254, 243, 199, 0.08)',
+            borderWidth: 0,
+          },
+          isSmallDevice && styles.cardSmall,
+          isLargeDevice && styles.cardLarge
+        ]}>
+          <View style={[
+            styles.header,
+            {
+            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#FAFBFC',
+            borderWidth: 0,
+            },
+            isSmallDevice && styles.headerSmall
+          ]}>
+            <View style={styles.titleSection}>
+              <Text style={[
+                styles.title,
+                { color: isDarkMode ? '#F9FAFB' : '#111827' },
+                isSmallDevice ? styles.titleSmall : isLargeDevice ? styles.titleLarge : null
+              ]}>
+                {eventData.name}
+              </Text>
+              <View style={[
+                styles.statusBadge,
+                {
+                  backgroundColor: status.label === 'Not Yet Occurred' ? 'rgba(239, 68, 68, 0.1)' :
+                                   status.label === 'Ongoing' ? 'rgba(245, 158, 11, 0.1)' :
+                                   'rgba(52, 199, 89, 0.1)',
+                  borderColor: status.color,
+                  borderWidth: 1,
+                }
+              ]}>
+                <Text style={[styles.statusText, { color: status.color }]}>
+                  {status.label}
+                </Text>
+              </View>
+            </View>
+            <View>
+              <View style={styles.detailRow}>
+                <View style={styles.iconContainer}>
+                  <CalendarIcon width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} fill={isDarkMode ? '#fff' : '#000'}/>
+                </View>
+                <Text style={[
+                  styles.detailText,
+                  { color: isDarkMode ? '#D1D5DB' : '#374151' },
+                  isSmallDevice && styles.detailTextSmall
+                ]}>
+                  {eventData.date}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={handleWebsitePress} style={styles.locationRow}>
+                <View style={styles.iconContainer}>
+                  <LocationIcon width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} fill={isDarkMode ? '#fff' : '#000'}/>
+                </View>
+                <Text style={[
+                  styles.detailText, 
+                  styles.linkText,
+                  { color: isDarkMode ? '#60A5FA' : '#2563EB' },
+                  isSmallDevice && styles.detailTextSmall
+                ]}>
+                  {eventData.location}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={[
       styles.container,
@@ -195,7 +281,16 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
               {eventData.name}
             </Text>
           )}
-            <View style={[styles.statusBadge]}>
+            <View style={[
+              styles.statusBadge,
+              {
+                backgroundColor: status.label === 'Not Yet Occurred' ? 'rgba(239, 68, 68, 0.1)' :
+                                 status.label === 'Ongoing' ? 'rgba(245, 158, 11, 0.1)' :
+                                 'rgba(52, 199, 89, 0.1)',
+                borderColor: status.color,
+                borderWidth: 1,
+              }
+            ]}>
               <Text style={[styles.statusText, { color: status.color }]}>
                 {status.label}
               </Text>
