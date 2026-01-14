@@ -18,6 +18,7 @@ export interface TeamInfo {
   endgameOPR?: number;
   overallOPR?: number;
   penalties?: string;
+  penaltyRank: number;
   events?: string[];
 }
 

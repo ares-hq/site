@@ -4,7 +4,7 @@
     "slug": "ARES-Site",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/rounded.png",
+    "icon": "./assets/images/favicon-icon.png",
     "scheme": "aressite",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/rounded.png",
+        "foregroundImage": "./assets/images/favicon-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true
@@ -22,7 +22,7 @@
       "bundler": "metro",
       "output": "static",
       "viewport": "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
-      "favicon": "./assets/images/rounded.png",
+      "favicon": "./assets/images/favicon-icon.png",
       "router": {
         "basename": ".",
         "typedRoutes": true

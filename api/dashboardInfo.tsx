@@ -41,7 +41,7 @@ export async function getAllTeams(year: SupportedYear, retryCount = 0): Promise<
   try {
     const { data, error } = await supabase
       .from(getSeasonTable(year))
-      .select('teamName, teamNumber, overallOPR, overallRank, location, autoOPR, teleOPR, endgameOPR, autoRank, teleRank, endgameRank')
+      .select('teamName, teamNumber, overallOPR, overallRank, location, autoOPR, teleOPR, penaltyRank, endgameOPR, autoRank, teleRank, endgameRank')
       .order('overallRank', { ascending: true });
 
     if (error) {
@@ -65,6 +65,7 @@ export async function getAllTeams(year: SupportedYear, retryCount = 0): Promise<
       autoRank: row.autoRank || 0,
       teleRank: row.teleRank || 0,
       endgameRank: row.endgameRank || 0,
+      penaltyRank: row.penaltyRank || 0,
       founded: 'N/A',
       highestScore: '',
       website: 'None',
@@ -101,7 +102,7 @@ export async function getTeamInfo(teamNumber: number, year: SupportedYear): Prom
     .select(`
       teamName, location, founded, website, sponsors, achievements,
       overallRank, teleRank, autoRank, endgameRank,
-      autoOPR, teleOPR, endgameOPR, overallOPR, penalties,
+      autoOPR, teleOPR, endgameOPR, overallOPR, penalties, penaltyRank,
       averagePlace, eventsAttended
     `)
     .eq('teamNumber', teamNumber)
@@ -124,6 +125,7 @@ export async function getTeamInfo(teamNumber: number, year: SupportedYear): Prom
     endgameRank: data.endgameRank,
     teleOPR: data.teleOPR,
     autoOPR: data.autoOPR,
+    penaltyRank: data.penaltyRank,
     endgameOPR: data.endgameOPR,
     overallOPR: data.overallOPR,
     penalties: data.penalties,
@@ -175,6 +177,19 @@ export async function getTeamMatches(teamNumber: number, year: SupportedYear): P
 export async function getTeamMatchCount(year: SupportedYear): Promise<number> {
   const { count, error } = await supabase
     .from(getMatchesTable(year))
+    .select('*', { count: 'exact', head: true })
+
+  if (error) {
+    console.error('Failed to fetch match count:', error.message);
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
+export async function getTeamCount(year: SupportedYear): Promise<number> {
+  const { count, error } = await supabase
+    .from(getSeasonTable(year))
     .select('*', { count: 'exact', head: true })
 
   if (error) {

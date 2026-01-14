@@ -466,7 +466,7 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
       </View>
 
       {containerWidth > 0 && teamInfo && matches && averages && wins &&(
-        <UserGraphSection matches={matches} averages={averages} screenWidth={containerWidth} teamInfo={teamInfo} wins={wins}/>
+        <UserGraphSection matches={matches} averages={averages} screenWidth={containerWidth} teamInfo={teamInfo} wins={wins} year={seasonYear}/>
       )}
 
       <View style={styles.headerRow}>

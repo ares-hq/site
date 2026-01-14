@@ -47,15 +47,24 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
     }
   };
 
-  const renderTeamCell = (team: AllianceInfo | undefined) => {
+  const renderTeamCell = (team: AllianceInfo | undefined, isHovered: boolean = false) => {
     if (!team) return null;
     const isRedAlliance = team.alliance === 'red';
     const teams = [team.team_1, team.team_2].filter(Boolean);
+    
+    const baseColor = isRedAlliance
+      ? (isDarkMode ? '#3B1F1F' : '#FEF2F2')
+      : (isDarkMode ? '#1F2F3F' : '#EFF6FF');
+    
+    const hoverColor = isRedAlliance
+      ? (isDarkMode ? '#4B2626' : '#FEE2E2')
+      : (isDarkMode ? '#2A3F54' : '#DBEAFE');
+    
     return (
       <View style={[styles.teamCell,
         isRedAlliance
-          ? [styles.redAlliance, { backgroundColor: isDarkMode ? '#3B1F1F' : '#FEF2F2' }]
-          : [styles.blueAlliance, { backgroundColor: isDarkMode ? '#1F2F3F' : '#EFF6FF' }],
+          ? [styles.redAlliance, { backgroundColor: isHovered ? hoverColor : baseColor }]
+          : [styles.blueAlliance, { backgroundColor: isHovered ? hoverColor : baseColor }],
         isSmallDevice && styles.teamCellSmall]}> {
         teams.map((t, index) => (
           <View key={index} style={[styles.teamRow, isSmallDevice && styles.teamRowSmall]}>
@@ -148,8 +157,8 @@ export default function EventCard({ eventData, teamNumber }: UserGraphSectionPro
             <Text style={[styles.scoreNumber, match.blueAlliance.win ? styles.winningScore : styles.losingScore, isSmallDevice && styles.scoreNumberSmall]}>{blueScore}</Text>
           </View>
         </View>
-        {renderTeamCell(teamRed)}
-        {renderTeamCell(teamBlue)}
+        {renderTeamCell(teamRed, isHovered)}
+        {renderTeamCell(teamBlue, isHovered)}
       </View>
     );
   };

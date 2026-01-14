@@ -1,7 +1,8 @@
+import { getTeamCount } from '@/api/dashboardInfo';
 import { AllianceInfo, TeamInfo } from '@/api/types';
 import { useDarkMode } from '@/context/DarkModeContext';
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Area, ComposedChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface UserGraphSectionProps {
@@ -10,6 +11,7 @@ interface UserGraphSectionProps {
   matches: AllianceInfo[] | null;
   averages?: AllianceInfo[]; // Now optional since averages are included in matches
   wins: number;
+  year: number;
 }
 
 interface LayoutEvent {
@@ -27,18 +29,34 @@ interface TooltipProps {
   label?: string;
 }
 
-const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins }: UserGraphSectionProps) => {
+const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins, year }: UserGraphSectionProps) => {
   const [chartWrapperWidth, setChartWrapperWidth] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<string>('Match Score');
+  const [teamCount, setTeamCount] = useState<number>(60); // default to 60
   const { isDarkMode } = useDarkMode();
 
-  function getBarColor(): string {
-    if (teamInfo.averagePlace == null) return '#9ca3af'; // gray for no data
-    if (teamInfo.averagePlace <= 5) return '#10b981'; // green
-    if (teamInfo.averagePlace <= 10) return '#facc15'; // yellow
-    if (teamInfo.averagePlace <= 20) return '#f97316'; // orange
-    return '#ef4444'; // red
-  }
+  useEffect(() => {
+    const fetchTeamCount = async () => {
+      try {
+        const count = await getTeamCount(year as any); // cast to SupportedYear
+        setTeamCount(count);
+      } catch (error) {
+        console.error('Failed to fetch team count:', error);
+      }
+    };
+    fetchTeamCount();
+  }, [year]);
+
+  // Helper function to calculate percentile from rank (lower rank = higher percentile)
+  const rankToPercentile = (rank: number | null | undefined): number | null => {
+    if (rank == null || rank <= 0) return null;
+    // Percentile calculation: (teams ranked worse / total teams) * 100
+    // Formula: (1 - (rank - 1) / (estimated_total_teams - 1)) * 100
+    // Using actual team count for the year
+    const estimatedTotalTeams = teamCount;
+    const percentile = (1 - (rank - 1) / (estimatedTotalTeams - 1)) * 100;
+    return Math.max(0, Math.floor(percentile)) == 100 ? 99 : Math.max(0, Math.floor(percentile));
+  };
 
   const onChartWrapperLayout = (event: LayoutEvent): void => {
     const { width } = event.nativeEvent.layout;
@@ -122,22 +140,37 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   const trafficData = [
     {
       name: 'Events Attended',
-      value: (teamInfo.eventsAttended as string | undefined)?.replace(/[\[\]\s]/g, '')
-        .split(',').filter(Boolean).length ?? 0,
+      // support both string (CSV) and numeric representations
+      value: (() => {
+        const ev = teamInfo.eventsAttended as unknown;
+        if (typeof ev === 'string') return ev.replace(/[\[\]\s]/g, '').split(',').filter(Boolean).length;
+        if (typeof ev === 'number') return ev;
+        return 0;
+      })(),
       total: 20
     },
     { name: 'Matches Played', value: matches?.length ?? 0, total: 200 },
     { name: 'Wins', value: wins, total: matches?.length ?? 0},
     { 
       name: 'Average Place', 
-      value: teamInfo.averagePlace ? teamInfo.averagePlace <= 5 ? 10 : teamInfo.averagePlace <= 10 ? 7.5 : teamInfo.averagePlace <= 20 ? 5 : 2.5 : 0.01,
+      // Normalize average place so higher is better for the visual (10 = top, 0 = bottom)
+      value: teamInfo.averagePlace != null
+        ? teamInfo.averagePlace <= 5 ? 10
+        : teamInfo.averagePlace <= 10 ? 7.5
+        : teamInfo.averagePlace <= 20 ? 5
+        : 2.5
+        : 0.01,
       total: 10,
     },
   ];
 
+  // Penalty metrics (penalties stored as string in TeamInfo)
+  const penaltyValue = teamInfo.penalties ? Number(String(teamInfo.penalties).replace(/[^0-9.-]+/g, '')) : null;
+
   const TeamData = () => (
       <View style={[
         styles.trafficContainer,
+        screenWidth <= 820 && styles.trafficContainerMobile,
         {
           backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9F9FA',
         }
@@ -150,209 +183,127 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
             Team Data
           </Text>
           <Text style={[
-            styles.trafficSubtitle,
+            styles.trafficSubheader,
             { color: isDarkMode ? '#9CA3AF' : '#6b7280' }
           ]}>
-            Current Season
+            Performance Overview
           </Text>
         </View>
         
-        <View style={styles.metricsGrid}>
-          <View style={styles.topRow}>
-            <View style={[
-              styles.metricCard,
-              {
-                backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff',
-              }
-            ]}>
-              <Text style={[
-                styles.metricName,
-                { color: isDarkMode ? '#D1D5DB' : '#374151' }
-              ]}>
-                {trafficData[0].name}
-              </Text>
-              <View style={styles.metricValue}>
-                <Text style={[
-                  styles.valueText,
-                  { color: isDarkMode ? '#F9FAFB' : '#111827' }
-                ]}>
-                  {trafficData[0].value}
-                </Text>
-              </View>
-            </View>
-            <View style={[
-              styles.metricCard,
-              {
-                backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff',
-              }
-            ]}>
-              <Text style={[
-                styles.metricName,
-                { color: isDarkMode ? '#D1D5DB' : '#374151' }
-              ]}>
-                {trafficData[1].name}
-              </Text>
-              <View style={styles.metricValue}>
-                <Text style={[
-                  styles.valueText,
-                  { color: isDarkMode ? '#F9FAFB' : '#111827' }
-                ]}>
-                  {trafficData[1].value}
-                </Text>
-              </View>
-            </View>
+        <View style={styles.metricsCompactGrid}>
+          {/* Events Attended */}
+          <View style={[styles.compactMetricCard]}>
+            <Text style={[styles.compactLabel, { color: isDarkMode ? '#D1D5DB' : '#374151' }]}>Events Attended</Text>
+            <Text style={[styles.compactValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{trafficData[0].value}</Text>
           </View>
 
-          <View style={styles.bottomRow}>
-            <View style={[
-              styles.metricCard,
-              {
-                backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff',
-              }
-            ]}>
-              <Text style={[
-                styles.metricName,
-                { color: isDarkMode ? '#D1D5DB' : '#374151' }
-              ]}>
-                {trafficData[2].name}
-              </Text>
-              <View style={styles.metricValue}>
-                <Text style={[
-                  styles.valueText,
-                  { color: isDarkMode ? '#F9FAFB' : '#111827' }
-                ]}>
-                  {trafficData[2].value}
-                </Text>
-                <Text style={[
-                  styles.totalText,
-                  { color: isDarkMode ? '#6B7280' : '#9CA3AF' }
-                ]}>
-                  / {trafficData[2].total}
-                </Text>
-              </View>
-              <View style={styles.barContainer}>
-                <View
-                  style={[
-                    styles.barFilled,
-                    {
-                      width: `${(trafficData[2].value / trafficData[2].total) * 100}%`,
-                      backgroundColor: '#10b981',
-                    },
-                  ]}
-                />
-                <View style={[
-                  styles.barEmpty,
-                  { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }
-                ]} />
-              </View>
-            </View>
+          {/* Matches Played */}
+          <View style={[styles.compactMetricCard]}>
+            <Text style={[styles.compactLabel, { color: isDarkMode ? '#D1D5DB' : '#374151' }]}>Matches Played</Text>
+            <Text style={[styles.compactValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{trafficData[1].value}</Text>
+          </View>
 
-          <View style={[
-            styles.metricCard,
-            {
-              backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff',
-            }
-          ]}>
-            <Text style={[
-              styles.metricName,
-              { color: isDarkMode ? '#D1D5DB' : '#374151' }
-            ]}>
-              {trafficData[3].name}
-            </Text>
-            <View style={styles.metricValue}>
-              <Text style={[
-                styles.valueText,
-                { color: isDarkMode ? '#F9FAFB' : '#111827' }
-              ]}>
-                {teamInfo.averagePlace}
-              </Text>
+          {/* Wins with visual bar */}
+          <View style={[styles.compactMetricCard]}>
+            <View style={styles.compactHeader}>
+              <Text style={[styles.compactLabel, { color: isDarkMode ? '#D1D5DB' : '#374151' }]}>Wins</Text>
+              <View style={styles.winsValueRow}>
+                <Text style={[styles.compactValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{wins}</Text>
+                <Text style={[styles.winsTotal, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>/{matches?.length ?? 0}</Text>
+              </View>
             </View>
-            <View style={styles.barContainer}>
-              <View
-                style={[
-                  styles.barFilled,
-                  {
-                    width: trafficData[3].value /  trafficData[3].total * 100,
-                    backgroundColor: getBarColor(),
-                  },
-                ]}
-              />
-              <View style={[
-                styles.barEmpty,
-                { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }
-              ]} />
+            {(() => {
+              const winPct = matches?.length ? (wins / matches.length) * 100 : 0;
+              let winColor = '#ef4444';
+              if (winPct >= 60) winColor = '#10b981';
+              else if (winPct >= 40) winColor = '#facc15';
+              return (
+                <View style={[styles.winBarSmall, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#E5E7EB' }]}>
+                  <View 
+                    style={[
+                      styles.winBarFillSmall, 
+                      { 
+                        width: `${winPct}%`,
+                        backgroundColor: winColor
+                      }
+                    ]} 
+                  />
+                </View>
+              );
+            })()}
+          </View>
+
+          {/* Average Place with visual indicator */}
+          <View style={[styles.compactMetricCard]}>
+            <View style={styles.compactHeader}>
+              <Text style={[styles.compactLabel, { color: isDarkMode ? '#D1D5DB' : '#374151' }]}>Avg Place</Text>
+              <Text style={[styles.compactValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.averagePlace ?? '--'}</Text>
+            </View>
+            {(() => {
+              const place = teamInfo.averagePlace;
+              if (place == null) return null;
+              let badgeColor = '#ef4444';
+              let badgeLabel = 'Poor';
+              if (place <= 5) { 
+                badgeColor = '#10b981'; 
+                badgeLabel = 'Excellent'; 
+              } else if (place <= 10) { 
+                badgeColor = '#06b6d4'; 
+                badgeLabel = 'Good'; 
+              } else if (place <= 20) { 
+                badgeColor = '#f97316'; 
+                badgeLabel = 'Fair'; 
+              }
+              return (
+                <View style={[styles.placeBadge, { backgroundColor: badgeColor }]}>
+                  <Text style={styles.placeBadgeText}>{badgeLabel}</Text>
+                </View>
+              );
+            })()}
+          </View>
+        </View>
+
+        {/* Penalty Rank Box */}
+        <View style={[styles.penaltyBoxTop, { borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E5E7EB' }]}>
+          <View style={styles.rankRowsBottom}>
+            <View style={styles.rankItemBottom}>
+              <Text style={[styles.rankLabelSmall, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Penalty Rank</Text>
+              <Text style={[styles.rankValueSmall, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.penaltyRank ?? '--'}</Text>
+              <Text style={[styles.rankSubtext, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>{rankToPercentile(teamInfo.penaltyRank) != null ? `P${rankToPercentile(teamInfo.penaltyRank)}` : '--'}</Text>
+            </View>
+            <View style={styles.rankItemBottom}>
+              <Text style={[styles.rankLabelSmall, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Penalty OPR</Text>
+              <Text style={[styles.rankValueSmall, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{penaltyValue != null && !isNaN(penaltyValue) ? penaltyValue.toFixed(1) : '--'}</Text>
             </View>
           </View>
+        </View>
+
+        {/* Ranks Box */}
+        <View style={[styles.ranksBoxBottom, { borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E5E7EB' }]}>
+          <View style={styles.rankHeader}>
+            <Text style={[styles.rankTitle, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>Ranks</Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
-            <Text style={[
-              { fontSize: 12, fontWeight: '500' },
-              { color: isDarkMode ? '#D1D5DB' : '#374151' }
-            ]}>
-              Penalties OPR
-            </Text>
-            <Text style={[
-              { fontSize: 14, fontWeight: '600' },
-              { color: isDarkMode ? '#F9FAFB' : '#111827' }
-            ]}>
-              {teamInfo.penalties != null ? Number(teamInfo.penalties).toFixed(2) : '--'}
-            </Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
-            <Text style={[
-              { fontSize: 12, fontWeight: '500' },
-              { color: isDarkMode ? '#D1D5DB' : '#374151' }
-            ]}>
-              Overall Rank
-            </Text>
-            <Text style={[
-              { fontSize: 14, fontWeight: '600' },
-              { color: isDarkMode ? '#F9FAFB' : '#111827' }
-            ]}>
-              {teamInfo.overallRank}
-            </Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
-            <Text style={[
-              { fontSize: 12, fontWeight: '500' },
-              { color: isDarkMode ? '#D1D5DB' : '#374151' }
-            ]}>
-              Auto Rank
-            </Text>
-            <Text style={[
-              { fontSize: 14, fontWeight: '600' },
-              { color: isDarkMode ? '#F9FAFB' : '#111827' }
-            ]}>
-              {teamInfo.autoRank}
-            </Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
-            <Text style={[
-              { fontSize: 12, fontWeight: '500' },
-              { color: isDarkMode ? '#D1D5DB' : '#374151' }
-            ]}>
-              TeleOp Rank
-            </Text>
-            <Text style={[
-              { fontSize: 14, fontWeight: '600' },
-              { color: isDarkMode ? '#F9FAFB' : '#111827' }
-            ]}>
-              {teamInfo.teleRank}
-            </Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
-            <Text style={[
-              { fontSize: 12, fontWeight: '500' },
-              { color: isDarkMode ? '#D1D5DB' : '#374151' }
-            ]}>
-              Endgame Rank
-            </Text>
-            <Text style={[
-              { fontSize: 14, fontWeight: '600' },
-              { color: isDarkMode ? '#F9FAFB' : '#111827' }
-            ]}>
-              {teamInfo.endgameRank}
-            </Text>
+          <View style={styles.rankRowsBottom}>
+            <View style={styles.rankItemBottom}>
+              <Text style={[styles.rankLabelSmall, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Overall</Text>
+              <Text style={[styles.rankValueSmall, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.overallRank ?? '--'}</Text>
+              <Text style={[styles.rankSubtext, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>{rankToPercentile(teamInfo.overallRank) != null ? `P${rankToPercentile(teamInfo.overallRank)}` : '--'}</Text>
+            </View>
+            <View style={styles.rankItemBottom}>
+              <Text style={[styles.rankLabelSmall, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Auto</Text>
+              <Text style={[styles.rankValueSmall, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.autoRank ?? '--'}</Text>
+              <Text style={[styles.rankSubtext, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>{rankToPercentile(teamInfo.autoRank) != null ? `P${rankToPercentile(teamInfo.autoRank)}` : '--'}</Text>
+            </View>
+            <View style={styles.rankItemBottom}>
+              <Text style={[styles.rankLabelSmall, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Tele</Text>
+              <Text style={[styles.rankValueSmall, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.teleRank ?? '--'}</Text>
+              <Text style={[styles.rankSubtext, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>{rankToPercentile(teamInfo.teleRank) != null ? `P${rankToPercentile(teamInfo.teleRank)}` : '--'}</Text>
+            </View>
+            <View style={styles.rankItemBottom}>
+              <Text style={[styles.rankLabelSmall, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>End</Text>
+              <Text style={[styles.rankValueSmall, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.endgameRank ?? '--'}</Text>
+              <Text style={[styles.rankSubtext, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>{rankToPercentile(teamInfo.endgameRank) != null ? `P${rankToPercentile(teamInfo.endgameRank)}` : '--'}</Text>
+            </View>
           </View>
         </View>
       </View>
@@ -361,6 +312,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   const ChartContent = () => (
     <View style={[
       styles.graphContainer,
+      screenWidth <= 820 && styles.graphContainerMobile,
       {
         backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9F9FA',
       }
@@ -497,17 +449,16 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
           <TeamData />
         </View>
       ) : (
-        <ScrollView 
-          horizontal 
-          contentContainerStyle={[
+        <View
+          style={[
             styles.section,
+            styles.sectionMobile,
             { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff' }
-          ]} 
-          showsVerticalScrollIndicator={false}
+          ]}
         >
           <ChartContent />
           <TeamData />
-        </ScrollView>
+        </View>
       )} 
     </View>
   );
@@ -521,10 +472,14 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
   graphContainer: {
-    minWidth: 500,
+    minWidth: 0,
     flex: 1,
     padding: 17,
     borderRadius: 16,
+  },
+  sectionMobile: {
+    flexDirection: 'column',
+    gap: 12.6,
   },
   chartWrapper: {
     borderRadius: 12.6,
@@ -548,22 +503,151 @@ const styles = StyleSheet.create({
   },
   trafficContainer: {
     width: 302.4,
-    padding: 17,
+    padding: 14,
     borderRadius: 16,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+  },
+
+  /* Mobile overrides */
+  graphContainerMobile: {
+    width: '100%',
+    minWidth: 0,
+  },
+  trafficContainerMobile: {
+    width: '100%',
+  },
+  metricsCompactGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 10,
+  },
+  compactMetricCard: {
+    flex: 1,
+    minWidth: '48%',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+  },
+  compactHeader: {
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  compactLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    marginBottom: 4,
+  },
+  compactValue: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  winsValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  winsTotal: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 2,
+  },
+  winBarSmall: {
+    height: 16,
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginTop: 6,
+    width: '100%',
+  },
+  winBarFillSmall: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  placeIndicator: {
+    height: 6,
+    borderRadius: 3,
+    marginTop: 4,
+  },
+  placeBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 0,
+    borderRadius: 4,
+    marginTop: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 16,
+  },
+  placeBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  penaltyBoxTop: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+  },
+  ranksBoxBottom: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+  },
+  rankRowsBottom: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  rankItemBottom: {
+    flex: 1,
+    alignItems: 'center',
+    minWidth: 40,
+  },
+  rankLabelSmall: {
+    fontSize: 10,
+    fontWeight: '500',
+  },
+  rankValueSmall: {
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+  rankSubtext: {
+    fontSize: 9,
+    marginTop: 2,
+    fontWeight: '500',
   },
   trafficHeader: {
-    marginBottom: 17,
+    marginBottom: 0,
+    alignItems: 'center',
+  },
+  rankHeader: {
+    marginBottom: 5,
+    marginTop: -5,
+    alignItems: 'center',
+  },
+  rankTitle: {
+    fontWeight: '700',
+    fontSize: 12,
+    marginBottom: 0,
+    textAlign: 'center',
   },
   trafficTitle: {
     fontWeight: '700',
-    fontSize: 17.1,
-    marginBottom: 1.8,
+    fontSize: 16,
+    marginBottom: 0,
+    textAlign: 'center',
   },
-  trafficSubtitle: {
-    fontSize: 12.6,
-  },
-  metricsGrid: {
-    gap: 12.6,
+  trafficSubheader: {
+    fontSize: 11,
+    marginTop: 4,
+    fontWeight: '500',
   },
   topRow: {
     flexDirection: 'row',
@@ -598,18 +682,22 @@ const styles = StyleSheet.create({
     marginLeft: 4.5,
   },
   barContainer: {
-    height: 4.5,
+    height: 6,
     width: '100%',
-    borderRadius: 1.8,
+    borderRadius: 6,
     flexDirection: 'row',
-    marginBottom: 12.6,
+    marginBottom: 8,
+    backgroundColor: 'rgba(0,0,0,0.06)',
   },
   barFilled: {
-    borderRadius: 1.8,
+    borderRadius: 6,
+    height: '100%',
+    minWidth: 6,
   },
   barEmpty: {
     flex: 1,
-    borderRadius: 1.8,
+    borderRadius: 6,
+    backgroundColor: 'rgba(0,0,0,0.04)',
   },
   tabRow: {
     alignItems: 'center',
