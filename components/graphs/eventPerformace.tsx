@@ -110,7 +110,8 @@ const EventPerformance = ({ matchType }: UserGraphSectionProps) => {
 const styles = StyleSheet.create({
   container: {
     height: 300,
-    width: 250,
+    flex: 1,
+    minWidth: 250,
     padding: 16,
     borderRadius: 16,
   },

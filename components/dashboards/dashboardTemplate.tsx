@@ -16,7 +16,6 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   LayoutChangeEvent,
-  ScrollView,
   StyleSheet,
   Text,
   View
@@ -478,27 +477,36 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
         </Text>
       </View>
       
-      {containerWidth < 1250 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chartScrollContainer}
-        >
-          {matchTypeAverages && <EventPerformance matchType={matchTypeAverages}/>}
-          {teamInfo && <EventScores teamInfo={teamInfo} />}
-          {teamInfo && (
-            <View style={{ minWidth: 550, flexShrink: 0, alignSelf: 'stretch' }}>
-              <InfoBlock screenWidth={containerWidth} teamInfo={teamInfo} highScore={highestScore}/>
+      {teamInfo && (
+        <InfoBlock screenWidth={containerWidth} teamInfo={teamInfo} highScore={highestScore}/>
+      )}
+
+      <View style={styles.headerRow}>
+        <Text style={[
+          styles.header,
+          { color: isDarkMode ? '#F9FAFB' : '#111827' }
+        ]}>
+          Performance
+        </Text>
+      </View>
+      
+      {containerWidth < 600 ? (
+        <View style={[styles.chartScrollContainer, styles.chartScrollContainerMobile]}>
+          {matchTypeAverages && (
+            <View style={styles.mobileChartWrapper}>
+              <EventPerformance matchType={matchTypeAverages}/>
             </View>
           )}
-        </ScrollView>
+          {teamInfo && (
+            <View style={styles.mobileChartWrapper}>
+              <EventScores teamInfo={teamInfo} />
+            </View>
+          )}
+        </View>
       ) : (
         <View style={styles.chartScrollContainer}>
           {matchTypeAverages && <EventPerformance matchType={matchTypeAverages}/>}
           {teamInfo && <EventScores teamInfo={teamInfo} />}
-          {teamInfo && (
-            <InfoBlock screenWidth={containerWidth} teamInfo={teamInfo} highScore={highestScore}/>
-          )}
         </View>
       )}
 
@@ -622,6 +630,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     flexDirection: 'row',
     alignItems: 'stretch',
+    justifyContent: 'space-between',
+  },
+  chartScrollContainerMobile: {
+    flexDirection: 'column',
+  },
+  mobileChartWrapper: {
+    width: '100%',
+    alignSelf: 'stretch',
+    minHeight: 320,
   },
   eventContainer: {
     marginBottom: -20,

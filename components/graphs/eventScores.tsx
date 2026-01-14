@@ -134,8 +134,8 @@ const EventScores = ({ teamInfo }: UserGraphSectionProps) => {
 const styles = StyleSheet.create({
   container: {
     height: 300,
-    maxWidth: 500,
-    minWidth: 400,
+    flex: 1,
+    minWidth: 250,
     padding: 16,
     borderRadius: 16,
     flexDirection: 'column',

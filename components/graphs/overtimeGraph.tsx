@@ -1,7 +1,7 @@
 import { getTeamCount } from '@/api/dashboardInfo';
 import { AllianceInfo, TeamInfo } from '@/api/types';
 import { useDarkMode } from '@/context/DarkModeContext';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Area, ComposedChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
