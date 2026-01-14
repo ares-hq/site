@@ -317,7 +317,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
         backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9F9FA',
       }
     ]}>
-      <View style={styles.tabRow}>
+      <View style={[styles.tabRow, screenWidth <= 820 && styles.tabRowMobile]}>
         <View style={styles.tabs}>
           {tabs.map((tab) => (
             <TouchableOpacity
@@ -338,11 +338,13 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
             </TouchableOpacity>
           ))}
         </View>
-        <View style={[
-          styles.divider,
-          { backgroundColor: isDarkMode ? '#4B5563' : '#d1d5db' }
-        ]} />
-        <View style={styles.legend}>
+        {screenWidth > 820 && (
+          <View style={[
+            styles.divider,
+            { backgroundColor: isDarkMode ? '#4B5563' : '#d1d5db' }
+          ]} />
+        )}
+        <View style={[styles.legend, screenWidth <= 820 && styles.legendMobile]}>
           <View style={styles.legendItem}>
             <View style={[
               styles.circle, 
@@ -352,7 +354,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
               styles.legendLabel,
               { color: isDarkMode ? '#F9FAFB' : '#000' }
             ]}>
-              Current Team
+              {screenWidth <= 820 ? 'Team' : 'Current Team'}
             </Text>
           </View>
           <View style={styles.legendItem}>
@@ -361,7 +363,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
               styles.legendLabel,
               { color: isDarkMode ? '#F9FAFB' : '#000' }
             ]}>
-              Average
+              {screenWidth <= 820 ? 'Avg' : 'Average'}
             </Text>
           </View>
         </View>
@@ -704,6 +706,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 12.6,
   },
+  tabRowMobile: {
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
   divider: {
     width: 0.54,
     height: 17.1,
@@ -713,6 +719,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     flexDirection: 'row',
     gap: 17.1,
+  },
+  legendMobile: {
+    marginTop: 8,
+    justifyContent: 'center',
   },
   legendItem: {
     flexDirection: 'row',
