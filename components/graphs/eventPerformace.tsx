@@ -1,16 +1,16 @@
 import { MatchTypeAverages } from '@/api/types';
+import { useDarkMode } from '@/context/DarkModeContext';
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import {
-  BarChart,
   Bar,
+  BarChart,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
 } from 'recharts';
-import { useDarkMode } from '@/context/DarkModeContext';
 
 const CustomTooltip = ({ active, payload }: any) => {
   const { isDarkMode } = useDarkMode();
@@ -96,7 +96,7 @@ const EventPerformance = ({ matchType }: UserGraphSectionProps) => {
             cursor={{ fill: 'transparent' }}
             content={<CustomTooltip />}
           />
-          <Bar dataKey="Match Score" radius={6} barSize={30}>
+          <Bar dataKey="Match Score" radius={6} barSize={30} minPointSize={5}>
             {rankData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.fill}/>
             ))}
@@ -111,7 +111,8 @@ const styles = StyleSheet.create({
   container: {
     height: 300,
     flex: 1,
-    minWidth: 250,
+    minWidth: 300,
+    minHeight: 300,
     padding: 16,
     borderRadius: 16,
   },

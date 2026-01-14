@@ -1,15 +1,15 @@
 import { TeamInfo } from '@/api/types';
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts';
 import { useDarkMode } from '@/context/DarkModeContext';
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import {
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+} from 'recharts';
 
 const COLORS = ['#92BFFF', '#94E9B8', '#a78bfa'];
 
@@ -106,8 +106,8 @@ const EventScores = ({ teamInfo }: UserGraphSectionProps) => {
             data={contributionData}
             dataKey="value"
             nameKey="name"
-            outerRadius={90}
-            innerRadius={60}
+            outerRadius={80}
+            innerRadius={50}
             paddingAngle={5}
             cornerRadius={8}
             minAngle={20}
@@ -119,11 +119,12 @@ const EventScores = ({ teamInfo }: UserGraphSectionProps) => {
           </Pie>
           <Tooltip content={<CustomTooltip />} />
           <Legend
-            layout="vertical"
-            align="right"
-            verticalAlign="middle"
+            layout="horizontal"
+            align="center"
+            verticalAlign="bottom"
             iconType="circle"
             formatter={legendFormatter}
+            wrapperStyle={{ paddingTop: 20 }}
           />
         </PieChart>
       </ResponsiveContainer>

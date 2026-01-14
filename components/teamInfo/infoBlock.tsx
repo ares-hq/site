@@ -26,46 +26,46 @@ const InfoBox = ({ screenWidth, teamInfo, highScore }: InfoSectionProps) => {
       screenWidth >= 820 && screenWidth < 1400 && styles.containerTablet,
     ]}>
       <View style={[styles.infoItemsGridRow]}>
-        <View style={[styles.infoItem, { backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)' }]}>
+        <View style={[styles.infoItem, { backgroundColor: 'rgba(59, 130, 246, 0.12)', borderColor: 'rgba(59, 130, 246, 0.3)' }]}>
           <View style={styles.itemIconLabel}>
-            <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)' }]}>
-              <ShieldIcon width={14} height={14} fill={isDarkMode ? '#60A5FA' : '#3B82F6'} />
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(59, 130, 246, 0.25)' }]}>
+              <ShieldIcon width={14} height={14} fill={isDarkMode ? '#60A5FA' : '#1E40AF'} />
             </View>
             <Text style={[styles.itemLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Team Name</Text>
           </View>
           <Text style={[styles.itemValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.teamName || 'N/A'}</Text>
         </View>
-        <View style={[styles.infoItem, { backgroundColor: isDarkMode ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.05)' }]}>
+        <View style={[styles.infoItem, { backgroundColor: 'rgba(34, 197, 94, 0.12)', borderColor: 'rgba(34, 197, 94, 0.3)' }]}>
           <View style={styles.itemIconLabel}>
-            <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? 'rgba(34, 197, 94, 0.3)' : 'rgba(34, 197, 94, 0.2)' }]}>
-              <LocationIcon width={14} height={14} fill={isDarkMode ? '#22C55E' : '#22C55E'} />
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(34, 197, 94, 0.25)' }]}>
+              <LocationIcon width={14} height={14} fill={isDarkMode ? '#34D399' : '#047857'} />
             </View>
             <Text style={[styles.itemLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Location</Text>
           </View>
           <Text style={[styles.itemValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.location || 'N/A'}</Text>
         </View>
-        <View style={[styles.infoItem, { backgroundColor: isDarkMode ? 'rgba(168, 85, 247, 0.1)' : 'rgba(168, 85, 247, 0.05)' }]}>
+        <View style={[styles.infoItem, { backgroundColor: 'rgba(168, 85, 247, 0.12)', borderColor: 'rgba(168, 85, 247, 0.3)' }]}>
           <View style={styles.itemIconLabel}>
-            <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? 'rgba(168, 85, 247, 0.3)' : 'rgba(168, 85, 247, 0.2)' }]}>
-              <CalendarIcon width={14} height={14} fill={isDarkMode ? '#A855F7' : '#A855F7'} />
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(168, 85, 247, 0.25)' }]}>
+              <CalendarIcon width={14} height={14} fill={isDarkMode ? '#A78BFA' : '#5B21B6'} />
             </View>
             <Text style={[styles.itemLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Founded</Text>
           </View>
           <Text style={[styles.itemValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.founded || 'N/A'}</Text>
         </View>
-        <View style={[styles.infoItem, { backgroundColor: isDarkMode ? 'rgba(251, 146, 60, 0.1)' : 'rgba(251, 146, 60, 0.05)' }]}>
+        <View style={[styles.infoItem, { backgroundColor: 'rgba(251, 146, 60, 0.12)', borderColor: 'rgba(251, 146, 60, 0.3)' }]}>
           <View style={styles.itemIconLabel}>
-            <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? 'rgba(251, 146, 60, 0.3)' : 'rgba(251, 146, 60, 0.2)' }]}>
-              <TopScore width={14} height={14} fill={isDarkMode ? '#FB923C' : '#FB923C'} />
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(251, 146, 60, 0.25)' }]}>
+              <TopScore width={14} height={14} fill={isDarkMode ? '#FBBF24' : '#92400E'} />
             </View>
             <Text style={[styles.itemLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Highest Score</Text>
           </View>
           <Text style={[styles.itemValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{highScore.toString()}</Text>
         </View>
-        <View style={[styles.infoItem, { backgroundColor: isDarkMode ? 'rgba(14, 165, 233, 0.1)' : 'rgba(14, 165, 233, 0.05)' }]}>
+        <View style={[styles.infoItem, { backgroundColor: 'rgba(14, 165, 233, 0.12)', borderColor: 'rgba(14, 165, 233, 0.3)' }]}>
           <View style={styles.itemIconLabel}>
-            <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? 'rgba(14, 165, 233, 0.3)' : 'rgba(14, 165, 233, 0.2)' }]}>
-              <GlobeIcon width={14} height={14} fill={isDarkMode ? '#0EA5E9' : '#0EA5E9'} />
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(14, 165, 233, 0.25)' }]}>
+              <GlobeIcon width={14} height={14} fill={isDarkMode ? '#38BDF8' : '#0C4A6E'} />
             </View>
             <Text style={[styles.itemLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Website</Text>
           </View>
@@ -78,10 +78,10 @@ const InfoBox = ({ screenWidth, teamInfo, highScore }: InfoSectionProps) => {
       </View>
       
       <View style={[styles.infoItemsGridRowFull]}>
-        <View style={[styles.infoItemFull, { backgroundColor: isDarkMode ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.05)' }]}>
+        <View style={[styles.infoItemFull, { backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.3)' }]}>
           <View style={styles.itemIconLabel}>
-            <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? 'rgba(239, 68, 68, 0.3)' : 'rgba(239, 68, 68, 0.2)' }]}>
-              <UsersIcon width={14} height={14} fill={isDarkMode ? '#EF4444' : '#EF4444'} />
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.25)' }]}>
+              <UsersIcon width={14} height={14} fill={isDarkMode ? '#F87171' : '#7F1D1D'} />
             </View>
             <Text style={[styles.itemLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Sponsors</Text>
           </View>
@@ -90,10 +90,10 @@ const InfoBox = ({ screenWidth, teamInfo, highScore }: InfoSectionProps) => {
       </View>
       
       <View style={[styles.infoItemsGridRowFull]}>
-        <View style={[styles.infoItemFull, { backgroundColor: isDarkMode ? 'rgba(236, 72, 153, 0.1)' : 'rgba(236, 72, 153, 0.05)' }]}>
+        <View style={[styles.infoItemFull, { backgroundColor: 'rgba(20, 184, 166, 0.12)', borderColor: 'rgba(20, 184, 166, 0.3)' }]}>
           <View style={styles.itemIconLabel}>
-            <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? 'rgba(236, 72, 153, 0.3)' : 'rgba(236, 72, 153, 0.2)' }]}>
-              <TrophyIcon width={14} height={14} fill={isDarkMode ? '#EC4899' : '#EC4899'} />
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(20, 184, 166, 0.25)' }]}>
+              <TrophyIcon width={14} height={14} fill={isDarkMode ? '#5EEAD4' : '#0D9488'} />
             </View>
             <Text style={[styles.itemLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Achievements</Text>
           </View>
@@ -109,88 +109,18 @@ const InfoBox = ({ screenWidth, teamInfo, highScore }: InfoSectionProps) => {
   }
 };
 
-const InfoRow = ({
-  icon,
-  label,
-  value,
-  isLink = false,
-  displayText,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  isLink?: boolean;
-  displayText?: string;
-}) => {
-  const { isDarkMode } = useDarkMode();
-
-  const openLink = async (url: string) => {
-    const prefixed = url.startsWith('http') ? url : `https://${url}`;
-    const supported = await Linking.canOpenURL(prefixed);
-    if (supported) {
-      await Linking.openURL(prefixed);
-    } else {
-      Alert.alert("Can't open URL", url);
-    }
-  };
-
-  return (
-    <View style={styles.row}>
-      <View style={styles.icon}>{icon}</View>
-      <View style={styles.textContainer}>
-        <Text style={[
-          styles.label,
-          { color: isDarkMode ? '#9CA3AF' : '#6B7280' }
-        ]}>
-          {label}
-        </Text>
-        {isLink ? (
-          <Pressable onPress={() => openLink(value)} style={styles.pressableLink}>
-            <Text
-              style={[
-                styles.value,
-                styles.link,
-                { 
-                  color: isDarkMode ? '#60A5FA' : '#3B82F6',
-                }
-              ]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {displayText || value}
-            </Text>
-          </Pressable>
-        ) : (
-          <Text style={[
-            styles.value,
-            { 
-              color: isDarkMode ? '#F9FAFB' : '#111827',
-              flexShrink: 1,
-            }
-          ]}
-          numberOfLines={value.length > 80 ? undefined : 3}
-          ellipsizeMode={value.length > 80 ? undefined : "tail"}
-          >
-            {value}
-          </Text>
-        )}
-      </View>
-    </View>
-  );
-};
-
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 20,
-    marginBottom: 16,
+    gap: 0,
+    marginBottom: 20,
     paddingHorizontal: 0,
     backgroundColor: 'transparent',
   },
   containerMobile: {
-    gap: 16,
-    marginBottom: 12,
+    gap: 10,
+    marginBottom: 20,
   },
   containerTablet: {
     gap: 18,
@@ -198,7 +128,7 @@ const styles = StyleSheet.create({
   infoItemsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 24,
+    gap: 10,
     width: '100%',
     columnGap: 28,
     rowGap: 12,
@@ -206,19 +136,19 @@ const styles = StyleSheet.create({
   infoItemsGridRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 24,
+    gap: 10,
     width: '100%',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 0,
   },
   infoItemsGridRowFull: {
     flexDirection: 'row',
     width: '100%',
-    marginBottom: 8,
+    marginBottom: 0,
   },
   infoItemFull: {
     flex: 1,
-    padding: 12,
+    padding: 6,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: 'transparent',
@@ -226,7 +156,7 @@ const styles = StyleSheet.create({
   infoItem: {
     flexBasis: 'auto',
     flex: 1,
-    padding: 12,
+    padding: 6,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: 'transparent',
@@ -255,7 +185,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     lineHeight: 18,
-    marginLeft: 22,
+    marginLeft: 10
   },
   link: {
     textDecorationLine: 'underline',
