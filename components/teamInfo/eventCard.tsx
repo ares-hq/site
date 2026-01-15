@@ -1,20 +1,13 @@
 import { getCachedMatchScoreDetails, SupportedYear } from '@/api/firstAPI';
-import { AllianceInfo, EventInfo, MatchInfo } from '@/api/types';
+import { EventInfo, MatchInfo } from '@/api/types';
 import CalendarIcon from '@/assets/icons/calendar.svg';
-import GameControllerIcon from '@/assets/icons/game-controller.svg';
 import LocationIcon from '@/assets/icons/map-pin.svg';
-import MedalIcon from '@/assets/icons/medal.svg';
 import TopScore from '@/assets/icons/ranking.svg';
-import RobotIcon from '@/assets/icons/robot.svg';
-import StarIcon from '@/assets/icons/star-fill.svg';
-import TargetIcon from '@/assets/icons/target.svg';
 import TrophyIcon from '@/assets/icons/trophy.svg';
-import WarningIcon from '@/assets/icons/warning.svg';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Linking,
   StyleSheet,
   Text,
@@ -22,6 +15,8 @@ import {
   useWindowDimensions,
   View
 } from 'react-native';
+import MatchRow from './MatchRow';
+import MatchScoreBreakdown from './MatchScoreBreakdown';
 
 interface UserGraphSectionProps {
   eventData: EventInfo;
@@ -60,7 +55,7 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
     today.setHours(0, 0, 0, 0);
     if (eventDate < today) return { label: 'Completed', color: '#34C759' };
     if (eventDate.toDateString() === today.toDateString()) return { label: 'Ongoing', color: '#F59E0B' };
-    return { label: 'Not Yet Occurred', color: '#EF4444' };
+    return { label: 'Upcoming', color: '#EF4444' };
   };
 
   const status = getEventStatus(eventData.date);
@@ -68,7 +63,7 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
   const isLargeDevice = width >= 768;
   const matches = eventData.matches || [];
 
-  const isUpcomingEvent = status.label === 'Not Yet Occurred' || status.label === 'Ongoing';
+  const isUpcomingEvent = status.label === 'Upcoming' || status.label === 'Ongoing';
 
   const handleWebsitePress = async () => {
     const url = 'https://www.google.com/search?q=' + eventData.location.replace(/\s+/g, '+');
@@ -80,14 +75,12 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
   };
 
   const handleTeamClick = (clickedTeamNumber: number) => {
-    // If team is already highlighted, navigate to it
     if (highlightedTeam === clickedTeamNumber) {
       const routePath = getRoutePath(seasonYear);
       router.push(`/dashboards/${routePath}?teamnumber=${clickedTeamNumber}` as any);
-      setHighlightedTeam(null);
+      setHighlightedTeam(teamNumber);
       lastClickRef.current = null;
     } else {
-      // First click - highlight team
       setHighlightedTeam(clickedTeamNumber);
       lastClickRef.current = { teamNumber: clickedTeamNumber, timestamp: Date.now() };
     }
@@ -96,47 +89,28 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
   const handleMatchClick = async (matchNumber: string, match: MatchInfo) => {
     const isExpanding = expandedMatch !== matchNumber;
     
-    // If switching to a different match, reset score details
     if (isExpanding && expandedMatch !== null && expandedMatch !== matchNumber) {
       setMatchScoreDetails(null);
     }
     
     setExpandedMatch(isExpanding ? matchNumber : null);
     
-    // Fetch details for the expanding match
     if (isExpanding) {
       setLoadingScores(true);
       setMatchScoreDetails(null);
       
-      // Use the actual event code from eventData
       const eventCode = eventData.eventCode || 'UNKNOWN';
-      
-      // Determine tournament level based on match type
       let tournamentLevel: 'qual' | 'playoff' = 'qual';
-      if (match.matchType === 'PLAYOFF') {
+      
+      // Check if it's any type of playoff match (PLAYOFF, FINALS, SEMIFINAL, etc.)
+      if (match.matchType && match.matchType !== 'QUALIFICATION' && match.matchType !== 'PRACTICE') {
         tournamentLevel = 'playoff';
-      } else if (match.matchType === 'QUALIFICATION') {
-        tournamentLevel = 'qual';
-      } else {
-        // For PRACTICE, default to qual (though API may not have practice data)
-        tournamentLevel = 'qual';
       }
       
-      // Extract the match number from the string (P-1 -> 1, Q-5 -> 5)
       const matchNum = parseInt(matchNumber.replace(/\D/g, '')) || 0;
       
-      console.log('Fetching match score details:', { eventCode, tournamentLevel, matchNum, seasonYear, matchType: match.matchType });
-      
       try {
-        const details = await getCachedMatchScoreDetails(
-          seasonYear,
-          eventCode,
-          tournamentLevel,
-          matchNum
-        );
-        
-        console.log('Received match score details:', details);
-        
+        const details = await getCachedMatchScoreDetails(seasonYear, eventCode, tournamentLevel, matchNum);
         if (details) {
           setMatchScoreDetails(details);
         }
@@ -148,448 +122,28 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
     }
   };
 
-  const handleOutsideClick = () => {
-    setHighlightedTeam(null);
-    lastClickRef.current = null;
-  };
+  const renderScoreBreakdown = (match: MatchInfo) => (
+    <MatchScoreBreakdown
+      match={match}
+      matchScoreDetails={matchScoreDetails}
+      loadingScores={loadingScores}
+    />
+  );
 
-  const renderScoreBreakdown = (match: MatchInfo) => {
-    const renderStatItem = (label: string, value: any, isHighlight: boolean = false) => {
-      // While loading, show dashes for missing values
-      // After loading, hide items with no data
-      if (!loadingScores && (value === undefined || value === null)) {
-        return null;
-      }
-      
-      const displayValue = value === undefined || value === null 
-        ? '--' 
-        : (typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value);
-      
-      // Shorten common long labels
-      const shortLabel = label
-        .replace('Auto Classifier State', 'Classifier')
-        .replace('Teleop Classifier State', 'Classifier')
-        .replace('Driver Controlled', 'DC')
-        .replace('Navigation', 'Nav')
-        .replace('Autonomous', 'Auto')
-        .replace('Points', 'Pts')
-        .replace('Delivered', 'Del')
-        .replace('Endgame', 'EG');
-      
-      return (
-        <View style={[styles.compactStatItem, isHighlight && styles.highlightStatItem]}>
-          <Text style={[styles.compactStatLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
-            {shortLabel}
-          </Text>
-          <Text style={[styles.compactStatValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }, isHighlight && styles.highlightStatValue]}>
-            {displayValue}
-          </Text>
-        </View>
-      );
-    };
-
-    const renderAllianceBreakdown = (allianceData: any, allianceColor: 'red' | 'blue') => {
-      const isRed = allianceColor === 'red';
-      const accentColor = isRed 
-        ? (isDarkMode ? '#EF4444' : '#DC2626')
-        : (isDarkMode ? '#3B82F6' : '#2563EB');
-      const bgColor = isRed
-        ? (isDarkMode ? 'rgba(239, 68, 68, 0.1)' : 'rgba(220, 38, 38, 0.05)')
-        : (isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(37, 99, 235, 0.05)');
-
-      // Use detailed score data if available, otherwise use match alliance data
-      let dataToRender;
-      if (matchScoreDetails?.alliances && matchScoreDetails.alliances.length > 0) {
-        const allianceIndex = allianceColor === 'red' ? 1 : 0;
-        dataToRender = matchScoreDetails.alliances[allianceIndex];
-      } else {
-        dataToRender = allianceColor === 'red' ? match.redAlliance : match.blueAlliance;
-      }
-
-      // Categories with icons and colors - comprehensive for all seasons
-      const categories = [
-        {
-          title: 'Point Totals',
-          icon: StarIcon,
-          color: '#F59E0B',
-          fields: ['totalPoints', 'autoPoints', 'dcPoints', 'teleopPoints', 'driverControlledPoints', 'endgamePoints', 'endGamePoints', 'prePenaltyTotal', 'preFoulTotal'],
-          highlight: true
-        },
-        {
-          title: 'Autonomous Navigation',
-          icon: RobotIcon,
-          color: '#8B5CF6',
-          fields: ['robot1Auto', 'robot2Auto', 'robotAuto', 'robot1Navigated', 'robot2Navigated', 'navigated1', 'navigated2', 'autoNavigated', 'autoNavigated1', 'autoNavigated2', 'autoNavigatingPoints', 'autoNavigationPoints', 'navigationPoints', 'autoLeavePoints']
-        },
-        {
-          title: 'Autonomous Bonus',
-          icon: TargetIcon,
-          color: '#10B981',
-          fields: ['initSignalSleeve', 'initSignalSleeve1', 'initSignalSleeve2', 'initTeamProp', 'initTeamProp1', 'initTeamProp2', 'autoBonus', 'autoBonus1', 'autoBonus2', 'autoBonusPoints', 'signalBonusPoints', 'autoRandomizationPoints', 'barcodeElement', 'barcodeElement1', 'barcodeElement2', 'randomization', 'sideOfField']
-        },
-        {
-          title: 'Autonomous Scoring',
-          icon: TargetIcon,
-          color: '#059669',
-          fields: ['autoStones', 'autoDelivered', 'autoReturned', 'autoPlaced', 'firstReturnedIsSkystone', 'autoDeliveryPoints', 'autoPlacedPoints', 'autoTowerLow', 'autoTowerMid', 'autoTowerHigh', 'autoTowerPoints', 'autoPowerShotLeft', 'autoPowerShotCenter', 'autoPowerShotRight', 'autoPowerShotPoints', 'autoStorageFreight', 'autoFreight1', 'autoFreight2', 'autoFreight3', 'autoFreightPoints', 'autoTerminal', 'autoTerminalConePoints', 'autoJunctions', 'autoJunctionCones', 'autoJunctionConePoints', 'autoBackdrop', 'autoBackstage', 'autoBackstagePoints', 'autoBackdropPoints', 'spikeMarkPixel', 'spikeMarkPixel1', 'spikeMarkPixel2', 'targetBackdropPixel', 'targetBackdropPixel1', 'targetBackdropPixel2', 'autoSampleNet', 'autoSampleLow', 'autoSampleHigh', 'autoSamplePoints', 'autoSpecimenLow', 'autoSpecimenHigh', 'autoSpecimenPoints', 'autoClassifiedArtifacts', 'autoOverflowArtifacts', 'autoArtifactPoints', 'autoClassifierState', 'autoPatternPoints']
-        },
-        {
-          title: 'TeleOp Navigation & Control',
-          icon: GameControllerIcon,
-          color: '#06B6D4',
-          fields: ['robot1Teleop', 'robot2Teleop', 'driverControlledDelivered', 'driverControlledReturned', 'driverControlledPlaced', 'driverControlledDeliveryPoints', 'driverControlledPlacedPoints']
-        },
-        {
-          title: 'TeleOp Scoring',
-          icon: GameControllerIcon,
-          color: '#0891B2',
-          fields: ['dcTowerLow', 'dcTowerMid', 'dcTowerHigh', 'driverControlledStorageFreight', 'driverControlledFreight1', 'driverControlledFreight2', 'driverControlledFreight3', 'driverControlledAllianceHubPoints', 'driverControlledSharedHubPoints', 'driverControlledStoragePoints', 'sharedFreight', 'dcJunctions', 'dcJunctionCones', 'dcJunctionConePoints', 'dcTerminal', 'dcTerminalNear', 'dcTerminalFar', 'dcTerminalConePoints', 'dcBackdrop', 'dcBackstage', 'dcBackdropPoints', 'dcBackstagePoints', 'teleopSampleNet', 'teleopSampleLow', 'teleopSampleHigh', 'teleopSamplePoints', 'teleopSpecimenLow', 'teleopSpecimenHigh', 'teleopSpecimenPoints', 'teleopClassifiedArtifacts', 'teleopOverflowArtifacts', 'teleopDepotArtifacts', 'teleopArtifactPoints', 'teleopDepotPoints', 'teleopBasePoints', 'teleopPatternPoints']
-        },
-        {
-          title: 'Endgame Parking & Position',
-          icon: MedalIcon,
-          color: '#F97316',
-          fields: ['robot1Parked', 'robot2Parked', 'parkingPoints', 'endgameParked', 'endgameParked1', 'endgameParked2', 'endgameParkingPoints', 'egNavigated', 'egNavigated1', 'egNavigated2', 'egNavigationPoints', 'egRobot', 'egRobot1', 'egRobot2', 'egLocationPoints', 'teleopParkPoints', 'teleopAscentPoints']
-        },
-        {
-          title: 'Endgame Scoring & Bonus',
-          icon: MedalIcon,
-          color: '#EA580C',
-          fields: ['robot1CapstoneLevel', 'robot2CapstoneLevel', 'capstonePoints', 'wobbleDelivered1', 'wobbleDelivered2', 'wobbleRings1', 'wobbleRings2', 'wobbleEnd1', 'wobbleEnd2', 'wobbleEndPoints', 'wobbleRingPoints', 'autoWobblePoints', 'endPowerShotLeft', 'endPowerShotCenter', 'endPowerShotRight', 'endPowerShotPoints', 'carousel', 'carouselPoints', 'endgameDelivered', 'endgameDeliveryPoints', 'allianceBalanced', 'allianceBalancedPoints', 'sharedUnbalanced', 'sharedUnbalancedPoints', 'capped', 'cappingPoints', 'drone', 'drone1', 'drone2', 'egDronePoints', 'mosaics', 'mosaicPoints', 'maxSetLine', 'setBonusPoints']
-        },
-        {
-          title: 'Special Objectives',
-          icon: StarIcon,
-          color: '#A855F7',
-          fields: ['foundationRepositioned', 'foundationMoved', 'repositionedPoints', 'tallestSkyscraper', 'skyscraperBonusPoints', 'ownershipPoints', 'circuitPoints', 'circuit', 'beacons', 'ownedJunctions', 'movementRP', 'goalRP', 'patternRP']
-        },
-        {
-          title: 'Penalties & Fouls',
-          icon: WarningIcon,
-          color: '#EF4444',
-          fields: ['minorPenalties', 'majorPenalties', 'minorFouls', 'majorFouls', 'penaltyPointsCommitted', 'penaltyPoints', 'foulPointsCommitted', 'adjust']
-        }
-      ];
-
-      const formatLabel = (key: string): string => {
-        return key
-          .replace(/([A-Z])/g, ' $1')
-          .replace(/^./, str => str.toUpperCase())
-          .replace(/\s+/g, ' ')
-          .replace(/Dc /g, 'DC ')
-          .replace(/Eg /g, 'EG ')
-          .replace(/Opr/g, 'OPR')
-          .trim();
-      };
-
-      const renderCategory = (category: any) => {
-        const fieldsToRender = category.fields.filter((field: string) => {
-          const value = dataToRender[field];
-          // While loading, show all fields in summary category (will show dashes)
-          if (loadingScores && category.highlight) {
-            return true;
-          }
-          // After loading, only show fields with values
-          return value !== undefined && value !== null;
-        });
-
-        if (fieldsToRender.length === 0) return null;
-
-        const Icon = category.icon;
-
-        return (
-          <View key={category.title} style={styles.compactCategory}>
-            <View style={styles.compactCategoryHeader}>
-              <Icon width={14} height={14} fill={category.color} />
-              <Text style={[styles.compactCategoryTitle, { color: category.color }]}>
-                {category.title}
-              </Text>
-            </View>
-            <View style={styles.compactStatsGrid}>
-              {fieldsToRender.map((field: string) => {
-                const value = dataToRender[field];
-                const displayValue = Array.isArray(value) 
-                  ? JSON.stringify(value).replace(/[\[\]"]/g, '').replace(/,/g, ', ') 
-                  : value;
-                return renderStatItem(formatLabel(field), displayValue, category.highlight);
-              })}
-            </View>
-          </View>
-        );
-      };
-
-      return (
-        <View style={[styles.compactBreakdownColumn, { backgroundColor: bgColor }]}>
-          <View style={[styles.compactAllianceHeader, { borderBottomColor: accentColor }]}>
-            <Text style={[styles.compactAllianceTitle, { color: accentColor }]}>
-              {isRed ? 'RED ALLIANCE' : 'BLUE ALLIANCE'}
-            </Text>
-            <View style={styles.totalPointsContainer}>
-              {loadingScores && (
-                <ActivityIndicator 
-                  size="small" 
-                  color={accentColor} 
-                  style={{ marginRight: 8 }}
-                />
-              )}
-              <Text style={[styles.compactTotalPoints, { color: accentColor }]}>
-                {dataToRender.totalPoints !== undefined && dataToRender.totalPoints !== null 
-                  ? dataToRender.totalPoints 
-                  : '--'}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.compactCategoriesContainer}>
-            {categories.map(renderCategory)}
-          </View>
-        </View>
-      );
-    };
-
-    return (
-      <View style={[
-        styles.scoreBreakdown,
-        { 
-          // backgroundColor: isDarkMode ? '#111827' : '#F9FAFB',
-          borderTopWidth: 0,
-          borderBottomWidth: 1,
-          borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB'
-        }
-      ]}>
-        <View style={styles.compactBreakdownRow}>
-          {renderAllianceBreakdown(match.redAlliance, 'red')}
-          {renderAllianceBreakdown(match.blueAlliance, 'blue')}
-        </View>
-      </View>
-    );
-  };
-
-  const renderTeamCell = (team: AllianceInfo | undefined, isHovered: boolean = false) => {
-    if (!team) return null;
-    const isRedAlliance = team.alliance === 'red';
-    const teams = [team.team_1, team.team_2].filter(Boolean);
-    
-    const baseColor = isRedAlliance
-      ? (isDarkMode ? '#3B1F1F' : '#FEF2F2')
-      : (isDarkMode ? '#1F2F3F' : '#EFF6FF');
-    
-    const hoverColor = isRedAlliance
-      ? (isDarkMode ? '#4B2626' : '#FEE2E2')
-      : (isDarkMode ? '#2A3F54' : '#DBEAFE');
-    
-    return (
-      <View style={[styles.teamCell,
-        isRedAlliance
-          ? [styles.redAlliance, { backgroundColor: isHovered ? hoverColor : baseColor }]
-          : [styles.blueAlliance, { backgroundColor: isHovered ? hoverColor : baseColor }],
-        isSmallDevice && styles.teamCellSmall]}> {
-        teams.map((t, index) => (
-          <View key={index} style={[styles.teamRow, isSmallDevice && styles.teamRowSmall]}>
-            <View style={styles.teamInfo}>
-              <TouchableOpacity 
-                onPress={(e) => {
-                  e?.stopPropagation?.();
-                  handleTeamClick(t?.teamNumber || 0);
-                }}
-                style={[
-                  highlightedTeam === t?.teamNumber && styles.highlightedTeamContainer,
-                  highlightedTeam === t?.teamNumber && {
-                    backgroundColor: isRedAlliance 
-                      ? (isDarkMode ? 'rgba(252, 165, 165, 0.2)' : 'rgba(220, 38, 38, 0.15)')
-                      : (isDarkMode ? 'rgba(147, 197, 253, 0.2)' : 'rgba(37, 99, 235, 0.15)')
-                  }
-                ]}
-              >
-                <Text 
-                  style={[
-                    styles.teamNumber, 
-                    { color: isDarkMode ? (isRedAlliance ? '#FCA5A5' : '#93C5FD') : isRedAlliance ? '#DC2626' : '#2563EB' }, 
-                    isSmallDevice && styles.teamNumberSmall,
-                    highlightedTeam === t?.teamNumber && styles.highlightedTeam
-                  ]} 
-                  numberOfLines={1}
-                >
-                  Team {t?.teamNumber}
-                </Text>
-              </TouchableOpacity>
-              <Text style={[styles.teamName, { color: isDarkMode ? (isRedAlliance ? '#F87171' : '#60A5FA') : isRedAlliance ? '#B91C1C' : '#1D4ED8' }, isSmallDevice && styles.teamNameSmall]} numberOfLines={2} ellipsizeMode="tail">{t?.teamName}</Text>
-            </View>
-          </View>
-        ))
-      }</View>
-    );
-  };
-
-  const renderMatchRow = (match: MatchInfo, index: number) => {
-    const [isHovered, setIsHovered] = useState(false);
-    const isLastRow = index === matches.length - 1;
-    const teamRed = match.redAlliance;
-    const teamBlue = match.blueAlliance;
-    const teamOnRed = teamRed.team_1?.teamNumber == teamNumber || teamRed.team_2?.teamNumber == teamNumber;
-    const redScore = match.redAlliance.totalPoints;
-    const blueScore = match.blueAlliance.totalPoints;
-    const teamColor = teamOnRed ? 'red' : 'blue';
-    const badgeStyle = teamColor === 'red'
-      ? { backgroundColor: isDarkMode ? '#4B1C1C' : '#FEE2E2', borderColor: isDarkMode ? '#7F1D1D' : '#FECACA' }
-      : { backgroundColor: isDarkMode ? '#1C2C4B' : '#DBEAFE', borderColor: isDarkMode ? '#1E3A8A' : '#BFDBFE' };
-    const badgeTextColor = teamColor === 'red'
-      ? isDarkMode ? '#FCA5A5' : '#DC2626'
-      : isDarkMode ? '#93C5FD' : '#2563EB';
-    
-    const hoverColor = teamColor === 'red'
-      ? isDarkMode ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.05)'
-      : isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)';
-    
-    const isExpanded = expandedMatch === match.matchNumber;
-    
-    if (isSmallDevice) {
-      // Mobile layout: fully stacked vertically, each alliance full width
-      return (
-        <View key={index}>
-          <TouchableOpacity 
-            onPress={() => handleMatchClick(match.matchNumber, match)}
-            style={[styles.tableRowMobileStacked, { borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB' }, isLastRow && !isExpanded && styles.lastRow]}
-          >
-            <View style={styles.mobileMatchInfo}>
-              <View style={[styles.matchBadge, badgeStyle]}>
-                <Text style={[styles.matchText, { color: badgeTextColor }, styles.matchTextSmall]}>{match.matchNumber}</Text>
-              </View>
-              <View style={styles.mobileScoreDisplay}>
-                <Text style={[styles.scoreNumber, match.redAlliance.win ? styles.winningScore : styles.losingScore, styles.scoreNumberSmall]}>{redScore}</Text>
-                <Text style={[styles.scoreDivider, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }, styles.scoreDividerSmall]}>-</Text>
-                <Text style={[styles.scoreNumber, match.blueAlliance.win ? styles.winningScore : styles.losingScore, styles.scoreNumberSmall]}>{blueScore}</Text>
-              </View>
-            </View>
-            <View style={[styles.mobileAllianceCell, styles.redAlliance, { backgroundColor: isDarkMode ? '#3B1F1F' : '#FEF2F2' }]}>
-              {[teamRed.team_1, teamRed.team_2].filter(Boolean).map((t, idx) => (
-                <TouchableOpacity 
-                  key={idx} 
-                  onPress={(e) => {
-                    e?.stopPropagation?.();
-                    handleTeamClick(t?.teamNumber || 0);
-                  }}
-                  style={[
-                    highlightedTeam === t?.teamNumber && styles.highlightedMobileTeam,
-                    highlightedTeam === t?.teamNumber && {
-                      backgroundColor: isDarkMode ? 'rgba(252, 165, 165, 0.25)' : 'rgba(220, 38, 38, 0.2)'
-                    }
-                  ]}
-                >
-                  <Text style={[styles.mobileTeamText, { color: isDarkMode ? '#FCA5A5' : '#DC2626' }, highlightedTeam === t?.teamNumber && styles.highlightedTeam]} numberOfLines={1}>
-                    <Text style={{ fontWeight: '700' }}>{t?.teamNumber}</Text> • {t?.teamName}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <View style={[styles.mobileAllianceCell, styles.blueAlliance, { backgroundColor: isDarkMode ? '#1F2F3F' : '#EFF6FF' }]}>
-              {[teamBlue.team_1, teamBlue.team_2].filter(Boolean).map((t, idx) => (
-                <TouchableOpacity 
-                  key={idx} 
-                  onPress={(e) => {
-                    e?.stopPropagation?.();
-                    handleTeamClick(t?.teamNumber || 0);
-                  }}
-                  style={[
-                    highlightedTeam === t?.teamNumber && styles.highlightedMobileTeam,
-                    highlightedTeam === t?.teamNumber && {
-                      backgroundColor: isDarkMode ? 'rgba(147, 197, 253, 0.25)' : 'rgba(37, 99, 235, 0.2)'
-                    }
-                  ]}
-                >
-                  <Text style={[styles.mobileTeamText, { color: isDarkMode ? '#93C5FD' : '#2563EB' }, highlightedTeam === t?.teamNumber && styles.highlightedTeam]} numberOfLines={1}>
-                    <Text style={{ fontWeight: '800' }}>{t?.teamNumber}</Text> • {t?.teamName}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </TouchableOpacity>
-          {isExpanded && renderScoreBreakdown(match)}
-        </View>
-      );
-    }
-    
-    // Desktop layout: horizontal
-    return (
-      <View key={index}>
-        <TouchableOpacity
-          onPress={() => handleMatchClick(match.matchNumber, match)}
-          style={[
-            styles.tableRow, 
-            { borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB' }, 
-            isLastRow && !isExpanded && styles.lastRow, 
-            isSmallDevice && styles.tableRowSmall,
-            isHovered && { backgroundColor: hoverColor }
-          ]}
-          // @ts-ignore - Web only props
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
-          <View style={[styles.matchCell, isSmallDevice && styles.matchCellSmall]}>
-            <View style={[styles.matchBadge, badgeStyle]}>
-              <Text style={[styles.matchText, { color: badgeTextColor }, isSmallDevice && styles.matchTextSmall]}>{match.matchNumber}</Text>
-            </View>
-          </View>
-          <View style={[styles.scoreCell, isSmallDevice && styles.scoreCellSmall]}>
-            <View style={styles.scoreContainer}>
-              <Text style={[styles.scoreNumber, match.redAlliance.win ? styles.winningScore : styles.losingScore, isSmallDevice && styles.scoreNumberSmall]}>{redScore}</Text>
-              <Text style={[styles.scoreDivider, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }, isSmallDevice && styles.scoreDividerSmall]}>-</Text>
-              <Text style={[styles.scoreNumber, match.blueAlliance.win ? styles.winningScore : styles.losingScore, isSmallDevice && styles.scoreNumberSmall]}>{blueScore}</Text>
-            </View>
-          </View>
-          {renderTeamCell(teamRed, isHovered)}
-          {renderTeamCell(teamBlue, isHovered)}
-        </TouchableOpacity>
-        {isExpanded && renderScoreBreakdown(match)}
-      </View>
-    );
-  };
-
-  // Simplified view for upcoming events
   if (isUpcomingEvent) {
     return (
-      <View style={[
-        // styles.container,
-        { 
-          // backgroundColor: isDarkMode ? 'rgba(254, 243, 199, 0.08)' : 'rgba(254, 243, 199, 0.15)', 
-          marginBottom: 20,
-          borderRadius: 12,
-        }
-      ]}>
-        <View style={[
-          styles.card,
-          {
-            // backgroundColor: isDarkMode ? 'rgba(254, 243, 199, 0.06)' : 'rgba(254, 243, 199, 0.08)',
-            borderWidth: 0,
-          },
-          isSmallDevice && styles.cardSmall,
-          isLargeDevice && styles.cardLarge
-        ]}>
-          <View style={[
-            styles.header,
-            {
-            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#FAFBFC',
-            borderWidth: 0,
-            },
-            isSmallDevice && styles.headerSmall
-          ]}>
+      <View style={[styles.container, { marginBottom: 20, borderRadius: 12 }]}>
+        <View style={[styles.card, { borderWidth: 0 }, isSmallDevice && styles.cardSmall, isLargeDevice && styles.cardLarge]}>
+          <View style={[styles.header, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#FAFBFC', borderWidth: 0 }, isSmallDevice && styles.headerSmall]}>
             <View style={styles.titleSection}>
-              <Text style={[
-                styles.title,
-                { color: isDarkMode ? '#F9FAFB' : '#111827' },
-                isSmallDevice ? styles.titleSmall : isLargeDevice ? styles.titleLarge : null
-              ]}>
+              <Text style={[styles.title, { color: isDarkMode ? '#F9FAFB' : '#111827' }, isSmallDevice ? styles.titleSmall : isLargeDevice ? styles.titleLarge : null]}>
                 {eventData.name}
               </Text>
-              <View style={[
-                styles.statusBadge,
-                {
-                  backgroundColor: status.label === 'Not Yet Occurred' ? 'rgba(239, 68, 68, 0.1)' :
-                                   status.label === 'Ongoing' ? 'rgba(245, 158, 11, 0.1)' :
-                                   'rgba(52, 199, 89, 0.1)',
-                  borderColor: status.color,
-                  borderWidth: 1,
-                }
-              ]}>
+              <View style={[styles.statusBadge, {
+                backgroundColor: status.label === 'Upcoming' ? 'rgba(239, 68, 68, 0.1)' : status.label === 'Ongoing' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(52, 199, 89, 0.1)',
+                borderColor: status.color,
+                borderWidth: 1,
+              }]}>
                 <Text style={[styles.statusText, { color: status.color }]}>
                   {status.label}
                 </Text>
@@ -600,11 +154,7 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
                 <View style={styles.iconContainer}>
                   <CalendarIcon width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} fill={isDarkMode ? '#fff' : '#000'}/>
                 </View>
-                <Text style={[
-                  styles.detailText,
-                  { color: isDarkMode ? '#D1D5DB' : '#374151' },
-                  isSmallDevice && styles.detailTextSmall
-                ]}>
+                <Text style={[styles.detailText, { color: isDarkMode ? '#D1D5DB' : '#374151' }, isSmallDevice && styles.detailTextSmall]}>
                   {eventData.date}
                 </Text>
               </View>
@@ -612,12 +162,7 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
                 <View style={styles.iconContainer}>
                   <LocationIcon width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} fill={isDarkMode ? '#fff' : '#000'}/>
                 </View>
-                <Text style={[
-                  styles.detailText, 
-                  styles.linkText,
-                  { color: isDarkMode ? '#60A5FA' : '#2563EB' },
-                  isSmallDevice && styles.detailTextSmall
-                ]}>
+                <Text style={[styles.detailText, styles.linkText, { color: isDarkMode ? '#60A5FA' : '#2563EB' }, isSmallDevice && styles.detailTextSmall]}>
                   {eventData.location}
                 </Text>
               </TouchableOpacity>
@@ -629,66 +174,34 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
   }
 
   return (
-    <TouchableOpacity 
-      activeOpacity={1} 
-      onPress={handleOutsideClick}
-      style={[
-        styles.container,
-        { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF' }
-      ]}
-    >
+    <View style={[styles.container, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF' }]}>
       <View 
-        onStartShouldSetResponder={() => true}
-        onResponderRelease={(e) => {
-          e.stopPropagation();
-        }}
-        style={[
-        styles.card,
-        {
+        style={[styles.card, {
           backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF',
           borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#FAFBFC',
-        },
-        isSmallDevice && styles.cardSmall,
-        isLargeDevice && styles.cardLarge
-      ]}>
-        <View style={[
-          styles.header,
-          {
-            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#FAFBFC',
-            borderBottomColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#E5E7EB',
-          },
-          isSmallDevice && styles.headerSmall
-        ]}>
+        }, isSmallDevice && styles.cardSmall, isLargeDevice && styles.cardLarge]}
+      >
+        <View style={[styles.header, {
+          backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#FAFBFC',
+          borderBottomColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#E5E7EB',
+        }, isSmallDevice && styles.headerSmall]}>
           <View style={styles.titleSection}>
-          {eventData && (
-            <Text style={[
-              styles.title,
-              { color: isDarkMode ? '#F9FAFB' : '#111827' },
-              isSmallDevice ? styles.titleSmall : isLargeDevice ? styles.titleLarge : null
-            ]}>
-              {eventData.name}
-            </Text>
-          )}
-            <View style={[
-              styles.statusBadge,
-              {
-                backgroundColor: status.label === 'Not Yet Occurred' ? 'rgba(239, 68, 68, 0.1)' :
-                                 status.label === 'Ongoing' ? 'rgba(245, 158, 11, 0.1)' :
-                                 'rgba(52, 199, 89, 0.1)',
-                borderColor: status.color,
-                borderWidth: 1,
-              }
-            ]}>
+            {eventData && (
+              <Text style={[styles.title, { color: isDarkMode ? '#F9FAFB' : '#111827' }, isSmallDevice ? styles.titleSmall : isLargeDevice ? styles.titleLarge : null]}>
+                {eventData.name}
+              </Text>
+            )}
+            <View style={[styles.statusBadge, {
+              backgroundColor: status.label === 'Upcoming' ? 'rgba(239, 68, 68, 0.1)' : status.label === 'Ongoing' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(52, 199, 89, 0.1)',
+              borderColor: status.color,
+              borderWidth: 1,
+            }]}>
               <Text style={[styles.statusText, { color: status.color }]}>
                 {status.label}
               </Text>
             </View>
             {(status.label !== 'Completed' && matches.length === 0) && (
-              <Text style={{ 
-                marginTop: 4, 
-                color: isDarkMode ? '#6B7280' : '#9CA3AF', 
-                fontSize: 12 
-              }}>
+              <Text style={{ marginTop: 4, color: isDarkMode ? '#6B7280' : '#9CA3AF', fontSize: 12 }}>
                 No info yet
               </Text>
             )}
@@ -698,11 +211,7 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
               <View style={styles.iconContainer}>
                 <CalendarIcon width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} fill={isDarkMode ? '#fff' : '#000'}/>
               </View>
-              <Text style={[
-                styles.detailText,
-                { color: isDarkMode ? '#D1D5DB' : '#374151' },
-                isSmallDevice && styles.detailTextSmall
-              ]}>
+              <Text style={[styles.detailText, { color: isDarkMode ? '#D1D5DB' : '#374151' }, isSmallDevice && styles.detailTextSmall]}>
                 {eventData.date}
               </Text>
             </View>
@@ -710,12 +219,7 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
               <View style={styles.iconContainer}>
                 <LocationIcon width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} fill={isDarkMode ? '#fff' : '#000'}/>
               </View>
-              <Text style={[
-                styles.detailText, 
-                styles.linkText,
-                { color: isDarkMode ? '#60A5FA' : '#2563EB' },
-                isSmallDevice && styles.detailTextSmall
-              ]}>
+              <Text style={[styles.detailText, styles.linkText, { color: isDarkMode ? '#60A5FA' : '#2563EB' }, isSmallDevice && styles.detailTextSmall]}>
                 {eventData.location}
               </Text>
             </TouchableOpacity>
@@ -723,195 +227,100 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
               <View style={styles.iconContainer}>
                 <TrophyIcon width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} fill={isDarkMode ? '#fff' : '#000'}/>
               </View>
-              <Text style={[
-                styles.detailText,
-                { color: isDarkMode ? '#D1D5DB' : '#374151' },
-                isSmallDevice && styles.detailTextSmall
-              ]}>
+              <Text style={[styles.detailText, { color: isDarkMode ? '#D1D5DB' : '#374151' }, isSmallDevice && styles.detailTextSmall]}>
                 {eventData.achievements}
               </Text>
             </View>
           </View>
-          <View style={[
-            styles.performanceCard,
-            {
-              backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF',
-              borderColor: isDarkMode ? '#374151' : '#E5E7EB',
-            },
-            isSmallDevice && styles.performanceCardSmall
-          ]}>
+          <View style={[styles.performanceCard, {
+            backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF',
+            borderColor: isDarkMode ? '#374151' : '#E5E7EB',
+          }, isSmallDevice && styles.performanceCardSmall]}>
             <View style={styles.performanceHeader}>
-              <Text style={[
-                styles.performanceTitle,
-                { color: isDarkMode ? '#F9FAFB' : '#111827' },
-                isSmallDevice && styles.performanceTitleSmall
-              ]}>
+              <Text style={[styles.performanceTitle, { color: isDarkMode ? '#F9FAFB' : '#111827' }, isSmallDevice && styles.performanceTitleSmall]}>
                 Team Performance
               </Text>
-<View style={[
-  styles.rankBadge,
-  {
-    backgroundColor: isDarkMode ? '#3F2F1F' : '#FEF3C7',
-    borderColor: isDarkMode ? '#A16207' : '#F59E0B',
-  }
-]}>
-  <TopScore width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} fill={isDarkMode ? '#FBBF24' : '#92400E'} />
-  <Text style={[
-    styles.rankText, 
-    { color: isDarkMode ? '#FBBF24' : '#92400E' },
-    isSmallDevice && styles.rankTextSmall
-  ]}>
-    {eventData.place} Place
-  </Text>
-</View>
+              <View style={[styles.rankBadge, {
+                backgroundColor: isDarkMode ? '#3F2F1F' : '#FEF3C7',
+                borderColor: isDarkMode ? '#A16207' : '#F59E0B',
+              }]}>
+                <TopScore width={isSmallDevice ? 14 : 16} height={isSmallDevice ? 14 : 16} fill={isDarkMode ? '#FBBF24' : '#92400E'} />
+                <Text style={[styles.rankText, { color: isDarkMode ? '#FBBF24' : '#92400E' }, isSmallDevice && styles.rankTextSmall]}>
+                  {eventData.place} Place
+                </Text>
+              </View>
             </View>
             <View style={styles.statsGrid}>
               <View style={styles.statItem}>
-                <Text style={[
-                  styles.statLabel,
-                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                  isSmallDevice && styles.statLabelSmall
-                ]}>
-                  Record
-                </Text>
-                <Text style={[
-                  styles.statValue,
-                  { color: isDarkMode ? '#F9FAFB' : '#111827' },
-                  isSmallDevice && styles.statValueSmall
-                ]}>
-                  {eventData.record}
-                </Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }, isSmallDevice && styles.statLabelSmall]}>Record</Text>
+                <Text style={[styles.statValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }, isSmallDevice && styles.statValueSmall]}>{eventData.record}</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={[
-                  styles.statLabel,
-                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                  isSmallDevice && styles.statLabelSmall
-                ]}>
-                  Win Rate
-                </Text>
-                <Text style={[
-                  styles.statValue,
-                  { color: isDarkMode ? '#F9FAFB' : '#111827' },
-                  isSmallDevice && styles.statValueSmall
-                ]}>
-                  {eventData.winRate}%
-                </Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }, isSmallDevice && styles.statLabelSmall]}>Win Rate</Text>
+                <Text style={[styles.statValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }, isSmallDevice && styles.statValueSmall]}>{eventData.winRate}%</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={[
-                  styles.statLabel,
-                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                  isSmallDevice && styles.statLabelSmall
-                ]}>
-                  OPR
-                </Text>
-                <Text style={[
-                  styles.statValue,
-                  { color: isDarkMode ? '#F9FAFB' : '#111827' },
-                  isSmallDevice && styles.statValueSmall
-                ]}>
-                  {eventData.OPR}
-                </Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }, isSmallDevice && styles.statLabelSmall]}>OPR</Text>
+                <Text style={[styles.statValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }, isSmallDevice && styles.statValueSmall]}>{eventData.OPR}</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={[
-                  styles.statLabel,
-                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                  isSmallDevice && styles.statLabelSmall
-                ]}>
-                  Average
-                </Text>
-                <Text style={[
-                  styles.statValue,
-                  { color: isDarkMode ? '#F9FAFB' : '#111827' },
-                  isSmallDevice && styles.statValueSmall
-                ]}>
-                  {eventData.averageScore}
-                </Text>
+                <Text style={[styles.statLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }, isSmallDevice && styles.statLabelSmall]}>Average</Text>
+                <Text style={[styles.statValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }, isSmallDevice && styles.statValueSmall]}>{eventData.averageScore}</Text>
               </View>
             </View>
           </View>
         </View>
-        <View style={[
-          styles.matchesSection,
-          { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF' },
-          isSmallDevice && styles.matchesSectionSmall
-        ]}>
-          <Text style={[
-            styles.sectionTitle,
-            { color: isDarkMode ? '#F9FAFB' : '#111827' },
-            isSmallDevice && styles.sectionTitleSmall
-          ]}>
+        <View style={[styles.matchesSection, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF' }, isSmallDevice && styles.matchesSectionSmall]}>
+          <Text style={[styles.sectionTitle, { color: isDarkMode ? '#F9FAFB' : '#111827' }, isSmallDevice && styles.sectionTitleSmall]}>
             Match Results
           </Text>
-          <View style={[
-            styles.table,
-            { borderColor: isDarkMode ? '#374151' : '#E5E7EB' }
-          ]}>
+          <View style={[styles.table, { borderColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
             {!isSmallDevice && (
-              <View style={[
-                styles.tableHeader,
-                {
-                  backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9FAFB',
-                  borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB',
-                }
-              ]}>
+              <View style={[styles.tableHeader, {
+                backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9FAFB',
+                borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB',
+              }]}>
                 <View style={[styles.matchHeaderCell, isSmallDevice && styles.matchHeaderCellSmall]}>
-                <Text style={[
-                  styles.headerText,
-                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                  isSmallDevice && styles.headerTextSmall
-                ]}>
-                  Match
-                </Text>
-              </View>
-              <View style={[styles.scoreHeaderCell, isSmallDevice && styles.scoreHeaderCellSmall]}>
-                <Text style={[
-                  styles.headerText,
-                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                  isSmallDevice && styles.headerTextSmall
-                ]}>
-                  Score
-                </Text>
-              </View>
-              <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
-                <Text style={[
-                  styles.headerText,
-                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                  isSmallDevice && styles.headerTextSmall
-                ]}>
-                  Red Alliance
-                </Text>
-              </View>
-              <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
-                <Text style={[
-                  styles.headerText,
-                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                isSmallDevice && styles.headerTextSmall
-              ]}>
-                Blue Alliance
-              </Text>
-            </View>
+                  <Text style={[styles.headerText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }, isSmallDevice && styles.headerTextSmall]}>Match</Text>
+                </View>
+                <View style={[styles.scoreHeaderCell, isSmallDevice && styles.scoreHeaderCellSmall]}>
+                  <Text style={[styles.headerText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }, isSmallDevice && styles.headerTextSmall]}>Score</Text>
+                </View>
+                <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
+                  <Text style={[styles.headerText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }, isSmallDevice && styles.headerTextSmall]}>Red Alliance</Text>
+                </View>
+                <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
+                  <Text style={[styles.headerText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }, isSmallDevice && styles.headerTextSmall]}>Blue Alliance</Text>
+                </View>
               </View>
             )}
             {isSmallDevice && (
-              <View style={[
-                styles.mobileTableHeader,
-                {
-                  backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9FAFB',
-                  borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB',
-                }
-              ]}>
+              <View style={[styles.mobileTableHeader, {
+                backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9FAFB',
+                borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB',
+              }]}>
                 <Text style={[styles.mobileHeaderText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Match</Text>
                 <Text style={[styles.mobileHeaderText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Score</Text>
               </View>
             )}
-            {matches.map(renderMatchRow)}
+            {matches.map((match, index) => (
+              <MatchRow
+                key={index}
+                match={match}
+                index={index}
+                totalMatches={matches.length}
+                isSmallDevice={isSmallDevice}
+                expandedMatch={expandedMatch}
+                highlightedTeam={highlightedTeam}
+                onMatchClick={handleMatchClick}
+                onTeamClick={handleTeamClick}
+                renderScoreBreakdown={renderScoreBreakdown}
+              />
+            ))}
           </View>
         </View>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -975,9 +384,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#34C759',
     letterSpacing: 0.5,
-  },
-  statusTextSmall: {
-    fontSize: 8,
   },
   eventDetails: {
     marginBottom: 20,
@@ -1098,20 +504,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderBottomWidth: 1,
   },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    minHeight: 50,
-  },
-  tableRowSmall: {
-    minHeight: 50,
-  },
-  tableRowMobileStacked: {
-    flexDirection: 'column',
-    borderBottomWidth: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-  },
   mobileTableHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1125,40 +517,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-  },
-  mobileMatchInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingBottom: 6,
-  },
-  mobileScoreDisplay: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  mobileAllianceCell: {
-    width: '100%',
-    padding: 6,
-    borderLeftWidth: 4,
-    marginBottom: 4,
-  },
-  mobileTeamText: {
-    fontSize: 9,
-    fontWeight: '500',
-    marginBottom: 2,
-  },
-  mobileRowHeader: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  mobileAlliancesRow: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  lastRow: {
-    borderBottomWidth: 0,
   },
   matchHeaderCell: {
     flex: 1,
@@ -1202,287 +560,5 @@ const styles = StyleSheet.create({
   },
   headerTextSmall: {
     fontSize: 11,
-  },
-  matchCell: {
-    flex: 1,
-    padding: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  matchCellSmall: {
-    flex: 0.8,
-    minWidth: 0,
-    padding: 4,
-  },
-  matchBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  redMatchBadge: {
-    backgroundColor: '#FEE2E2',
-    borderColor: '#FECACA',
-  },
-  blueMatchBadge: {
-    backgroundColor: '#DBEAFE',
-    borderColor: '#BFDBFE',
-  },
-  matchText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  matchTextSmall: {
-    fontSize: 9,
-  },
-  redMatchText: {
-    color: '#DC2626',
-  },
-  blueMatchText: {
-    color: '#2563EB',
-  },
-  scoreCell: {
-    flex: 1.2,
-    padding: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scoreCellSmall: {
-    flex: 1,
-    minWidth: 0,
-    padding: 4,
-  },
-  scoreContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  scoreNumber: {
-    fontSize: 16,
-  },
-  scoreNumberSmall: {
-    fontSize: 12,
-  },
-  winningScore: {
-    color: '#34C759',
-  },
-  losingScore: {
-    color: '#6B7280',
-  },
-  scoreDivider: {
-    fontSize: 16,
-    marginHorizontal: 8,
-  },
-  scoreDividerSmall: {
-    fontSize: 12,
-    marginHorizontal: 4,
-  },
-  teamCell: {
-    flex: 2.5,
-    padding: 8,
-    justifyContent: 'center',
-  },
-  teamCellSmall: {
-    flex: 1,
-    minWidth: 0,
-    width: '100%',
-    padding: 4,
-  },
-  redAlliance: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#EF4444',
-  },
-  blueAlliance: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
-  },
-  teamRow: {
-    marginBottom: 8,
-  },
-  teamRowSmall: {
-    marginBottom: 4,
-  },
-  teamInfo: {
-    flexDirection: 'column',
-  },
-  teamNumber: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  teamNumberSmall: {
-    fontSize: 8,
-  },
-  teamName: {
-    fontSize: 11,
-    marginTop: 2,
-  },
-  teamNameSmall: {
-    fontSize: 6,
-    marginTop: 0.5,
-  },
-  redTeamText: {
-    color: '#DC2626',
-  },
-  blueTeamText: {
-    color: '#2563EB',
-  },
-  redTeamNameText: {
-    color: '#B91C1C',
-  },
-  blueTeamNameText: {
-    color: '#1D4ED8',
-  },
-  highlightedTeam: {
-    fontWeight: '600',
-    // textDecorationLine: 'underline',
-    // textDecorationStyle: 'solid',
-  },
-  highlightedTeamContainer: {
-    borderRadius: 4,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    marginHorizontal: -4,
-    marginVertical: -2,
-  },
-  highlightedMobileTeam: {
-    borderRadius: 4,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    marginBottom: 2,
-  },
-  scoreBreakdown: {
-    padding: 6,
-    borderTopWidth: 1,
-  },
-  breakdownRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    gap: 20,
-  },
-  breakdownColumn: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  breakdownTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 12,
-  },
-  breakdownCategory: {
-    width: '100%',
-    marginBottom: 16,
-  },
-  breakdownCategoryTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginBottom: 8,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  breakdownStats: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  breakdownStatsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    justifyContent: 'center',
-  },
-  breakdownStat: {
-    alignItems: 'center',
-    minWidth: 80,
-    marginBottom: 8,
-  },
-  breakdownLabel: {
-    fontSize: 10,
-    fontWeight: '500',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  breakdownValue: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  // New compact styles
-  compactBreakdownRow: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  compactBreakdownColumn: {
-    flex: 1,
-    borderRadius: 6,
-    padding: 6,
-  },
-  compactAllianceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: 4,
-    marginBottom: 4,
-    borderBottomWidth: 1.5,
-  },
-  compactAllianceTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-  totalPointsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  compactTotalPoints: {
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  compactCategoriesContainer: {
-    gap: 4,
-  },
-  compactCategory: {
-    padding: 4,
-  },
-  compactCategoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginBottom: 5,
-  },
-  compactCategoryTitle: {
-    fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  compactStatsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 3,
-  },
-  compactStatItem: {
-    paddingHorizontal: 5,
-    paddingVertical: 3,
-    borderRadius: 3,
-    minWidth: 50,
-    maxWidth: 100,
-  },
-  highlightStatItem: {
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(245, 158, 11, 0.2)',
-  },
-  compactStatLabel: {
-    fontSize: 8,
-    fontWeight: '500',
-    marginBottom: 1,
-    opacity: 0.75,
-    flexWrap: 'wrap',
-  },
-  compactStatValue: {
-    fontSize: 12,
-    fontWeight: '700',
-    flexWrap: 'wrap',
-  },
-  highlightStatValue: {
-    color: '#F59E0B',
   },
 });
