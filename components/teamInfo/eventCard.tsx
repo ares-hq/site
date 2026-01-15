@@ -132,9 +132,17 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
 
   if (isUpcomingEvent) {
     return (
-      <View style={[styles.container, { marginBottom: 20, borderRadius: 12 }]}>
-        <View style={[styles.card, { borderWidth: 0 }, isSmallDevice && styles.cardSmall, isLargeDevice && styles.cardLarge]}>
-          <View style={[styles.header, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#FAFBFC', borderWidth: 0 }, isSmallDevice && styles.headerSmall]}>
+      <View style={[styles.container, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF' }]}>
+        <View 
+          style={[styles.card, {
+            backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF',
+            borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#FAFBFC',
+          }, isSmallDevice && styles.cardSmall, isLargeDevice && styles.cardLarge]}
+        >
+          <View style={[styles.header, {
+            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#FAFBFC',
+            borderBottomColor: 'transparent',
+          }, isSmallDevice && styles.headerSmall]}>
             <View style={styles.titleSection}>
               <Text style={[styles.title, { color: isDarkMode ? '#F9FAFB' : '#111827' }, isSmallDevice ? styles.titleSmall : isLargeDevice ? styles.titleLarge : null]}>
                 {eventData.name}

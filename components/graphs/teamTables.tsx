@@ -1,22 +1,22 @@
+import { filterTeams } from '@/api/algorithms/filter';
+import { SupportedYear } from '@/api/dashboardInfo';
 import { TeamInfo } from '@/api/types';
-import React, { useEffect, useMemo, useState } from 'react';
-import UpDown from '@/assets/icons/caret-up-down.svg';
 import Down from '@/assets/icons/caret-down.svg';
+import UpDown from '@/assets/icons/caret-up-down.svg';
 import Check from '@/assets/icons/check-circle.svg';
+import { useDarkMode } from '@/context/DarkModeContext';
 import { useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
   FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Pressable,
   useWindowDimensions,
+  View,
 } from 'react-native';
-import { filterTeams } from '@/api/algorithms/filter';
-import { useDarkMode } from '@/context/DarkModeContext';
-import { SupportedYear } from '@/api/dashboardInfo';
 
 const ITEMS_PER_PAGE = 20;
 const router = useRouter();
@@ -275,7 +275,7 @@ export default function DataTable({ teams, data, selectedYear = 2025 }: DataTabl
           <Pressable onPress={() => handleSort('teamNumber')} style={styles.cell}>
             <View style={styles.headerItem}>
               <Text style={[styles.headerText, { color: isDarkMode ? '#fff' : '#111827' }]}>Team #</Text>
-              {sortColumn === 'teamNumber' && <UpDown height={14} width={14} fill={isDarkMode ? '#fff' : '#000'}/>}
+              {sortColumn === 'teamNumber' && <UpDown height={14} width={14} color={isDarkMode ? '#fff' : '#111827'}/>}
             </View>
           </Pressable>
         )}
@@ -283,14 +283,14 @@ export default function DataTable({ teams, data, selectedYear = 2025 }: DataTabl
           <Pressable onPress={() => handleSort('teamName')} style={[styles.cell, styles.name]}>
             <View style={styles.headerItem}>
               <Text style={[styles.headerText, { color: isDarkMode ? '#fff' : '#111827' }]}>Team Name</Text>
-              {sortColumn === 'teamName' && <UpDown height={14} width={14} fill={isDarkMode ? '#fff' : '#000'}/>}
+              {sortColumn === 'teamName' && <UpDown height={14} width={14} color={isDarkMode ? '#fff' : '#111827'}/>}
             </View>
           </Pressable>
         )}
         {visibleColumns.includes('opr') && (
           <Pressable onPress={() => handleSort('overallOPR')} style={styles.cell}>
             <View style={[styles.headerItem, styles.alignRight]}>
-              {sortColumn === 'overallOPR' && <UpDown height={14} width={14} fill={isDarkMode ? '#fff' : '#000'}/>}
+              {sortColumn === 'overallOPR' && <UpDown height={14} width={14} color={isDarkMode ? '#fff' : '#111827'}/>}
               <Text style={[styles.headerText, styles.textRight, { color: isDarkMode ? '#fff' : '#111827' }]}>OPR</Text>
             </View>
           </Pressable>
@@ -298,7 +298,7 @@ export default function DataTable({ teams, data, selectedYear = 2025 }: DataTabl
         {visibleColumns.includes('rank') && (
           <Pressable onPress={() => handleSort('overallRank')} style={styles.cell}>
             <View style={[styles.headerItem, styles.alignRight]}>
-              {sortColumn === 'overallRank' && <UpDown height={14} width={14} fill={isDarkMode ? '#fff' : '#000'}/>}
+              {sortColumn === 'overallRank' && <UpDown height={14} width={14} color={isDarkMode ? '#fff' : '#111827'}/>}
               <Text style={[styles.headerText, styles.textRight, { color: isDarkMode ? '#fff' : '#111827' }]}>Rank</Text>
             </View>
           </Pressable>
@@ -306,7 +306,7 @@ export default function DataTable({ teams, data, selectedYear = 2025 }: DataTabl
         {visibleColumns.includes('location') && (
           <Pressable onPress={() => handleSort('location')} style={[styles.cell, styles.location]}>
             <View style={[styles.headerItem, styles.alignRight]}>
-              {sortColumn === 'location' && <UpDown height={14} width={14} fill={isDarkMode ? '#fff' : '#000'}/>}
+              {sortColumn === 'location' && <UpDown height={14} width={14} color={isDarkMode ? '#fff' : '#111827'}/>}
               <Text style={[styles.headerText, styles.textRight, { color: isDarkMode ? '#fff' : '#111827' }]}>Location</Text>
             </View>
           </Pressable>

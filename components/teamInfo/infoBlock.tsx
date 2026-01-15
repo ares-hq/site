@@ -85,7 +85,7 @@ const InfoBox = ({ screenWidth, teamInfo, highScore }: InfoSectionProps) => {
             </View>
             <Text style={[styles.itemLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Sponsors</Text>
           </View>
-          <Text style={[styles.itemValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]} numberOfLines={2}>{teamInfo.sponsors || 'N/A'}</Text>
+          <Text style={[styles.itemValue, styles.multiLineText, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.sponsors || 'N/A'}</Text>
         </View>
       </View>
       
@@ -97,7 +97,7 @@ const InfoBox = ({ screenWidth, teamInfo, highScore }: InfoSectionProps) => {
             </View>
             <Text style={[styles.itemLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Achievements</Text>
           </View>
-          <Text style={[styles.itemValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]} numberOfLines={2}>{teamInfo.achievements || 'N/A'}</Text>
+          <Text style={[styles.itemValue, styles.multiLineText, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.achievements || 'N/A'}</Text>
         </View>
       </View>
     </View>
@@ -152,6 +152,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: 'transparent',
+    minHeight: 60,
   },
   infoItem: {
     flexBasis: 'auto',
@@ -186,6 +187,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 18,
     marginLeft: 10
+  },
+  multiLineText: {
+    flexWrap: 'wrap',
+    flexShrink: 1,
   },
   link: {
     textDecorationLine: 'underline',
