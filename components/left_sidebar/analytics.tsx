@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import Calendar from '../../assets/icons/calendar.svg';
 import CaretRight from '../../assets/icons/caret-right.svg';
 import Controller from '../../assets/icons/game-controller.svg';
 import IdentificationBadge from '../../assets/icons/identification-badge.svg';
@@ -20,8 +21,10 @@ const Analytics = ({ close }: AnalyticsProps) => {
   const router = useRouter();
   const [teamsExpanded, setTeamsExpanded] = useState(false);
   const [matchesExpanded, setMatchesExpanded] = useState(false);
+  const [eventsExpanded, setEventsExpanded] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const fadeAnimMatch = useRef(new Animated.Value(0)).current;
+  const fadeAnimEvents = useRef(new Animated.Value(0)).current;
   const { isDarkMode } = useDarkMode();
 
   useEffect(() => {
@@ -40,12 +43,25 @@ const Analytics = ({ close }: AnalyticsProps) => {
     }).start();
   }, [matchesExpanded]);
 
+  useEffect(() => {
+    Animated.timing(fadeAnimEvents, {
+      toValue: eventsExpanded ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [eventsExpanded]);
+
   const rotate = fadeAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '90deg'],
   });
 
   const rotateMatch = fadeAnimMatch.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '90deg'],
+  });
+
+  const rotateEvents = fadeAnimEvents.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '90deg'],
   });
@@ -114,6 +130,30 @@ const Analytics = ({ close }: AnalyticsProps) => {
           <SidebarItem label="Qualifiers" onPress={() => go('/analytics/matches/qual', 'Qualifiers')} isDarkMode={isDarkMode} />
           <SidebarItem label="Finals" onPress={() => go('/analytics/matches/finals', 'Finals')} isDarkMode={isDarkMode} />
           <SidebarItem label="Premier" onPress={() => go('/analytics/matches/premier', 'Premier')} isDarkMode={isDarkMode} />
+        </>
+      )}
+
+      <Text style={[styles.sectionTitle, { color: mutedColor }]}></Text>
+
+      <SidebarItem
+        label="Events"
+        icon={
+          <View style={styles.teamIcons}>
+            <View style={styles.arrowContainer}>
+              <Animated.View style={[styles.arrow, { transform: [{ rotate: rotateEvents }] }]}>
+                <CaretRight fill={arrowFill} width={15} height={15} />
+              </Animated.View>
+            </View>
+            <Calendar width={18} height={18} fill={isDarkMode ? '#fff' : '#000'}/>
+          </View>
+        }
+        onPress={() => setEventsExpanded(!eventsExpanded)}
+        isDarkMode={isDarkMode}
+      />
+
+      {eventsExpanded && (
+        <>
+          <SidebarItem label="All Events" onPress={() => go('/analytics/events', 'Events')} isDarkMode={isDarkMode} />
         </>
       )}
     </View>

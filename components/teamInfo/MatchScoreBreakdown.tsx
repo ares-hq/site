@@ -36,13 +36,19 @@ export default function MatchScoreBreakdown({
 
   // Get data for both alliances
   let redData, blueData;
-  if (matchScoreDetails?.alliances && matchScoreDetails.alliances.length > 0) {
-    redData = matchScoreDetails.alliances[1];
-    blueData = matchScoreDetails.alliances[0];
+  if (matchScoreDetails?.alliances && matchScoreDetails.alliances.length >= 2) {
+    // API response has alliances array: [0] = blue, [1] = red
+    redData = matchScoreDetails.alliances[1] || {};
+    blueData = matchScoreDetails.alliances[0] || {};
   } else {
-    redData = match.redAlliance;
-    blueData = match.blueAlliance;
+    // Fallback to match object directly
+    redData = match.redAlliance || {};
+    blueData = match.blueAlliance || {};
   }
+
+  // Ensure data objects exist to prevent undefined errors
+  redData = redData || {};
+  blueData = blueData || {};
 
   // Determine season/year from match date to filter relevant fields
   const getSeasonFromDate = (dateString: string): number => {
@@ -360,11 +366,14 @@ export default function MatchScoreBreakdown({
 
     // Special handling for auto stones (2019)
     if (Array.isArray(value) && fieldName === 'autoStones') {
-      const noneCount = value.filter(item => item === 'NONE').length;
-      if (noneCount === value.length) {
-        return { display: 'N'.repeat(Math.min(noneCount, 6)) }; // Show up to 6 N's
-      }
-      // If not all NONE, fall through to general array handling
+      // Convert to compact format: SKYSTONE -> S, NONE -> N
+      const compactStones = value.map(stone => {
+        const stoneUpper = String(stone).toUpperCase();
+        if (stoneUpper === 'SKYSTONE') return 'S';
+        if (stoneUpper === 'NONE') return 'N';
+        return String(stone).charAt(0);
+      }).join('');
+      return { display: compactStones };
     }
 
     // Handle arrays
@@ -391,7 +400,8 @@ export default function MatchScoreBreakdown({
       'not_in_warehouse': 'Not',
       'none': 'None',
       'my_cone': 'Cone',
-      'opponent_cone': 'Opp Cone'
+      'opponent_cone': 'Opp Cone',
+      'observation_zone': 'Observation'
     };
     
     // Check both exact match and lowercase match
@@ -411,8 +421,8 @@ export default function MatchScoreBreakdown({
 
   const renderCategory = (category: any) => {
     const fieldsToRender = category.fields.filter((field: string) => {
-      const redValue = redData[field];
-      const blueValue = blueData[field];
+      const redValue = redData?.[field];
+      const blueValue = blueData?.[field];
       
       // While loading, show all fields for this season/year
       if (loadingScores) {
@@ -464,8 +474,8 @@ export default function MatchScoreBreakdown({
           </View>
         </TouchableOpacity>
         {isExpanded && fieldsToRender.map((field: string) => {
-          const redValue = redData[field];
-          const blueValue = blueData[field];
+          const redValue = redData?.[field];
+          const blueValue = blueData?.[field];
           const redFormatted = formatValue(redValue, field);
           const blueFormatted = formatValue(blueValue, field);
           

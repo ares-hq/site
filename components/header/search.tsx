@@ -1,19 +1,21 @@
 // SearchDropdown.tsx
 import { filterTeams } from '@/api/algorithms/filter';
 import { getAllTeams, SupportedYear } from '@/api/dashboardInfo';
+import { getUpcomingEvents } from '@/api/firstAPI';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-type ResultType = 'team' | 'aux';
+type ResultType = 'team' | 'event' | 'aux';
 type Item = {
   id: string;
   type: ResultType;
   title: string;
   description?: string;
   teamNumber?: number;
+  eventCode?: string;
 };
 
 type Props = {
@@ -47,8 +49,8 @@ const SearchDropdown: React.FC<Props> = ({
   year,
   onSelectTeam,
   onSelectAux,
-  placeholder = 'Search teams…',
-  maxResults = 20,
+  placeholder = 'Search teams & events…',
+  maxResults = 30,
   zIndex = 99999,
   style,
 }) => {
@@ -60,6 +62,7 @@ const SearchDropdown: React.FC<Props> = ({
   const [hoveredIndex, setHoveredIndex] = useState(-1);
   const [results, setResults] = useState<Item[]>([]);
   const [allTeamsData, setAllTeamsData] = useState<any[] | null>(null);
+  const [allEventsData, setAllEventsData] = useState<any[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const inputRef = useRef<TextInput>(null);
   const listRef = useRef<FlatList<Item>>(null);
@@ -67,15 +70,19 @@ const SearchDropdown: React.FC<Props> = ({
 
   useEffect(() => {
     const preloadTeamsData = async () => {
-      if (allTeamsData && !isLoading) return;
-      
+      // Always reload when year changes
       setIsLoading(true);
       try {
-        const teams = await getAllTeams(year);
+        const [teams, events] = await Promise.all([
+          getAllTeams(year),
+          getUpcomingEvents(year)
+        ]);
         setAllTeamsData(teams || []);
+        setAllEventsData(events || []);
       } catch (error) {
-        console.error('Failed to preload teams data:', error);
+        console.error('Failed to preload teams/events data:', error);
         setAllTeamsData([]);
+        setAllEventsData([]);
       } finally {
         setIsLoading(false);
       }
@@ -109,30 +116,57 @@ const SearchDropdown: React.FC<Props> = ({
     
     try {
       let teamsData = allTeamsData;
-      if (!teamsData || teamsData.length === 0) {
-        teamsData = await getAllTeams(year);
-        if (teamsData) setAllTeamsData(teamsData);
+      let eventsData = allEventsData;
+      
+      if (!teamsData || teamsData.length === 0 || !eventsData) {
+        const [teams, events] = await Promise.all([
+          teamsData && teamsData.length > 0 ? Promise.resolve(teamsData) : getAllTeams(year),
+          eventsData ? Promise.resolve(eventsData) : getUpcomingEvents(year)
+        ]);
+        if (teams) setAllTeamsData(teams);
+        if (events) setAllEventsData(events);
+        teamsData = teams;
+        eventsData = events;
       }
       
       if (!teamsData || teamsData.length === 0) {
-        setResults([]);
-        setOpen(trimmed.length > 0);
-        return;
+        teamsData = [];
+      }
+      if (!eventsData) {
+        eventsData = [];
       }
 
+      // Search teams
       const filteredTeams = filterTeams(teamsData, trimmed);
-      const teamItems: Item[] = filteredTeams.slice(0, maxResults).map((team) => ({
-        id: String(team.teamNumber),
+      const teamItems: Item[] = filteredTeams.slice(0, Math.floor(maxResults * 0.5)).map((team) => ({
+        id: `team-${team.teamNumber}`,
         type: 'team',
         title: `Team ${team.teamNumber}`,
         description: [team.teamName, team.location].filter(Boolean).join(' • '),
         teamNumber: team.teamNumber,
       }));
       
-      setResults(teamItems);
+      // Search events
+      const lowerQuery = trimmed.toLowerCase();
+      const filteredEvents = eventsData.filter((event: any) =>
+        event.name?.toLowerCase().includes(lowerQuery) ||
+        event.eventCode?.toLowerCase().includes(lowerQuery) ||
+        event.location?.toLowerCase().includes(lowerQuery)
+      );
+      const eventItems: Item[] = filteredEvents.slice(0, Math.floor(maxResults * 0.5)).map((event: any) => ({
+        id: `event-${event.eventCode}`,
+        type: 'event',
+        title: event.name || event.eventCode,
+        description: event.location,
+        eventCode: event.eventCode,
+      }));
+      
+      // Combine results: teams first, then events
+      setResults([...teamItems, ...eventItems]);
       setOpen(trimmed.length > 0);
       setSelectedIndex(0);
     } catch (error) {
+      console.error('Search error:', error);
       setResults([]);
       setOpen(trimmed.length > 0);
     }
@@ -142,7 +176,7 @@ const SearchDropdown: React.FC<Props> = ({
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => runSearch(query), DEBOUNCE_MS);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [query, allTeamsData]);
+  }, [query, allTeamsData, allEventsData]);
 
   const onFocus = () => { if (results.length > 0) setOpen(true); };
   const onBlur = () => setTimeout(() => setOpen(false), 80);
@@ -152,6 +186,9 @@ const SearchDropdown: React.FC<Props> = ({
       const routePath = getRoutePath(year);
       router.push(`/dashboards/${routePath}?teamnumber=${item.teamNumber}` as any);
       onSelectTeam?.(item.teamNumber);
+    } else if (item.type === 'event' && item.eventCode) {
+      // Navigate to events page - you can add event filtering later if needed
+      router.push('/analytics/events' as any);
     }
     setOpen(false);
     setQuery('');
@@ -236,7 +273,7 @@ const SearchDropdown: React.FC<Props> = ({
           onChangeText={setQuery}
           onFocus={onFocus}
           onBlur={onBlur}
-          placeholder={isLoading ? "Loading teams..." : placeholder}
+          placeholder={isLoading ? "Loading data..." : placeholder}
           placeholderTextColor={theme.sub}
           style={[styles.input, { color: theme.text }]}
           autoCorrect={false}
@@ -244,7 +281,12 @@ const SearchDropdown: React.FC<Props> = ({
           editable={!isLoading}
           onSubmitEditing={() => {
             if (results.length > 0) {
-              router.push(`/dashboards/${getRoutePath(year)}?teamnumber=${results[0].teamNumber}` as any);
+              const firstResult = results[0];
+              if (firstResult.type === 'team' && firstResult.teamNumber) {
+                router.push(`/dashboards/${getRoutePath(year)}?teamnumber=${firstResult.teamNumber}` as any);
+              } else if (firstResult.type === 'event') {
+                router.push('/analytics/events' as any);
+              }
             }
           }}
         />
@@ -256,7 +298,7 @@ const SearchDropdown: React.FC<Props> = ({
       {open && (
         <View style={[styles.panel, { backgroundColor: theme.panel, borderColor: theme.border, zIndex: zIndex + 10, elevation: 999 }]} pointerEvents="box-none">
           {isLoading ? (
-            <View style={styles.noResults}><Text style={[styles.noResultsText, { color: theme.sub }]}>Loading teams...</Text></View>
+            <View style={styles.noResults}><Text style={[styles.noResultsText, { color: theme.sub }]}>Loading data...</Text></View>
           ) : results.length > 0 ? (
             <FlatList
               ref={listRef}

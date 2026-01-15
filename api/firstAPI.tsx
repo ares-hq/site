@@ -329,9 +329,14 @@ export const getFirstAPI = async (events: string[], team: number, season: Suppor
         const [redTelePoints, blueTelePoints] = adapter.teleopPoints(match);
         const [redPenaltyPoints, bluePenaltyPoints] = adapter.penalties(match);
 
+        // Normalize tournamentLevel for case-insensitive comparison
+        const tournamentLevelUpper = (match.tournamentLevel || '').toUpperCase();
+        const isPlayoff = tournamentLevelUpper === 'PLAYOFF' || tournamentLevelUpper === 'FINAL' || tournamentLevelUpper === 'FINALS' || tournamentLevelUpper === 'SEMIFINAL' || tournamentLevelUpper === 'QUARTERFINAL';
+        const isQualification = tournamentLevelUpper === 'QUALIFICATION';
+
         return {
-          matchType: match.tournamentLevel === 'PLAYOFF' ? 'PLAYOFF' : match.tournamentLevel === 'QUALIFICATION' ? 'QUALIFICATION' : 'PRACTICE',
-          matchNumber: match.tournamentLevel === 'PLAYOFF' ? 'P-' + match.series : match.tournamentLevel === 'QUALIFICATION' ? 'Q-' + match.matchNumber : 'Pr-' + match.matchNumber,
+          matchType: isPlayoff ? 'PLAYOFF' : isQualification ? 'QUALIFICATION' : 'PRACTICE',
+          matchNumber: isPlayoff ? 'P-' + match.series + '-' + match.matchNumber : isQualification ? 'Q-' + match.matchNumber : 'Pr-' + match.matchNumber,
           date: match.actualStartTime ?? match.postResultTime,
           redAlliance: {
             totalPoints: redScore,
@@ -646,7 +651,7 @@ function getScoreCacheKey(
  * @param season - The season year (e.g., 2024)
  * @param eventCode - The event code (e.g., "USNYRO")
  * @param tournamentLevel - "qual" or "playoff"
- * @param matchNumber - Optional specific match number
+ * @param matchNumber - Optional specific match number (for qual) or series number (for playoff)
  */
 export async function getMatchScoreDetails(
   season: SupportedYear,
@@ -661,7 +666,10 @@ export async function getMatchScoreDetails(
     let url = `https://api.ares-bot.com/functions/v1/first/${season}/scores/${eventCode}/${tournamentLevel}`;
     
     if (matchNumber !== undefined) {
-      url += `?matchNumber=${matchNumber}`;
+      // For playoff matches, use matchSeries. For qual matches, use matchNumber
+      const paramName = tournamentLevel === 'playoff' ? 'matchSeries' : 'matchNumber';
+      url += `?${paramName}=${matchNumber}`;
+      console.log('Fetching match score details:', url);
     }
 
     const response = await fetch(url, { headers });
@@ -703,7 +711,7 @@ export async function getCachedMatchScoreDetails(
 
   // Fetch from API
   const scores = await getMatchScoreDetails(season, eventCode, tournamentLevel, matchNumber);
-  
+
   // Cache the result
   if (scores) {
     scoreDetailsCache.set(cacheKey, scores);
@@ -725,26 +733,31 @@ export const getUpcomingEvents = async (season: SupportedYear, team?: number): P
       return [];
     }
     
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Return ALL events for the season, not just upcoming ones
+    let teamEvents = eventsRes.events;
     
-    // Filter for future and in-progress events based on end date
-    const upcomingEvents = eventsRes.events.filter((event: any) => {
-      if (!event.dateEnd && !event.dateStart) return false;
+    // Convert to EventInfo format - only fetch team count from FIRST API
+    const eventPromises = teamEvents.map(async (event: any) => {
+      let teamCount = 0;
       
-      // Use end date if available, otherwise use start date
-      const eventDate = new Date(event.dateEnd || event.dateStart);
-      eventDate.setHours(23, 59, 59, 999);
-      
-      // Include events that haven't ended yet
-      return eventDate >= today;
-    });
+      // Fetch team count from FIRST API
+      try {
+        const teamsUrl = `https://ftc-api.firstinspires.org/v2.0/${season}/teams?eventCode=${event.code}`;
+        const teamsRes = await fetch(teamsUrl, {
+          headers: {
+            'Authorization': 'Basic ' + Buffer.from(process.env.EXPO_PUBLIC_FTC_USERNAME + ':' + process.env.EXPO_PUBLIC_FTC_API_KEY).toString('base64'),
+            'Accept': 'application/json'
+          }
+        });
         
-    // If a team is specified, filter for events where the team is participating
-    let teamEvents = upcomingEvents;
-    
-    // Convert to EventInfo format - simplified for upcoming events
-    const eventPromises = teamEvents.slice(0, 10).map(async (event: any) => {
+        if (teamsRes.ok) {
+          const teamsData = await teamsRes.json();
+          teamCount = teamsData.teamCountTotal || teamsData.teams?.length || 0;
+        }
+      } catch (error) {
+        console.error(`Error fetching team count for event ${event.code}:`, error);
+      }
+      
       const eventInfo: EventInfo = {
         name: event.name || 'Unknown Event',
         eventCode: event.code || 'UNKNOWN',
@@ -752,7 +765,7 @@ export const getUpcomingEvents = async (season: SupportedYear, team?: number): P
         date: event.dateStart 
           ? new Date(event.dateStart).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) 
           : 'TBD',
-        teamCount: 0,
+        teamCount: teamCount,
         winRate: 0,
         OPR: 0,
         averageScore: 0,
@@ -773,7 +786,7 @@ export const getUpcomingEvents = async (season: SupportedYear, team?: number): P
       return dateA.getTime() - dateB.getTime();
     });
     
-    console.log(`Returning ${eventsWithData.length} upcoming events to display`);
+    console.log(`Returning ${eventsWithData.length} events to display`);
     
     return eventsWithData;
   } catch (error) {

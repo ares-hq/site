@@ -102,17 +102,43 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
       const eventCode = eventData.eventCode || 'UNKNOWN';
       let tournamentLevel: 'qual' | 'playoff' = 'qual';
       
-      // Check if it's any type of playoff match (PLAYOFF, FINALS, SEMIFINAL, etc.)
-      if (match.matchType && match.matchType !== 'QUALIFICATION' && match.matchType !== 'PRACTICE') {
+      // Check if it's any type of playoff match
+      // matchType can be: QUALIFICATION, PLAYOFF, PRACTICE, or potentially FINAL, SEMIFINAL, QUARTERFINAL
+      const matchTypeUpper = match.matchType?.toUpperCase() || '';
+      const isPlayoffMatch = matchTypeUpper !== 'QUALIFICATION' && 
+                             matchTypeUpper !== 'PRACTICE' &&
+                             matchTypeUpper !== '';
+      
+      if (isPlayoffMatch) {
+        tournamentLevel = 'playoff';
+      }
+      
+      // Also check the match number format - playoff matches often start with 'P-', 'SF-', 'F-'
+      const matchNumberUpper = matchNumber?.toUpperCase() || '';
+      if (matchNumberUpper.startsWith('P-') || 
+          matchNumberUpper.startsWith('SF-') || 
+          matchNumberUpper.startsWith('F-') ||
+          matchNumberUpper.startsWith('QF-')) {
         tournamentLevel = 'playoff';
       }
       
       const matchNum = parseInt(matchNumber.replace(/\D/g, '')) || 0;
       
+      console.log('Fetching match details:', {
+        matchNumber,
+        matchType: match.matchType,
+        tournamentLevel,
+        matchNum,
+        eventCode,
+        season: seasonYear
+      });
+      
       try {
         const details = await getCachedMatchScoreDetails(seasonYear, eventCode, tournamentLevel, matchNum);
         if (details) {
           setMatchScoreDetails(details);
+        } else {
+          console.log('No details returned for match:', matchNumber, tournamentLevel);
         }
       } catch (error) {
         console.error('Error fetching match score details:', error);
