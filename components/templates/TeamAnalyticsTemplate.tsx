@@ -131,37 +131,37 @@ const TeamAnalyticsTemplate: React.FC<TeamAnalyticsTemplateProps> = ({ pageTitle
             {getSeasonName(selectedYear)}
           </Text>
           <View style={[styles.metadataContent, isSmallDevice ? styles.metadataContentMobile : styles.metadataContentDesktop, styles.metadataContentRight]}>
-            <View style={[styles.metadataItem, !isSmallDevice && styles.metadataItemDesktop]}>
-              <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? '#4B5563' : '#F3F4F6' }]}>
+            <View style={[styles.metadataItem, !isSmallDevice && styles.metadataItemDesktop, isSmallDevice && styles.metadataItemMobile]}>
+              <View style={[styles.iconContainer, isSmallDevice && styles.iconContainerMobile, { backgroundColor: isDarkMode ? '#4B5563' : '#F3F4F6' }]}>
                 <Ionicons
                   name="people-outline"
-                  size={16}
+                  size={isSmallDevice ? 12 : 16}
                   color={isDarkMode ? '#F9FAFB' : '#111827'}
                 />
               </View>
               <View style={styles.textContainer}>
-                <Text style={[styles.metadataLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
+                <Text style={[styles.metadataLabel, isSmallDevice && styles.metadataLabelMobile, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
                   Teams Loaded
                 </Text>
-                <Text style={[styles.metadataValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
+                <Text style={[styles.metadataValue, isSmallDevice && styles.metadataValueMobile, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
                   {loading ? 'Loading...' : teams.length.toLocaleString()}
                 </Text>
               </View>
             </View>
             
-            <View style={[styles.metadataItem, !isSmallDevice && styles.metadataItemDesktop]}>
-              <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
+            <View style={[styles.metadataItem, !isSmallDevice && styles.metadataItemDesktop, isSmallDevice && styles.metadataItemMobile]}>
+              <View style={[styles.iconContainer, isSmallDevice && styles.iconContainerMobile, { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
                 <Ionicons
                   name="time-outline"
-                  size={16}
+                  size={isSmallDevice ? 12 : 16}
                   color={isDarkMode ? '#F9FAFB' : '#111827'}
                 />
               </View>
               <View style={styles.textContainer}>
-                <Text style={[styles.metadataLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
+                <Text style={[styles.metadataLabel, isSmallDevice && styles.metadataLabelMobile, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
                   Last Updated
                 </Text>
-                <Text style={[styles.metadataValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
+                <Text style={[styles.metadataValue, isSmallDevice && styles.metadataValueMobile, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
                   {lastUpdated ? lastUpdated.toLocaleString() : 'Loading...'}
                 </Text>
               </View>
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     // padding: 16,
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 10,
   },
   title: {
     fontSize: 28,
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   metadataCard: {
     borderRadius: 16,
     borderWidth: 1,
-    marginTop: 16,
+    marginTop: 10,
     shadowOffset: {
       width: 0,
       height: 4,
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   metadataContent: {
-    padding: 16,
+    padding: 10,
   },
   metadataContentDesktop: {
     flexDirection: 'row',
@@ -257,8 +257,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 16,
-    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 4,
   },
   metadataContentRight: {
     alignSelf: 'flex-end',
@@ -267,6 +267,9 @@ const styles = StyleSheet.create({
   metadataItem: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  metadataItemMobile: {
+    paddingHorizontal: 4,
   },
   metadataItemDesktop: {
     flexDirection: 'row',
@@ -281,6 +284,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
+  iconContainerMobile: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
   textContainer: {
     flex: 1,
   },
@@ -291,8 +302,19 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 2,
   },
+  metadataLabelMobile: {
+    fontSize: 9,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 1,
+  },
   metadataValue: {
     fontSize: 14,
+    fontWeight: '700',
+  },
+  metadataValueMobile: {
+    fontSize: 11,
     fontWeight: '700',
   },
   separator: {
