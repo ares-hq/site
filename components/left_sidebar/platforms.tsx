@@ -1,14 +1,14 @@
+import { useDarkMode } from '@/context/DarkModeContext';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
   Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import App from '../../assets/icons/app-store-logo.svg';
 import Robot from '../../assets/icons/robot.svg';
-import { useRouter } from 'expo-router';
-import { useDarkMode } from '@/context/DarkModeContext';
 
 type PlatformsProps = {
   close?: () => void;
@@ -49,7 +49,7 @@ const Platforms = ({ close }: PlatformsProps) => {
         }
         onPress={() => {
           router.push('/platforms/app');
-          // close?.();
+          close?.();
         }}
         isDarkMode={isDarkMode}
       />

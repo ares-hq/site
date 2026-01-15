@@ -8,13 +8,13 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import {
   Animated,
   Dimensions,
+  Platform,
   RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
   TouchableOpacity,
-  View,
-  Platform
+  View
 } from 'react-native';
 import Cancel from '../assets/icons/x-circle.svg';
 
@@ -59,6 +59,7 @@ function InnerLayout() {
   const pathname = usePathname();
   const [refreshing, setRefreshing] = useState(false);
   const { customSuffix } = usePageTitleContext();
+  const scrollViewRef = useRef<ScrollView>(null);
   
   const theme = {
     backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#F8FAFC',
@@ -133,6 +134,10 @@ function InnerLayout() {
   }, []);
 
   useEffect(() => {
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+  }, [pathname]);
+
+  useEffect(() => {
     if (isDesktop) {
       Animated.timing(sidebarWidth, {
         toValue: sidebarVisible ? 209 : 0,
@@ -186,6 +191,7 @@ function InnerLayout() {
         <View style={[styles2.contentArea, { backgroundColor: theme.contentBackground }]}>
           <HeaderBar toggleSidebar={() => setSidebarVisible(!sidebarVisible)} currentPage={currentPage} />
           <ScrollView 
+            ref={scrollViewRef}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             contentContainerStyle={[styles2.scrollContent, { backgroundColor: theme.backgroundColor }]}
           >
@@ -205,6 +211,7 @@ function InnerLayout() {
       <View style={[styles.contentArea, { backgroundColor: theme.backgroundColor }]}>
         <HeaderBar toggleSidebar={() => setSidebarVisible(!sidebarVisible)} currentPage={currentPage} />
         <ScrollView 
+          ref={scrollViewRef}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           contentContainerStyle={[styles.scrollContent, { backgroundColor: theme.backgroundColor }]}
         >

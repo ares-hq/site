@@ -91,256 +91,160 @@ export default function MatchScoreBreakdown({
       2019: [
         ...baseCategories,
         {
-          title: 'Autonomous Navigation',
+          title: 'Autonomous',
           color: '#8B5CF6',
-          fields: ['robot1Auto', 'robot2Auto', 'navigated1', 'navigated2'],
+          fields: ['robot1Auto', 'robot2Auto', 'navigated1', 'navigated2', 'autoStones', 'autoDelivered', 'autoPlaced'],
           collapsible: true
         },
         {
-          title: 'Autonomous Scoring',
-          color: '#059669',
-          fields: ['autoStones', 'autoDelivered', 'autoPlaced'],
-          collapsible: true
-        },
-        {
-          title: 'TeleOp Scoring',
+          title: 'Teleoperated',
           color: '#0369A1',
           fields: ['driverControlledDelivered', 'driverControlledPlaced'],
           collapsible: true
         },
         {
-          title: 'Endgame Parking & Position',
+          title: 'Endgame',
           color: '#EA580C',
-          fields: ['robot1Parked', 'robot2Parked', 'parkingPoints'],
-          collapsible: true
-        },
-        {
-          title: 'Endgame Scoring & Bonus',
-          color: '#C2410C',
-          fields: ['capstonePoints', 'foundationRepositioned', 'foundationMoved'],
-          collapsible: true
-        },
-        {
-          title: 'Special Objectives',
-          color: '#7C3AED',
-          fields: ['foundationRepositioned', 'foundationMoved', 'repositionedPoints'],
+          fields: ['robot1Parked', 'robot2Parked', 'parkingPoints', 'capstonePoints', 'foundationRepositioned', 'foundationMoved', 'repositionedPoints'],
           collapsible: true
         },
         {
           title: 'Penalties & Fouls',
           color: '#DC2626',
-          fields: ['minorPenalties', 'majorPenalties'],
+          fields: ['minorPenalties', 'majorPenalties', 'penaltyPoints'],
           collapsible: true
         }
       ],
       2020: [
         ...baseCategories,
         {
-          title: 'Autonomous Navigation',
+          title: 'Autonomous',
           color: '#8B5CF6',
-          fields: ['robot1Auto', 'robot2Auto', 'navigated1', 'navigated2'],
+          fields: ['robot1Auto', 'robot2Auto', 'navigated1', 'navigated2', 'autoPowerShotLeft', 'autoPowerShotCenter', 'autoPowerShotRight', 'autoWobblePoints'],
           collapsible: true
         },
         {
-          title: 'Autonomous Scoring',
-          color: '#059669',
-          fields: ['autoPowerShotLeft', 'autoPowerShotCenter', 'autoPowerShotRight', 'autoWobblePoints'],
-          collapsible: true
-        },
-        {
-          title: 'TeleOp Scoring',
+          title: 'Teleoperated',
           color: '#0369A1',
           fields: ['driverControlledStorageFreight', 'driverControlledAllianceHubPoints', 'driverControlledSharedHubPoints'],
           collapsible: true
         },
         {
-          title: 'Endgame Parking & Position',
+          title: 'Endgame',
           color: '#EA580C',
-          fields: ['endgameParked', 'endgameParked1', 'endgameParked2'],
-          collapsible: true
-        },
-        {
-          title: 'Endgame Scoring & Bonus',
-          color: '#C2410C',
-          fields: ['endPowerShotLeft', 'endPowerShotCenter', 'endPowerShotRight', 'wobbleEndPoints'],
-          collapsible: true
-        },
-        {
-          title: 'Special Objectives',
-          color: '#7C3AED',
-          fields: ['wobbleRings1', 'wobbleRings2', 'wobbleDelivered1', 'wobbleDelivered2'],
+          fields: ['endgameParked', 'endgameParked1', 'endgameParked2', 'endPowerShotLeft', 'endPowerShotCenter', 'endPowerShotRight', 'wobbleEndPoints', 'wobbleRings1', 'wobbleRings2', 'wobbleDelivered1', 'wobbleDelivered2'],
           collapsible: true
         },
         {
           title: 'Penalties & Fouls',
           color: '#DC2626',
-          fields: ['minorPenalties', 'majorPenalties'],
+          fields: ['minorPenalties', 'majorPenalties', 'penaltyPoints'],
           collapsible: true
         }
       ],
       2021: [
         ...baseCategories,
         {
-          title: 'Autonomous Navigation',
+          title: 'Autonomous',
           color: '#8B5CF6',
-          fields: ['robot1Auto', 'robot2Auto', 'navigated1', 'navigated2'],
+          fields: ['robot1Auto', 'robot2Auto', 'navigated1', 'navigated2','autoStorageFreight', 'autoFreight1', 'autoFreight2', 'autoFreight3'],
           collapsible: true
         },
+        // {
+        //   title: 'Autonomous Scoring',
+        //   color: '#059669',
+        //   fields: [],
+        //   collapsible: true
+        // },
         {
-          title: 'Autonomous Scoring',
-          color: '#059669',
-          fields: ['autoStorageFreight', 'autoFreight1', 'autoFreight2', 'autoFreight3'],
-          collapsible: true
-        },
-        {
-          title: 'TeleOp Scoring',
+          title: 'Teleoperated',
           color: '#0369A1',
           fields: ['driverControlledStorageFreight', 'driverControlledFreight1', 'driverControlledFreight2', 'driverControlledFreight3', 'driverControlledAllianceHubPoints', 'driverControlledSharedHubPoints'],
           collapsible: true
         },
         {
-          title: 'Endgame Parking & Position',
+          title: 'Endgame',
           color: '#EA580C',
-          fields: ['endgameParked', 'endgameParked1', 'endgameParked2'],
-          collapsible: true
-        },
-        {
-          title: 'Endgame Scoring & Bonus',
-          color: '#C2410C',
-          fields: ['carousel', 'capped'],
-          collapsible: true
-        },
-        {
-          title: 'Special Objectives',
-          color: '#7C3AED',
-          fields: ['carousel', 'capped', 'cappingPoints'],
+          fields: ['endgameParked', 'endgameParked1', 'endgameParked2', 'carousel', 'capped', 'cappingPoints'],
           collapsible: true
         },
         {
           title: 'Penalties & Fouls',
           color: '#DC2626',
-          fields: ['minorPenalties', 'majorPenalties'],
+          fields: ['minorPenalties', 'majorPenalties', 'penaltyPoints'],
           collapsible: true
         }
       ],
       2022: [
         ...baseCategories,
         {
-          title: 'Autonomous Navigation',
+          title: 'Autonomous',
           color: '#8B5CF6',
-          fields: ['robot1Auto', 'robot2Auto', 'navigated1', 'navigated2'],
+          fields: ['robot1Auto', 'robot2Auto', 'navigated1', 'navigated2', 'autoTerminal', 'autoJunctions'],
           collapsible: true
         },
         {
-          title: 'Autonomous Scoring',
-          color: '#059669',
-          fields: ['autoTerminal', 'autoJunctions'],
-          collapsible: true
-        },
-        {
-          title: 'TeleOp Scoring',
+          title: 'Teleoperated',
           color: '#0369A1',
           fields: ['dcJunctions', 'dcTerminal'],
           collapsible: true
         },
         {
-          title: 'Endgame Parking & Position',
+          title: 'Endgame',
           color: '#EA580C',
-          fields: ['egNavigated', 'egNavigated1', 'egNavigated2'],
-          collapsible: true
-        },
-        {
-          title: 'Endgame Scoring & Bonus',
-          color: '#C2410C',
-          fields: ['circuit', 'allianceBalanced'],
-          collapsible: true
-        },
-        {
-          title: 'Special Objectives',
-          color: '#7C3AED',
-          fields: ['circuit', 'beacons', 'ownedJunctions'],
+          fields: ['egNavigated', 'egNavigated1', 'egNavigated2', 'circuit', 'allianceBalanced', 'beacons', 'ownedJunctions'],
           collapsible: true
         },
         {
           title: 'Penalties & Fouls',
           color: '#DC2626',
-          fields: ['minorPenalties', 'majorPenalties'],
+          fields: ['minorPenalties', 'majorPenalties', 'penaltyPointsCommitted'],
           collapsible: true
         }
       ],
       2023: [
         ...baseCategories,
         {
-          title: 'Autonomous Navigation',
+          title: 'Autonomous',
           color: '#8B5CF6',
-          fields: ['robot1Auto', 'robot2Auto', 'navigated1', 'navigated2', 'autoLeavePoints'],
+          fields: ['robot1Auto', 'robot2Auto', 'navigated1', 'navigated2', 'autoLeavePoints', 'autoBackdrop', 'autoBackstage'],
           collapsible: true
         },
         {
-          title: 'Autonomous Scoring',
-          color: '#059669',
-          fields: ['autoBackdrop', 'autoBackstage'],
-          collapsible: true
-        },
-        {
-          title: 'TeleOp Scoring',
+          title: 'Teleoperated',
           color: '#0369A1',
           fields: ['dcBackdrop', 'dcBackstage'],
           collapsible: true
         },
         {
-          title: 'Endgame Parking & Position',
+          title: 'Endgame',
           color: '#EA580C',
-          fields: ['endgameParked', 'endgameParked1', 'endgameParked2'],
-          collapsible: true
-        },
-        {
-          title: 'Endgame Scoring & Bonus',
-          color: '#C2410C',
-          fields: ['mosaics', 'setBonusPoints'],
-          collapsible: true
-        },
-        {
-          title: 'Special Objectives',
-          color: '#7C3AED',
-          fields: ['ownershipPoints', 'tallestSkyscraper', 'skyscraperBonusPoints'],
+          fields: ['endgameParked', 'endgameParked1', 'endgameParked2', 'mosaics', 'setBonusPoints', 'ownershipPoints', 'tallestSkyscraper', 'skyscraperBonusPoints'],
           collapsible: true
         },
         {
           title: 'Penalties & Fouls',
           color: '#DC2626',
-          fields: ['minorPenalties', 'majorPenalties'],
+          fields: ['minorPenalties', 'majorPenalties', 'penaltyPointsCommitted'],
           collapsible: true
         }
       ],
       2024: [
         ...baseCategories,
         {
-          title: 'Autonomous Navigation',
+          title: 'Autonomous',
           color: '#8B5CF6',
-          fields: ['robot1Auto', 'robot2Auto', 'navigated1', 'navigated2', 'autoLeavePoints'],
+          fields: ['robot1Auto', 'robot2Auto', 'navigated1', 'navigated2', 'autoLeavePoints', 'autoSampleNet', 'autoSampleLow', 'autoSampleHigh', 'autoSpecimenLow', 'autoSpecimenHigh'],
           collapsible: true
         },
         {
-          title: 'Autonomous Scoring',
-          color: '#059669',
-          fields: ['autoSampleNet', 'autoSampleLow', 'autoSampleHigh', 'autoSpecimenLow', 'autoSpecimenHigh'],
-          collapsible: true
-        },
-        {
-          title: 'TeleOp Navigation & Control',
-          color: '#0891B2',
-          fields: ['robot1Teleop', 'robot2Teleop'],
-          collapsible: true
-        },
-        {
-          title: 'TeleOp Scoring',
+          title: 'Teleoperated',
           color: '#0369A1',
-          fields: ['teleopSampleNet', 'teleopSampleLow', 'teleopSampleHigh', 'teleopSpecimenLow', 'teleopSpecimenHigh'],
+          fields: ['robot1Teleop', 'robot2Teleop', 'teleopSampleNet', 'teleopSampleLow', 'teleopSampleHigh', 'teleopSpecimenLow', 'teleopSpecimenHigh'],
           collapsible: true
         },
         {
-          title: 'Endgame Parking & Position',
+          title: 'Endgame',
           color: '#EA580C',
           fields: ['teleopParkPoints', 'teleopAscentPoints'],
           collapsible: true
@@ -348,64 +252,34 @@ export default function MatchScoreBreakdown({
         {
           title: 'Penalties & Fouls',
           color: '#DC2626',
-          fields: ['minorPenalties', 'majorPenalties'],
+          fields: ['minorFouls', 'majorFouls', 'foulPointsCommitted'],
           collapsible: true
         }
       ],
       2025: [
         ...baseCategories,
         {
-          title: 'Autonomous Navigation',
+          title: 'Autonomous',
           color: '#8B5CF6',
-          fields: ['robot1Auto', 'robot2Auto', 'navigated1', 'navigated2', 'autoLeavePoints'],
+          fields: ['robot1Auto', 'robot2Auto', 'navigated1', 'navigated2', 'autoLeavePoints', 'initSignalSleeve', 'initSignalSleeve1', 'initSignalSleeve2', 'barcodeElement', 'barcodeElement1', 'barcodeElement2', 'spikeMarkPixel', 'spikeMarkPixel1', 'spikeMarkPixel2', 'targetBackdropPixel', 'targetBackdropPixel1', 'targetBackdropPixel2', 'autoClassifiedArtifacts', 'autoOverflowArtifacts', 'autoClassifierState', 'autoPatternPoints'],
           collapsible: true
         },
         {
-          title: 'Autonomous Bonus',
-          color: '#10B981',
-          fields: ['initSignalSleeve', 'initSignalSleeve1', 'initSignalSleeve2', 'barcodeElement', 'barcodeElement1', 'barcodeElement2'],
-          collapsible: true
-        },
-        {
-          title: 'Autonomous Scoring',
-          color: '#059669',
-          fields: ['spikeMarkPixel', 'spikeMarkPixel1', 'spikeMarkPixel2', 'targetBackdropPixel', 'targetBackdropPixel1', 'targetBackdropPixel2', 'autoClassifiedArtifacts', 'autoOverflowArtifacts', 'autoClassifierState', 'autoPatternPoints'],
-          collapsible: true
-        },
-        {
-          title: 'TeleOp Navigation & Control',
-          color: '#0891B2',
-          fields: ['robot1Teleop', 'robot2Teleop'],
-          collapsible: true
-        },
-        {
-          title: 'TeleOp Scoring',
+          title: 'Teleoperated',
           color: '#0369A1',
-          fields: ['teleopClassifiedArtifacts', 'teleopOverflowArtifacts', 'teleopDepotArtifacts', 'teleopClassifierState', 'teleopPatternPoints'],
+          fields: ['robot1Teleop', 'robot2Teleop', 'teleopClassifiedArtifacts', 'teleopOverflowArtifacts', 'teleopDepotArtifacts', 'teleopClassifierState', 'teleopPatternPoints'],
           collapsible: true
         },
         {
-          title: 'Endgame Parking & Position',
+          title: 'Endgame',
           color: '#EA580C',
-          fields: ['egNavigated', 'egNavigated1', 'egNavigated2', 'egLocationPoints'],
-          collapsible: true
-        },
-        {
-          title: 'Endgame Scoring & Bonus',
-          color: '#C2410C',
-          fields: ['drone', 'drone1', 'drone2'],
-          collapsible: true
-        },
-        {
-          title: 'Special Objectives',
-          color: '#7C3AED',
-          fields: ['movementRP', 'goalRP', 'patternRP'],
+          fields: ['egNavigated', 'egNavigated1', 'egNavigated2', 'egLocationPoints', 'drone', 'drone1', 'drone2', 'movementRP', 'goalRP', 'patternRP'],
           collapsible: true
         },
         {
           title: 'Penalties & Fouls',
           color: '#DC2626',
-          fields: ['minorPenalties', 'majorPenalties'],
+          fields: ['minorFouls', 'majorFouls', 'foulPointsCommitted'],
           collapsible: true
         }
       ]
@@ -545,11 +419,16 @@ export default function MatchScoreBreakdown({
         return true;
       }
       
+      // Always show Penalties & Fouls fields, even if no data
+      if (category.title === 'Penalties & Fouls') {
+        return true;
+      }
+      
       // After loading, only show fields where at least one alliance has data
       return (redValue !== undefined && redValue !== null) || (blueValue !== undefined && blueValue !== null);
     });
 
-    if (fieldsToRender.length === 0) return null;
+    if (fieldsToRender.length === 0 && category.title !== 'Penalties & Fouls') return null;
 
     const isExpanded = expandedCategories.has(category.title);
 

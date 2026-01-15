@@ -2,7 +2,7 @@ import { useDarkMode } from '@/context/DarkModeContext';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import House from '../../assets/icons/house.svg'; 
+import House from '../../assets/icons/house.svg';
 
 const Home = ({ close }: { close?: () => void }) => {
   const router = useRouter();

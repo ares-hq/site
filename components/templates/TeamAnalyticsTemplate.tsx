@@ -5,7 +5,6 @@ import DataTable from '@/components/graphs/teamTables';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { YearSelector } from '@/components/shared/YearSelector';
 import { useDarkMode } from '@/context/DarkModeContext';
-import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -17,6 +16,8 @@ import {
   useWindowDimensions,
   View
 } from 'react-native';
+import Clock from '../../assets/icons/clock.svg';
+import People from '../../assets/icons/users.svg';
 
 interface TeamAnalyticsTemplateProps {
   pageTitle: string;
@@ -24,13 +25,13 @@ interface TeamAnalyticsTemplateProps {
 }
 
 const GAME_NAMES: Record<SupportedYear, string> = {
-  2019: '2019 - Skystone',
-  2020: '2020 - Ultimate Goal',
-  2021: '2021 - Freight Frenzy',
-  2022: '2022 - Power Play',
-  2023: '2023 - Centerstage',
-  2024: '2024 - Into the Deep',
-  2025: '2025 - Decode',
+  2019: 'Skystone',
+  2020: 'Ultimate Goal',
+  2021: 'Freight Frenzy',
+  2022: 'Power Play',
+  2023: 'Centerstage',
+  2024: 'Into the Deep',
+  2025: 'Decode',
 };
 
 const TeamAnalyticsTemplate: React.FC<TeamAnalyticsTemplateProps> = ({ pageTitle, dataType }) => {
@@ -132,12 +133,8 @@ const TeamAnalyticsTemplate: React.FC<TeamAnalyticsTemplateProps> = ({ pageTitle
           </Text>
           <View style={[styles.metadataContent, isSmallDevice ? styles.metadataContentMobile : styles.metadataContentDesktop, styles.metadataContentRight]}>
             <View style={[styles.metadataItem, !isSmallDevice && styles.metadataItemDesktop, isSmallDevice && styles.metadataItemMobile]}>
-              <View style={[styles.iconContainer, isSmallDevice && styles.iconContainerMobile, { backgroundColor: isDarkMode ? '#4B5563' : '#F3F4F6' }]}>
-                <Ionicons
-                  name="people-outline"
-                  size={isSmallDevice ? 12 : 16}
-                  color={isDarkMode ? '#F9FAFB' : '#111827'}
-                />
+              <View style={[styles.iconContainer, isSmallDevice && styles.iconContainerMobile]}>
+                <People width={isSmallDevice ? 20 : 25} height={isSmallDevice ? 20 : 25} fill={isDarkMode ? '#9CA3AF' : '#6B7280'}/>
               </View>
               <View style={styles.textContainer}>
                 <Text style={[styles.metadataLabel, isSmallDevice && styles.metadataLabelMobile, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
@@ -150,12 +147,8 @@ const TeamAnalyticsTemplate: React.FC<TeamAnalyticsTemplateProps> = ({ pageTitle
             </View>
             
             <View style={[styles.metadataItem, !isSmallDevice && styles.metadataItemDesktop, isSmallDevice && styles.metadataItemMobile]}>
-              <View style={[styles.iconContainer, isSmallDevice && styles.iconContainerMobile, { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
-                <Ionicons
-                  name="time-outline"
-                  size={isSmallDevice ? 12 : 16}
-                  color={isDarkMode ? '#F9FAFB' : '#111827'}
-                />
+              <View style={[styles.iconContainer, isSmallDevice && styles.iconContainerMobile]}>
+                <Clock width={isSmallDevice ? 20 : 25} height={isSmallDevice ? 20 : 25} fill={isDarkMode ? '#9CA3AF' : '#6B7280'}/>
               </View>
               <View style={styles.textContainer}>
                 <Text style={[styles.metadataLabel, isSmallDevice && styles.metadataLabelMobile, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
@@ -277,20 +270,15 @@ const styles = StyleSheet.create({
     minWidth: 140,
   },
   iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   iconContainerMobile: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
+    paddingTop: 1,
   },
   textContainer: {
     flex: 1,

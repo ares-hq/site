@@ -1,16 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useDarkMode } from '@/context/DarkModeContext';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
   Animated,
   Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import IdentificationBadge from '../../assets/icons/identification-badge.svg';
 import CaretRight from '../../assets/icons/caret-right.svg';
 import Controller from '../../assets/icons/game-controller.svg';
-import { useRouter } from 'expo-router';
-import { useDarkMode } from '@/context/DarkModeContext';
+import IdentificationBadge from '../../assets/icons/identification-badge.svg';
 
 type AnalyticsProps = {
   close?: () => void;

@@ -1,7 +1,8 @@
 import { AllianceInfo, MatchInfo } from '@/api/types';
 import { useDarkMode } from '@/context/DarkModeContext';
-import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import CaretRight from '../../assets/icons/caret-right.svg';
 
 interface MatchRowProps {
   match: MatchInfo;
@@ -28,9 +29,24 @@ export default function MatchRow({
 }: MatchRowProps) {
   const { isDarkMode } = useDarkMode();
   const [isHovered, setIsHovered] = useState(false);
+  const [hoveredTeam, setHoveredTeam] = useState<number | null>(null);
+  const rotateAnim = useRef(new Animated.Value(0)).current;
 
   const isExpanded = expandedMatch === match.matchNumber;
   const isLastRow = index === totalMatches - 1;
+
+  useEffect(() => {
+    Animated.timing(rotateAnim, {
+      toValue: isExpanded ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [isExpanded]);
+
+  const rotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '90deg'],
+  });
 
   const teamRed = match.redAlliance;
   const teamBlue = match.blueAlliance;
@@ -65,49 +81,79 @@ export default function MatchRow({
           ? [styles.redAlliance, { backgroundColor: isHovered ? teamHoverColor : baseColor }]
           : [styles.blueAlliance, { backgroundColor: isHovered ? teamHoverColor : baseColor }],
         isSmallDevice && styles.teamCellSmall
-      ]}>
-        {teams.map((t, index) => (
-          <View key={index} style={[styles.teamRow, isSmallDevice && styles.teamRowSmall]}>
-            <View style={styles.teamInfo}>
-              <TouchableOpacity
-                onPress={(e) => {
-                  e?.stopPropagation?.();
-                  onTeamClick(t?.teamNumber || 0);
-                }}
-                style={[
-                  styles.teamContainer,
-                  highlightedTeam === t?.teamNumber && {
-                    backgroundColor: isRedAlliance
-                      ? (isDarkMode ? 'rgba(239, 68, 68, 0.3)' : 'rgba(220, 38, 38, 0.2)')
-                      : (isDarkMode ? 'rgba(59, 130, 246, 0.3)' : 'rgba(37, 99, 235, 0.2)')
-                  }
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.teamNumber,
-                    { color: isDarkMode ? (isRedAlliance ? '#FCA5A5' : '#93C5FD') : isRedAlliance ? '#DC2626' : '#2563EB' },
-                    isSmallDevice && styles.teamNumberSmall,
-                    highlightedTeam === t?.teamNumber && styles.highlightedTeam
-                  ]}
-                  numberOfLines={1}
-                >
-                  Team {t?.teamNumber}
-                </Text>
-              </TouchableOpacity>
-              <Text
-                style={[
-                  styles.teamName,
-                  { color: isDarkMode ? (isRedAlliance ? '#F87171' : '#60A5FA') : isRedAlliance ? '#B91C1C' : '#1D4ED8' },
-                  isSmallDevice && styles.teamNameSmall
-                ]}
-                numberOfLines={1}
-              >
-                {t?.teamName || 'Unknown'}
-              </Text>
-            </View>
-          </View>
-        ))}
+      ]}
+      // @ts-ignore
+      pointerEvents="box-none"
+    >
+          {teams.map((t, index) => {
+            const isHighlighted = highlightedTeam === t?.teamNumber;
+            const isHoveredTeam = hoveredTeam === t?.teamNumber && !isHighlighted;
+            
+            const getBgColor = () => {
+              if (isHighlighted) {
+                return isRedAlliance
+                  ? (isDarkMode ? 'rgba(239, 68, 68, 0.2)' : 'rgba(220, 38, 38, 0.15)')
+                  : (isDarkMode ? 'rgba(59, 130, 246, 0.2)' : 'rgba(37, 99, 235, 0.15)');
+              }
+              if (isHoveredTeam) {
+                return isRedAlliance
+                  ? (isDarkMode ? 'rgba(239, 68, 68, 0.12)' : 'rgba(220, 38, 38, 0.08)')
+                  : (isDarkMode ? 'rgba(59, 130, 246, 0.12)' : 'rgba(37, 99, 235, 0.08)');
+              }
+              return 'transparent';
+            };
+
+            return (
+              <View key={index} style={[styles.teamRow, isSmallDevice && styles.teamRowSmall]}>
+                <View style={styles.teamInfo}>
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e?.stopPropagation?.();
+                      onTeamClick(t?.teamNumber || 0);
+                    }}
+                    style={{
+                      cursor: 'pointer',
+                      paddingLeft: 12,
+                      paddingRight: 8,
+                      paddingVertical: 2,
+                      marginLeft: -4,
+                      alignSelf: 'flex-start',
+                      backgroundColor: getBgColor(),
+                      borderTopLeftRadius: 0,
+                      borderBottomLeftRadius: 0,
+                      borderTopRightRadius: 4,
+                      borderBottomRightRadius: 4
+                    }}
+                    // @ts-ignore - Web only props
+                    onMouseEnter={() => !isHighlighted && setHoveredTeam(t?.teamNumber || null)}
+                    onMouseLeave={() => setHoveredTeam(null)}
+                  >
+                    <Text
+                      style={[
+                        styles.teamNumber,
+                        { color: isDarkMode ? (isRedAlliance ? '#FCA5A5' : '#93C5FD') : isRedAlliance ? '#DC2626' : '#2563EB' },
+                        isSmallDevice && styles.teamNumberSmall,
+                        isHighlighted && styles.highlightedTeam
+                      ]}
+                      numberOfLines={1}
+                    >
+                      Team {t?.teamNumber}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.teamName,
+                        { color: isDarkMode ? (isRedAlliance ? '#F87171' : '#60A5FA') : isRedAlliance ? '#B91C1C' : '#1D4ED8' },
+                        isSmallDevice && styles.teamNameSmall
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {t?.teamName || 'Unknown'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })}
       </View>
     );
   };
@@ -127,12 +173,15 @@ export default function MatchRow({
       <View key={index}>
         <TouchableOpacity
           onPress={() => onMatchClick(match.matchNumber, match)}
-          style={[styles.tableRowMobileStacked, { borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB' }, isLastRow && !isExpanded && styles.lastRow]}
+          style={[styles.tableRowMobileStacked, { borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB' }, isLastRow && !isExpanded && styles.lastRow, { cursor: 'pointer' }]}
           // @ts-ignore - Web only props
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
           <View style={[styles.mobileMatchInfo, !isSmallDevice && isHovered && { backgroundColor: hoverColor }]}>
+            <Animated.View style={[styles.mobileExpandIndicatorInline, { transform: [{ rotate: rotate }] }]}>
+              <CaretRight fill={isDarkMode ? 'rgba(156, 163, 175, 0.6)' : 'rgba(107, 114, 128, 0.6)'} width={14} height={14} />
+            </Animated.View>
             <View style={[styles.matchBadge, badgeStyle]}>
               <Text style={[styles.matchText, { color: badgeTextColor }, styles.matchTextSmall]}>{match.matchNumber}</Text>
             </View>
@@ -142,47 +191,107 @@ export default function MatchRow({
               <Text style={[styles.scoreNumber, match.blueAlliance.win ? styles.winningScore : styles.losingScore, styles.scoreNumberSmall]}>{blueScore}</Text>
             </View>
           </View>
-          <View style={[styles.mobileAllianceCell, styles.redAlliance, { backgroundColor: isDarkMode ? '#3B1F1F' : '#FEF2F2' }]}>
-            {[teamRed.team_1, teamRed.team_2].filter(Boolean).map((t, idx) => (
-              <TouchableOpacity
-                key={idx}
-                onPress={(e) => {
-                  e?.stopPropagation?.();
-                  onTeamClick(t?.teamNumber || 0);
-                }}
-                style={[
-                  styles.mobileTeamContainer,
-                  highlightedTeam === t?.teamNumber && {
-                    backgroundColor: isDarkMode ? 'rgba(239, 68, 68, 0.3)' : 'rgba(220, 38, 38, 0.2)'
-                  }
-                ]}
-              >
-                <Text style={[styles.mobileTeamText, { color: isDarkMode ? '#FCA5A5' : '#DC2626' }, highlightedTeam === t?.teamNumber && styles.highlightedTeam]} numberOfLines={1}>
-                  <Text style={{ fontWeight: '700' }}>{t?.teamNumber}</Text> • {t?.teamName}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <View style={[styles.mobileAllianceCell, styles.blueAlliance, { backgroundColor: isDarkMode ? '#1F2F3F' : '#EFF6FF' }]}>
-            {[teamBlue.team_1, teamBlue.team_2].filter(Boolean).map((t, idx) => (
-              <TouchableOpacity
-                key={idx}
-                onPress={(e) => {
-                  e?.stopPropagation?.();
-                  onTeamClick(t?.teamNumber || 0);
-                }}
-                style={[
-                  styles.mobileTeamContainer,
-                  highlightedTeam === t?.teamNumber && {
-                    backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.3)' : 'rgba(37, 99, 235, 0.2)'
-                  }
-                ]}
-              >
-                <Text style={[styles.mobileTeamText, { color: isDarkMode ? '#93C5FD' : '#2563EB' }, highlightedTeam === t?.teamNumber && styles.highlightedTeam]} numberOfLines={1}>
-                  <Text style={{ fontWeight: '800' }}>{t?.teamNumber}</Text> • {t?.teamName}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          <View style={styles.mobileAllianceContainer}>
+            <View style={[styles.mobileAllianceCell, styles.redAlliance, { backgroundColor: isDarkMode ? '#3B1F1F' : '#FEF2F2' }]}>
+              {[teamRed.team_1, teamRed.team_2].filter(Boolean).map((t, idx) => {
+                const isHighlighted = highlightedTeam === t?.teamNumber;
+                const isHoveredTeam = hoveredTeam === t?.teamNumber && !isHighlighted;
+                
+                const getBgColor = () => {
+                  if (isHighlighted) return isDarkMode ? 'rgba(239, 68, 68, 0.2)' : 'rgba(220, 38, 38, 0.15)';
+                  if (isHoveredTeam) return isDarkMode ? 'rgba(239, 68, 68, 0.12)' : 'rgba(220, 38, 38, 0.08)';
+                  return 'transparent';
+                };
+
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    onPress={(e) => {
+                      e?.stopPropagation?.();
+                      onTeamClick(t?.teamNumber || 0);
+                    }}
+                    style={[
+                      styles.mobileTeamContainer,
+                      { 
+                        cursor: 'pointer', 
+                        paddingLeft: 12,
+                        paddingRight: 8,
+                        paddingVertical: 2,
+                        marginLeft: -4,
+                        alignSelf: 'flex-start',
+                        backgroundColor: getBgColor(),
+                        borderTopLeftRadius: 0,
+                        borderBottomLeftRadius: 0,
+                        borderTopRightRadius: 4,
+                        borderBottomRightRadius: 4
+                      }
+                    ]}
+                    // @ts-ignore - Web only props
+                    onMouseEnter={() => !isHighlighted && setHoveredTeam(t?.teamNumber || null)}
+                    onMouseLeave={() => setHoveredTeam(null)}
+                  >
+                    <View>
+                      <Text style={[styles.mobileTeamText, { color: isDarkMode ? '#FCA5A5' : '#DC2626' }, isHighlighted && styles.highlightedTeam]}>
+                        {t?.teamNumber}
+                      </Text>
+                      <Text style={[styles.mobileTeamName, { color: isDarkMode ? '#F87171' : '#B91C1C' }]} numberOfLines={1}>
+                        {t?.teamName}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <View style={[styles.mobileAllianceCell, styles.blueAlliance, { backgroundColor: isDarkMode ? '#1F2F3F' : '#EFF6FF' }]}>
+              {[teamBlue.team_1, teamBlue.team_2].filter(Boolean).map((t, idx) => {
+                const isHighlighted = highlightedTeam === t?.teamNumber;
+                const isHoveredTeam = hoveredTeam === t?.teamNumber && !isHighlighted;
+                
+                const getBgColor = () => {
+                  if (isHighlighted) return isDarkMode ? 'rgba(59, 130, 246, 0.2)' : 'rgba(37, 99, 235, 0.15)';
+                  if (isHoveredTeam) return isDarkMode ? 'rgba(59, 130, 246, 0.12)' : 'rgba(37, 99, 235, 0.08)';
+                  return 'transparent';
+                };
+
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    onPress={(e) => {
+                      e?.stopPropagation?.();
+                      onTeamClick(t?.teamNumber || 0);
+                    }}
+                    style={[
+                      styles.mobileTeamContainer,
+                      { 
+                        cursor: 'pointer', 
+                        paddingLeft: 12,
+                        paddingRight: 8,
+                        paddingVertical: 2,
+                        marginLeft: -4,
+                        alignSelf: 'flex-start',
+                        backgroundColor: getBgColor(),
+                        borderTopLeftRadius: 0,
+                        borderBottomLeftRadius: 0,
+                        borderTopRightRadius: 4,
+                        borderBottomRightRadius: 4
+                      }
+                    ]}
+                    // @ts-ignore - Web only props
+                    onMouseEnter={() => !isHighlighted && setHoveredTeam(t?.teamNumber || null)}
+                    onMouseLeave={() => setHoveredTeam(null)}
+                  >
+                    <View>
+                      <Text style={[styles.mobileTeamText, { color: isDarkMode ? '#93C5FD' : '#2563EB' }, isHighlighted && styles.highlightedTeam]}>
+                        {t?.teamNumber}
+                      </Text>
+                      <Text style={[styles.mobileTeamName, { color: isDarkMode ? '#60A5FA' : '#1D4ED8' }]} numberOfLines={1}>
+                        {t?.teamName}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         </TouchableOpacity>
         {isExpanded && renderScoreBreakdown(match)}
@@ -199,12 +308,16 @@ export default function MatchRow({
           styles.tableRow,
           { borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB' },
           isLastRow && !isExpanded && styles.lastRow,
-          isSmallDevice && styles.tableRowSmall
+          isSmallDevice && styles.tableRowSmall,
+          { cursor: 'pointer' }
         ]}
         // @ts-ignore - Web only props
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
+        <Animated.View style={[styles.expandIndicator, { transform: [{ rotate: rotate }] }]}>
+          <CaretRight fill={isDarkMode ? 'rgba(156, 163, 175, 0.6)' : 'rgba(107, 114, 128, 0.6)'} width={12} height={12} />
+        </Animated.View>
         <View style={[styles.matchCell, isSmallDevice && styles.matchCellSmall, isHovered && { backgroundColor: hoverColor }]}>
           <View style={[styles.matchBadge, badgeStyle]}>
             <Text style={[styles.matchText, { color: badgeTextColor }, isSmallDevice && styles.matchTextSmall]}>{match.matchNumber}</Text>
@@ -223,13 +336,14 @@ export default function MatchRow({
       {isExpanded && renderScoreBreakdown(match)}
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
     alignItems: 'stretch',
+    position: 'relative',
   },
   tableRowSmall: {
     minHeight: 0,
@@ -237,26 +351,27 @@ const styles = StyleSheet.create({
   tableRowMobileStacked: {
     borderBottomWidth: 1,
     padding: 8,
+    position: 'relative',
   },
   lastRow: {
     borderBottomWidth: 0,
   },
   matchCell: {
     flex: 1,
-    padding: 12,
+    padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
   matchCellSmall: {
     flex: 0.8,
     minWidth: 0,
-    padding: 4,
+    padding: 1,
   },
   matchBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 2,
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: 0.3,
   },
   redMatchBadge: {
     backgroundColor: '#FEE2E2',
@@ -267,7 +382,7 @@ const styles = StyleSheet.create({
     borderColor: '#BFDBFE',
   },
   matchText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   matchTextSmall: {
@@ -275,21 +390,21 @@ const styles = StyleSheet.create({
   },
   scoreCell: {
     flex: 1.2,
-    padding: 12,
+    padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
   scoreCellSmall: {
     flex: 1,
     minWidth: 0,
-    padding: 4,
+    padding: 1,
   },
   scoreContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   scoreNumber: {
-    fontSize: 16,
+    fontSize: 15,
   },
   scoreNumberSmall: {
     fontSize: 12,
@@ -301,89 +416,126 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   scoreDivider: {
-    fontSize: 16,
+    fontSize: 14,
     marginHorizontal: 8,
   },
   scoreDividerSmall: {
-    fontSize: 12,
+    fontSize: 11,
     marginHorizontal: 4,
   },
   teamCell: {
     flex: 2.5,
-    padding: 8,
+    padding: 4,
     justifyContent: 'center',
   },
   teamCellSmall: {
     flex: 1,
     minWidth: 0,
     width: '100%',
-    padding: 4,
+    padding: 1,
   },
   redAlliance: {
-    borderLeftWidth: 4,
+    borderLeftWidth: 1,
     borderLeftColor: '#EF4444',
   },
   blueAlliance: {
-    borderLeftWidth: 4,
+    borderLeftWidth: 1,
     borderLeftColor: '#3B82F6',
   },
   teamRow: {
-    marginBottom: 12,
+    marginBottom: 8,
   },
   teamRowSmall: {
-    marginBottom: 6,
+    marginBottom: 3,
   },
   teamInfo: {
     flexDirection: 'column',
   },
   teamContainer: {
     borderRadius: 4,
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
     paddingVertical: 2,
-    marginHorizontal: -4,
+    marginHorizontal: -2,
     marginVertical: -2,
   },
   teamNumber: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   teamNumberSmall: {
     fontSize: 8,
   },
   teamName: {
-    fontSize: 11,
-    marginTop: 2,
+    fontSize: 10,
+    marginTop: 1,
   },
   teamNameSmall: {
     fontSize: 6,
-    marginTop: 0.5,
+    marginTop: 0,
   },
   highlightedTeam: {
     fontWeight: '600',
   },
   mobileMatchInfo: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   mobileScoreDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginLeft: 'auto',
+  },
+  mobileAllianceContainer: {
+    flexDirection: 'row',
+    flex: 1,
   },
   mobileAllianceCell: {
-    padding: 8,
-    borderLeftWidth: 4,
-    marginBottom: 6,
+    flex: 1,
+    padding: 6,
+    borderLeftWidth: 1,
   },
   mobileTeamText: {
-    fontSize: 11,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '700',
   },
   mobileTeamContainer: {
     borderRadius: 4,
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
     paddingVertical: 2,
     marginBottom: 2,
+  },
+  expandIndicator: {
+    width: 20,
+    height: 20,
+    position: 'absolute',
+    left: 5,
+    top: '50%',
+    marginTop: -10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  mobileExpandIndicator: {
+    width: 20,
+    height: 20,
+    position: 'absolute',
+    left: 4,
+    top: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  mobileExpandIndicatorInline: {
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 4,
+  },
+  mobileTeamName: {
+    fontSize: 9,
+    fontWeight: '400',
+    marginTop: 1,
   },
 });

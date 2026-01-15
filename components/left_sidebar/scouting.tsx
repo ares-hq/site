@@ -1,13 +1,13 @@
+import { useDarkMode } from '@/context/DarkModeContext';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
   Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import Binoculars from '../../assets/icons/binoculars.svg';
-import { useRouter } from 'expo-router';
-import { useDarkMode } from '@/context/DarkModeContext';
 
 type ScoutingProps = {
   close?: () => void;
@@ -19,6 +19,7 @@ const Scouting = ({ close }: ScoutingProps) => {
 
   const handleNavigate = () => {
     router.push('/scouting/ScoutSheet');
+    close?.();
   };
 
   const backgroundColor = isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff';
