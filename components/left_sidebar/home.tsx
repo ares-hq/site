@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import House from '../../assets/icons/house.svg';
 
-const Home = ({ close }: { close?: () => void }) => {
+const Home = ({ close, isMobile }: { close?: () => void; isMobile?: boolean }) => {
   const router = useRouter();
   const { isDarkMode } = useDarkMode();
   const [hovered, setHovered] = useState(false);
@@ -24,7 +24,7 @@ const Home = ({ close }: { close?: () => void }) => {
       <Pressable
         onPress={() => {
           router.push('/');
-          close?.();
+          if (isMobile) close?.();
         }}
         onHoverIn={() => setHovered(true)}
         onHoverOut={() => setHovered(false)}

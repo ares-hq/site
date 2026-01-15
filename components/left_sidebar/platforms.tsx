@@ -12,9 +12,10 @@ import Robot from '../../assets/icons/robot.svg';
 
 type PlatformsProps = {
   close?: () => void;
+  isMobile?: boolean;
 };
 
-const Platforms = ({ close }: PlatformsProps) => {
+const Platforms = ({ close, isMobile }: PlatformsProps) => {
   const router = useRouter();
   const { isDarkMode } = useDarkMode();
 
@@ -35,7 +36,7 @@ const Platforms = ({ close }: PlatformsProps) => {
         }
         onPress={() => {
           router.push('/platforms/discord');
-          close?.();
+          if (isMobile) close?.();
         }}
         isDarkMode={isDarkMode}
       />
@@ -49,7 +50,7 @@ const Platforms = ({ close }: PlatformsProps) => {
         }
         onPress={() => {
           router.push('/platforms/app');
-          close?.();
+          if (isMobile) close?.();
         }}
         isDarkMode={isDarkMode}
       />

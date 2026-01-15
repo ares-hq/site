@@ -10,9 +10,10 @@ import Home from "./left_sidebar/home"
 // Types
 type SidebarProps = {
   close?: () => void
+  isMobile?: boolean
 }
 
-export default function SettingsStyleSidebar({ close }: SidebarProps) {
+export default function SettingsStyleSidebar({ close, isMobile }: SidebarProps) {
   const { isDarkMode } = useDarkMode()
 
   // Theme colors
@@ -28,11 +29,11 @@ export default function SettingsStyleSidebar({ close }: SidebarProps) {
       <ScrollView showsVerticalScrollIndicator={false}>
 
         {/* Sidebar Content */}
-        <Home close={close} />
+        <Home close={close} isMobile={isMobile} />
         {/* <View style={[styles.separator, { backgroundColor: isDarkMode ? "rgba(71, 85, 105, 0.3)" : "#f3f4f6" }]} /> */}
-        <Analytics close={close} />
-        <Platforms close={close} />
-        <Scouting close={close} />
+        <Analytics close={close} isMobile={isMobile} />
+        <Platforms close={close} isMobile={isMobile} />
+        <Scouting close={close} isMobile={isMobile} />
       </ScrollView>
 
       {/* Footer */}

@@ -67,6 +67,7 @@ export interface EventInfo {
   record: string;
   matches: MatchInfo[];
   achievements: string;
+  type?: string; // Event type (Premier, Championship, etc.)
 }
 
 export interface MatchTypeAverages {

@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import Sidebar from '../../assets/icons/sidebar-simple.svg';
-import Star from '../../assets/icons/star.svg';
-import StarFill from '../../assets/icons/star-fill.svg';
+import { getFavoritesForUser, toggleFavorite } from '@/api/auth';
+import { supabase } from '@/api/dashboardInfo';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { usePathname } from 'expo-router';
-import { supabase } from '@/api/dashboardInfo';
-import { getFavoritesForUser, toggleFavorite } from '@/api/auth';
+import Sidebar from '../../assets/icons/sidebar-simple.svg';
+import StarFill from '../../assets/icons/star-fill.svg';
+import Star from '../../assets/icons/star.svg';
 
 type LeftSideProps = {
   toggleSidebar: () => void;
@@ -98,7 +98,7 @@ const LeftSide = ({ toggleSidebar, pageTitle, showRoute }: LeftSideProps) => {
   } else if (pageTitle === 'ScoutSheet') {
     routeLabel = 'Scouting';
   } else if (
-    ['Teams', 'Auto', 'TeleOp', 'Endgame', 'Matches', 'Qualifiers', 'Finals', 'Premier'].includes(pageTitle)
+    ['Teams', 'Auto', 'TeleOp', 'Endgame', 'Matches', 'Qualifiers', 'Finals', 'Premier', 'All Events', 'Championship'].includes(pageTitle)
   ) {
     routeLabel = 'Analytics';
   }

@@ -773,6 +773,7 @@ export const getUpcomingEvents = async (season: SupportedYear, team?: number): P
         record: 'TBD',
         matches: [],
         achievements: 'Event Not Started',
+        type: event.type || undefined, // Include event type from API
       };
       
       return eventInfo;

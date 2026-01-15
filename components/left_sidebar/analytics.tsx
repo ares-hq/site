@@ -15,9 +15,10 @@ import IdentificationBadge from '../../assets/icons/identification-badge.svg';
 
 type AnalyticsProps = {
   close?: () => void;
+  isMobile?: boolean;
 };
 
-const Analytics = ({ close }: AnalyticsProps) => {
+const Analytics = ({ close, isMobile }: AnalyticsProps) => {
   const router = useRouter();
   const [teamsExpanded, setTeamsExpanded] = useState(false);
   const [matchesExpanded, setMatchesExpanded] = useState(false);
@@ -68,7 +69,7 @@ const Analytics = ({ close }: AnalyticsProps) => {
 
   const go = (path: string, label: string) => {
     router.push(path as any);
-    close?.();
+    if (isMobile) close?.();
   };
 
   const textColor = isDarkMode ? '#fff' : '#000';
@@ -153,7 +154,9 @@ const Analytics = ({ close }: AnalyticsProps) => {
 
       {eventsExpanded && (
         <>
-          <SidebarItem label="All Events" onPress={() => go('/analytics/events', 'Events')} isDarkMode={isDarkMode} />
+          <SidebarItem label="All Events" onPress={() => go('/analytics/events/allevents', 'Events')} isDarkMode={isDarkMode} />
+          <SidebarItem label="Premier" onPress={() => go('/analytics/events/premier', 'Premier')} isDarkMode={isDarkMode} />
+          <SidebarItem label="Championship" onPress={() => go('/analytics/events/championships', 'Championship')} isDarkMode={isDarkMode} />
         </>
       )}
     </View>

@@ -7,31 +7,65 @@ import { useDarkMode } from '@/context/DarkModeContext';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
-    Pressable,
     RefreshControl,
     ScrollView,
     StatusBar,
     StyleSheet,
     Text,
     TextInput,
-    TextStyle,
     TouchableOpacity,
     useWindowDimensions,
-    View,
-    ViewStyle
+    View
 } from 'react-native';
 import Calendar from '../../assets/icons/calendar.svg';
-import Clock from '../../assets/icons/clock.svg';
-import MapPin from '../../assets/icons/map-pin.svg';
 import Down from '../../assets/icons/caret-down.svg';
 import Check from '../../assets/icons/check-circle.svg';
+import Clock from '../../assets/icons/clock.svg';
+import MapPin from '../../assets/icons/map-pin.svg';
 
 const ITEMS_PER_PAGE = 24;
 const MONTHS = ['All', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const SEARCH_DEBOUNCE_MS = 300;
+const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
 const GAME_NAMES: Record<SupportedYear, string> = {
     2019: 'Skystone', 2020: 'Ultimate Goal', 2021: 'Freight Frenzy',
     2022: 'Power Play', 2023: 'Centerstage', 2024: 'Into the Deep', 2025: 'Decode',
+};
+
+// Global cache for API responses
+const eventsCache = new Map<SupportedYear, { data: EventInfo[], timestamp: number }>();
+
+// Cache cleanup function
+const cleanupCache = () => {
+    const now = Date.now();
+    const keysToDelete: SupportedYear[] = [];
+    eventsCache.forEach((value, key) => {
+        if (now - value.timestamp > CACHE_DURATION_MS) {
+            keysToDelete.push(key);
+        }
+    });
+    keysToDelete.forEach(key => eventsCache.delete(key));
+};
+
+// Run cleanup periodically
+setInterval(cleanupCache, 60000); // Clean every minute
+
+// Debounce hook
+const useDebounce = (value: string, delay: number) => {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+    
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+        
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+    
+    return debouncedValue;
 };
 
 const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
@@ -39,8 +73,64 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
     const { isDarkMode } = useDarkMode();
     const { setPageTitleInfo } = usePageTitleContext();
 
+    // Memoized Event Card Component
+    const EventCard = React.memo(({ 
+        event, 
+        getEventStatus, 
+        isDarkMode 
+    }: { 
+        event: EventInfo; 
+        getEventStatus: (event: EventInfo) => 'upcoming' | 'ongoing' | 'completed'; 
+        isDarkMode: boolean; 
+    }) => {
+        const status = getEventStatus(event);
+        const cardBg = isDarkMode ? '#262626' : '#FFFFFF';
+        const borderColor = isDarkMode ? '#374151' : '#E5E7EB';
+        const textPrimary = isDarkMode ? '#F9FAFB' : '#111827';
+        const textSecondary = isDarkMode ? '#9CA3AF' : '#6B7280';
+
+        const statusColors: Record<'upcoming' | 'ongoing' | 'completed', { bg: string; text: string }> = {
+            upcoming: { bg: isDarkMode ? '#1E3A8A' : '#DBEAFE', text: isDarkMode ? '#93C5FD' : '#1E40AF' },
+            ongoing: { bg: isDarkMode ? '#065F46' : '#D1FAE5', text: isDarkMode ? '#34D399' : '#065F46' },
+            completed: { bg: isDarkMode ? '#4B5563' : '#E5E7EB', text: isDarkMode ? '#9CA3AF' : '#6B7280' },
+        };
+
+        return (
+            <View style={styles.cardWrapper}>
+                <TouchableOpacity activeOpacity={0.7} style={[styles.eventCard, { backgroundColor: cardBg, borderColor: borderColor }]}>
+                    <View style={styles.eventCardTop}>
+                        <View style={styles.eventHeader}>
+                            <Text style={[styles.eventName, { color: textPrimary }]} numberOfLines={2}>{event.name}</Text>
+                            <Text style={[styles.eventCode, { color: textSecondary }]}>{event.eventCode}</Text>
+                        </View>
+                        {event.teamCount > 0 && (
+                            <View style={styles.teamCountBadge}>
+                                <Text style={[styles.teamCountLabel, { color: textSecondary }]}>Teams</Text>
+                                <Text style={[styles.teamCountValue, { color: textPrimary }]}>{event.teamCount}</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    <View style={styles.eventDetails}>
+                        <View style={[styles.statusBanner, { backgroundColor: statusColors[status].bg }]}>
+                            <Text style={[styles.statusText, { color: statusColors[status].text }]}>{status.toUpperCase()}</Text>
+                        </View>
+                        <View style={styles.eventDetailRow}>
+                            <Calendar width={16} height={16} fill={textSecondary} />
+                            <Text style={[styles.eventDetailText, { color: textSecondary }]}>{event.date}</Text>
+                        </View>
+                        <View style={styles.eventDetailRow}>
+                            <MapPin width={16} height={16} fill={textSecondary} />
+                            <Text style={[styles.eventDetailText, { color: textSecondary }]} numberOfLines={1}>{event.location}</Text>
+                        </View>
+                    </View>
+                </TouchableOpacity>
+            </View>
+        );
+    });
+
     // State
-    const [selectedYear, setSelectedYear] = useState<SupportedYear>(2025);
+    const [selectedYear, setSelectedYear] = useState<SupportedYear>(pageTitle === 'Premier' ? 2025 : 2025);
     const [events, setEvents] = useState<EventInfo[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
@@ -57,10 +147,34 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
     const [selectedMonth, setSelectedMonth] = useState('All');
     const [statusFilters, setStatusFilters] = useState<string[]>(['upcoming', 'ongoing', 'completed']);
 
-    const availableYears: SupportedYear[] = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
+    // Debounced search query
+    const debouncedSearchQuery = useDebounce(searchQuery, SEARCH_DEBOUNCE_MS);
+
+    // Available years based on page type
+    const availableYears: SupportedYear[] = pageTitle === 'Premier' 
+        ? [2024, 2025] 
+        : [2019, 2020, 2021, 2022, 2023, 2024, 2025];
+
+    // Ensure selected year is valid for current page
+    useEffect(() => {
+        if (pageTitle === 'Premier' && !availableYears.includes(selectedYear)) {
+            setSelectedYear(2025);
+        }
+    }, [pageTitle, selectedYear, availableYears]);
 
     const fetchEvents = useCallback(async (year: SupportedYear, isRefresh = false) => {
         try {
+            // Check cache first (unless refreshing)
+            if (!isRefresh) {
+                const cached = eventsCache.get(year);
+                if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION_MS) {
+                    setEvents(cached.data);
+                    setLastUpdated(new Date(cached.timestamp));
+                    setLoading(false);
+                    return;
+                }
+            }
+            
             if (!isRefresh) setLoading(true);
             else setRefreshing(true);
             
@@ -68,6 +182,9 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
             if (data) {
                 setEvents(data);
                 setLastUpdated(new Date());
+                
+                // Cache the result
+                eventsCache.set(year, { data, timestamp: Date.now() });
             } else {
                 setError('Failed to fetch events data');
             }
@@ -79,13 +196,20 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
         }
     }, []);
 
-    useEffect(() => { fetchEvents(selectedYear); }, [selectedYear]);
+    useEffect(() => { 
+      fetchEvents(selectedYear); 
+    }, [selectedYear]);
 
     useEffect(() => {
         setPageTitleInfo({ customSuffix: `(${GAME_NAMES[selectedYear] || selectedYear})` });
     }, [selectedYear]);
 
-    const getEventStatus = (event: EventInfo) => {
+    // Reset page when debounced search changes
+    useEffect(() => {
+        setPage(0);
+    }, [debouncedSearchQuery]);
+
+    const getEventStatus = useCallback((event: EventInfo) => {
         const today = new Date(); today.setHours(0, 0, 0, 0);
         if (!event.date || event.date === 'TBD') return 'upcoming';
         const eventDate = new Date(event.date);
@@ -93,23 +217,43 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
         if (diffDays < 0) return 'completed';
         if (diffDays === 0) return 'ongoing';
         return 'upcoming';
-    };
+    }, []);
 
     const filteredEvents = useMemo(() => {
         return events.filter(event => {
-            const query = searchQuery.toLowerCase();
-            const matchesSearch = !searchQuery || 
-                event.name.toLowerCase().includes(query) || 
+            // Filter by event type based on page
+            let matchesType = true;
+            if (pageTitle === 'Premier') {
+                // Premier events have codes starting with 'FPE'
+                matchesType = event.eventCode?.startsWith('FPE') || event.name?.toLowerCase().includes('premier') || event.type?.toLowerCase() === 'premier';
+                console.log('Premier page - checking event:', event.name, event.eventCode, event.type);
+            } else if (pageTitle === 'Championships') {
+                // Championship events have codes starting with 'FRC' or contain 'championship'
+                matchesType = event.eventCode?.startsWith('FRC') || event.name?.toLowerCase().includes('championship') || event.type?.toLowerCase() === 'championship';
+                console.log('Championship page - checking event:', event.name, event.eventCode, event.type);
+            }
+            // For "All Events", show all types
+
+            const query = debouncedSearchQuery.toLowerCase();
+            const matchesSearch = !debouncedSearchQuery ||
+                event.name.toLowerCase().includes(query) ||
                 event.eventCode.toLowerCase().includes(query) ||
                 event.location.toLowerCase().includes(query) ||
                 (event.date && event.date.toLowerCase().includes(query));
-            
+
             const matchesStatus = statusFilters.includes(getEventStatus(event));
             const matchesMonth = selectedMonth === 'All' || (event.date && event.date.includes(selectedMonth));
-            
-            return matchesSearch && matchesStatus && matchesMonth;
+
+            return matchesType && matchesSearch && matchesStatus && matchesMonth;
         });
-    }, [events, searchQuery, statusFilters, selectedMonth]);
+    }, [events, debouncedSearchQuery, statusFilters, selectedMonth, pageTitle]);
+
+    // Debug: Log events and filtered events
+    useEffect(() => {
+      console.log('All events:', events);
+      console.log('Filtered events:', filteredEvents);
+      console.log('Page title:', pageTitle);
+    }, [events, filteredEvents, pageTitle]);
 
     const paginatedEvents = useMemo(() => {
         return filteredEvents.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE);
@@ -160,16 +304,16 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
                     </View>
                 ) : (
                     <View style={[styles.eventsContainer, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9FAFB' }]}>
-                        <View style={styles.filterRow}>
+                        <View style={[styles.filterRow, isSmallDevice && styles.filterRowMobile]}>
                             <TextInput
-                                style={[styles.input, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#fff', borderColor: isDarkMode ? '#4B5563' : '#e5e7eb', color: isDarkMode ? '#fff' : '#000', outline: 'none' }]}
+                                style={[styles.input, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#fff', borderColor: isDarkMode ? '#4B5563' : '#e5e7eb', color: isDarkMode ? '#fff' : '#000', outline: 'none' }, isSmallDevice && styles.inputMobile]}
                                 placeholder="Search by name, code, location, or date..."
                                 placeholderTextColor={isDarkMode ? '#9ca3af' : '#6b7280'}
                                 value={searchQuery}
-                                onChangeText={(t) => {setSearchQuery(t); setPage(0);}}
+                                onChangeText={setSearchQuery}
                             />
                             
-                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                            <View style={[styles.filterButtons, isSmallDevice && styles.filterButtonsMobile]}>
                                 <TouchableOpacity onPress={() => setMonthDropdownVisible(!monthDropdownVisible)} 
                                     style={[styles.dropdown, { backgroundColor: isDarkMode ? '#374151' : '#f3f4f6' }]}>
                                     <Text style={[styles.dropdownText, { color: isDarkMode ? '#fff' : '#000' }]}>{selectedMonth === 'All' ? 'Month' : selectedMonth}</Text>
@@ -218,52 +362,14 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
                         )}
 
                         <View style={styles.eventsGrid}>
-                            {paginatedEvents.map((event, idx) => {
-                                const status = getEventStatus(event);
-                                const cardBg = isDarkMode ? '#262626' : '#FFFFFF';
-                                const borderColor = isDarkMode ? '#374151' : '#E5E7EB';
-                                const textPrimary = isDarkMode ? '#F9FAFB' : '#111827';
-                                const textSecondary = isDarkMode ? '#9CA3AF' : '#6B7280';
-                                
-                                const statusColors = {
-                                    upcoming: { bg: isDarkMode ? '#1E3A8A' : '#DBEAFE', text: isDarkMode ? '#93C5FD' : '#1E40AF' },
-                                    ongoing: { bg: isDarkMode ? '#065F46' : '#D1FAE5', text: isDarkMode ? '#34D399' : '#065F46' },
-                                    completed: { bg: isDarkMode ? '#4B5563' : '#E5E7EB', text: isDarkMode ? '#9CA3AF' : '#6B7280' },
-                                };
-
-                                return (
-                                    <View key={idx} style={styles.cardWrapper}>
-                                        <TouchableOpacity activeOpacity={0.7} style={[styles.eventCard, { backgroundColor: cardBg, borderColor: borderColor }]}>
-                                            <View style={styles.eventCardTop}>
-                                                <View style={styles.eventHeader}>
-                                                    <Text style={[styles.eventName, { color: textPrimary }]} numberOfLines={2}>{event.name}</Text>
-                                                    <Text style={[styles.eventCode, { color: textSecondary }]}>{event.eventCode}</Text>
-                                                </View>
-                                                {event.teamCount > 0 && (
-                                                    <View style={styles.teamCountBadge}>
-                                                        <Text style={[styles.teamCountLabel, { color: textSecondary }]}>Teams</Text>
-                                                        <Text style={[styles.teamCountValue, { color: textPrimary }]}>{event.teamCount}</Text>
-                                                    </View>
-                                                )}
-                                            </View>
-
-                                            <View style={styles.eventDetails}>
-                                                <View style={[styles.statusBanner, { backgroundColor: statusColors[status].bg }]}>
-                                                    <Text style={[styles.statusText, { color: statusColors[status].text }]}>{status.toUpperCase()}</Text>
-                                                </View>
-                                                <View style={styles.eventDetailRow}>
-                                                    <Calendar width={16} height={16} fill={textSecondary} />
-                                                    <Text style={[styles.eventDetailText, { color: textSecondary }]}>{event.date}</Text>
-                                                </View>
-                                                <View style={styles.eventDetailRow}>
-                                                    <MapPin width={16} height={16} fill={textSecondary} />
-                                                    <Text style={[styles.eventDetailText, { color: textSecondary }]} numberOfLines={1}>{event.location}</Text>
-                                                </View>
-                                            </View>
-                                        </TouchableOpacity>
-                                    </View>
-                                );
-                            })}
+                            {paginatedEvents.map((event, idx) => (
+                                <EventCard 
+                                    key={event.eventCode || idx} 
+                                    event={event} 
+                                    getEventStatus={getEventStatus} 
+                                    isDarkMode={isDarkMode} 
+                                />
+                            ))}
                         </View>
                         
                         <View style={styles.footer}>
@@ -289,11 +395,11 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     scrollView: { flex: 1 },
-    scrollContent: { paddingBottom: 24, paddingHorizontal: 16 },
+    scrollContent: { paddingBottom: 24},
     header: { marginBottom: 10 },
     title: { fontSize: 28, fontWeight: '700', marginBottom: 4 },
     subtitle: { fontSize: 17 },
-    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 48 },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 30 },
     loadingText: { fontSize: 16, marginTop: 16 },
     metadataContent: { padding: 10 },
     metadataContentDesktop: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 32 },
@@ -304,10 +410,14 @@ const styles = StyleSheet.create({
     iconContainer: { marginRight: 12 },
     metadataLabel: { fontSize: 14, marginBottom: 2 },
     metadataValue: { fontSize: 14, fontWeight: '700' },
-    eventsContainer: { marginTop: 16, borderRadius: 16, padding: 16 },
+    eventsContainer: { borderRadius: 16, padding: 16 },
     filterRow: { flexDirection: 'row', marginBottom: 12, alignItems: 'center', gap: 12 },
+    filterRowMobile: { flexDirection: 'column', alignItems: 'stretch', gap: 8 },
     input: { flex: 1, borderWidth: 1, padding: 10, borderRadius: 8 },
-    dropdown: { flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8, gap: 4, justifyContent: 'center' },
+    inputMobile: { flex: 1, width: '100%' },
+    filterButtons: { flexDirection: 'row', gap: 8 },
+    filterButtonsMobile: { flexDirection: 'row', justifyContent: 'space-between' },
+    dropdown: { flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8, gap: 4, justifyContent: 'center', minWidth: 70 },
     dropdownText: { fontSize: 14 },
     dropdownMenu: { position: 'absolute', top: 55, zIndex: 100, borderRadius: 8, borderWidth: 1, paddingVertical: 4, elevation: 5, shadowOpacity: 0.1 },
     dropdownItem: { paddingHorizontal: 12, paddingVertical: 10 },
@@ -322,7 +432,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         borderWidth: 1,
         padding: 12,
-        height: 200,
+        height: 150,
         justifyContent: 'space-between',
     },
     eventCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },

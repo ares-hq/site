@@ -11,15 +11,16 @@ import Binoculars from '../../assets/icons/binoculars.svg';
 
 type ScoutingProps = {
   close?: () => void;
+  isMobile?: boolean;
 };
 
-const Scouting = ({ close }: ScoutingProps) => {
+const Scouting = ({ close, isMobile }: ScoutingProps) => {
   const router = useRouter();
   const { isDarkMode } = useDarkMode();
 
   const handleNavigate = () => {
     router.push('/scouting/ScoutSheet');
-    close?.();
+    if (isMobile) close?.();
   };
 
   const backgroundColor = isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff';

@@ -92,6 +92,7 @@ function InnerLayout() {
     tranks: 'Teams', tauto: 'Auto', ttele: 'TeleOp', tendgame: 'Endgame',
     mranks: 'Matches', qual: 'Qualifiers', finals: 'Finals', premier: 'Premier',
     tac: 'Terms & Conditions', privacy: 'Privacy Policy', systemstatus: 'Systems Status',
+    allevents: 'All Events', championships: 'Championship',
   };
   
   const currentPage = routeLabels[pathname?.split('/').pop() || ''] || '';
@@ -185,7 +186,7 @@ function InnerLayout() {
       <View style={[styles2.container, { backgroundColor: theme.backgroundColor }]}>
         <StatusBar barStyle={barStyle} backgroundColor={theme.backgroundColor} />
         <Animated.View style={[styles2.sidebar, { width: sidebarWidth, backgroundColor: theme.sidebarBackground }]}>
-          {sidebarVisible && <LeftSidebar close={() => setSidebarVisible(false)} />}
+          {sidebarVisible && <LeftSidebar close={() => setSidebarVisible(false)} isMobile={false} />}
         </Animated.View>
 
         <View style={[styles2.contentArea, { backgroundColor: theme.contentBackground }]}>
@@ -229,7 +230,7 @@ function InnerLayout() {
       )}
 
       <Animated.View style={[styles.sidebar, { transform: [{ translateX: sidebarTranslateX }], backgroundColor: theme.sidebarBackground }]}>
-        <LeftSidebar close={() => setSidebarVisible(false)} />
+        <LeftSidebar close={() => setSidebarVisible(false)} isMobile={true} />
         {sidebarVisible && (
           <Animated.View style={[styles.closeButton, { opacity: overlayOpacity, backgroundColor: theme.closeButtonBackground }]}>
             <TouchableOpacity style={[styles.closeButtonTouch, { backgroundColor: theme.closeButtonTouchBackground }]} onPress={() => setSidebarVisible(false)}>

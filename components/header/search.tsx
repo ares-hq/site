@@ -49,7 +49,7 @@ const SearchDropdown: React.FC<Props> = ({
   year,
   onSelectTeam,
   onSelectAux,
-  placeholder = 'Search teams & events…',
+  placeholder = 'Search...',
   maxResults = 30,
   zIndex = 99999,
   style,
