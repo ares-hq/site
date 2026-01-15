@@ -1,13 +1,20 @@
-import { SupportedYear } from '@/api/dashboardInfo';
+import { getCachedMatchScoreDetails, SupportedYear } from '@/api/firstAPI';
 import { AllianceInfo, EventInfo, MatchInfo } from '@/api/types';
 import CalendarIcon from '@/assets/icons/calendar.svg';
+import GameControllerIcon from '@/assets/icons/game-controller.svg';
 import LocationIcon from '@/assets/icons/map-pin.svg';
+import MedalIcon from '@/assets/icons/medal.svg';
 import TopScore from '@/assets/icons/ranking.svg';
+import RobotIcon from '@/assets/icons/robot.svg';
+import StarIcon from '@/assets/icons/star-fill.svg';
+import TargetIcon from '@/assets/icons/target.svg';
 import TrophyIcon from '@/assets/icons/trophy.svg';
+import WarningIcon from '@/assets/icons/warning.svg';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Linking,
   StyleSheet,
   Text,
@@ -28,7 +35,9 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
   const router = useRouter();
   
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
-  const [highlightedTeam, setHighlightedTeam] = useState<number | null>(null);
+  const [highlightedTeam, setHighlightedTeam] = useState<number | null>(teamNumber);
+  const [matchScoreDetails, setMatchScoreDetails] = useState<any>(null);
+  const [loadingScores, setLoadingScores] = useState(false);
   const lastClickRef = useRef<{ teamNumber: number; timestamp: number } | null>(null);
 
   const getRoutePath = (year: SupportedYear) => {
@@ -84,8 +93,59 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
     }
   };
 
-  const handleMatchClick = (matchNumber: string) => {
-    setExpandedMatch(expandedMatch === matchNumber ? null : matchNumber);
+  const handleMatchClick = async (matchNumber: string, match: MatchInfo) => {
+    const isExpanding = expandedMatch !== matchNumber;
+    
+    // If switching to a different match, reset score details
+    if (isExpanding && expandedMatch !== null && expandedMatch !== matchNumber) {
+      setMatchScoreDetails(null);
+    }
+    
+    setExpandedMatch(isExpanding ? matchNumber : null);
+    
+    // Fetch details for the expanding match
+    if (isExpanding) {
+      setLoadingScores(true);
+      setMatchScoreDetails(null);
+      
+      // Use the actual event code from eventData
+      const eventCode = eventData.eventCode || 'UNKNOWN';
+      
+      // Determine tournament level based on match type
+      let tournamentLevel: 'qual' | 'playoff' = 'qual';
+      if (match.matchType === 'PLAYOFF') {
+        tournamentLevel = 'playoff';
+      } else if (match.matchType === 'QUALIFICATION') {
+        tournamentLevel = 'qual';
+      } else {
+        // For PRACTICE, default to qual (though API may not have practice data)
+        tournamentLevel = 'qual';
+      }
+      
+      // Extract the match number from the string (P-1 -> 1, Q-5 -> 5)
+      const matchNum = parseInt(matchNumber.replace(/\D/g, '')) || 0;
+      
+      console.log('Fetching match score details:', { eventCode, tournamentLevel, matchNum, seasonYear, matchType: match.matchType });
+      
+      try {
+        const details = await getCachedMatchScoreDetails(
+          seasonYear,
+          eventCode,
+          tournamentLevel,
+          matchNum
+        );
+        
+        console.log('Received match score details:', details);
+        
+        if (details) {
+          setMatchScoreDetails(details);
+        }
+      } catch (error) {
+        console.error('Error fetching match score details:', error);
+      } finally {
+        setLoadingScores(false);
+      }
+    }
   };
 
   const handleOutsideClick = () => {
@@ -94,65 +154,211 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
   };
 
   const renderScoreBreakdown = (match: MatchInfo) => {
+    const renderStatItem = (label: string, value: any, isHighlight: boolean = false) => {
+      // While loading, show dashes for missing values
+      // After loading, hide items with no data
+      if (!loadingScores && (value === undefined || value === null)) {
+        return null;
+      }
+      
+      const displayValue = value === undefined || value === null 
+        ? '--' 
+        : (typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value);
+      
+      // Shorten common long labels
+      const shortLabel = label
+        .replace('Auto Classifier State', 'Classifier')
+        .replace('Teleop Classifier State', 'Classifier')
+        .replace('Driver Controlled', 'DC')
+        .replace('Navigation', 'Nav')
+        .replace('Autonomous', 'Auto')
+        .replace('Points', 'Pts')
+        .replace('Delivered', 'Del')
+        .replace('Endgame', 'EG');
+      
+      return (
+        <View style={[styles.compactStatItem, isHighlight && styles.highlightStatItem]}>
+          <Text style={[styles.compactStatLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
+            {shortLabel}
+          </Text>
+          <Text style={[styles.compactStatValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }, isHighlight && styles.highlightStatValue]}>
+            {displayValue}
+          </Text>
+        </View>
+      );
+    };
+
+    const renderAllianceBreakdown = (allianceData: any, allianceColor: 'red' | 'blue') => {
+      const isRed = allianceColor === 'red';
+      const accentColor = isRed 
+        ? (isDarkMode ? '#EF4444' : '#DC2626')
+        : (isDarkMode ? '#3B82F6' : '#2563EB');
+      const bgColor = isRed
+        ? (isDarkMode ? 'rgba(239, 68, 68, 0.1)' : 'rgba(220, 38, 38, 0.05)')
+        : (isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(37, 99, 235, 0.05)');
+
+      // Use detailed score data if available, otherwise use match alliance data
+      let dataToRender;
+      if (matchScoreDetails?.alliances && matchScoreDetails.alliances.length > 0) {
+        const allianceIndex = allianceColor === 'red' ? 1 : 0;
+        dataToRender = matchScoreDetails.alliances[allianceIndex];
+      } else {
+        dataToRender = allianceColor === 'red' ? match.redAlliance : match.blueAlliance;
+      }
+
+      // Categories with icons and colors - comprehensive for all seasons
+      const categories = [
+        {
+          title: 'Point Totals',
+          icon: StarIcon,
+          color: '#F59E0B',
+          fields: ['totalPoints', 'autoPoints', 'dcPoints', 'teleopPoints', 'driverControlledPoints', 'endgamePoints', 'endGamePoints', 'prePenaltyTotal', 'preFoulTotal'],
+          highlight: true
+        },
+        {
+          title: 'Autonomous Navigation',
+          icon: RobotIcon,
+          color: '#8B5CF6',
+          fields: ['robot1Auto', 'robot2Auto', 'robotAuto', 'robot1Navigated', 'robot2Navigated', 'navigated1', 'navigated2', 'autoNavigated', 'autoNavigated1', 'autoNavigated2', 'autoNavigatingPoints', 'autoNavigationPoints', 'navigationPoints', 'autoLeavePoints']
+        },
+        {
+          title: 'Autonomous Bonus',
+          icon: TargetIcon,
+          color: '#10B981',
+          fields: ['initSignalSleeve', 'initSignalSleeve1', 'initSignalSleeve2', 'initTeamProp', 'initTeamProp1', 'initTeamProp2', 'autoBonus', 'autoBonus1', 'autoBonus2', 'autoBonusPoints', 'signalBonusPoints', 'autoRandomizationPoints', 'barcodeElement', 'barcodeElement1', 'barcodeElement2', 'randomization', 'sideOfField']
+        },
+        {
+          title: 'Autonomous Scoring',
+          icon: TargetIcon,
+          color: '#059669',
+          fields: ['autoStones', 'autoDelivered', 'autoReturned', 'autoPlaced', 'firstReturnedIsSkystone', 'autoDeliveryPoints', 'autoPlacedPoints', 'autoTowerLow', 'autoTowerMid', 'autoTowerHigh', 'autoTowerPoints', 'autoPowerShotLeft', 'autoPowerShotCenter', 'autoPowerShotRight', 'autoPowerShotPoints', 'autoStorageFreight', 'autoFreight1', 'autoFreight2', 'autoFreight3', 'autoFreightPoints', 'autoTerminal', 'autoTerminalConePoints', 'autoJunctions', 'autoJunctionCones', 'autoJunctionConePoints', 'autoBackdrop', 'autoBackstage', 'autoBackstagePoints', 'autoBackdropPoints', 'spikeMarkPixel', 'spikeMarkPixel1', 'spikeMarkPixel2', 'targetBackdropPixel', 'targetBackdropPixel1', 'targetBackdropPixel2', 'autoSampleNet', 'autoSampleLow', 'autoSampleHigh', 'autoSamplePoints', 'autoSpecimenLow', 'autoSpecimenHigh', 'autoSpecimenPoints', 'autoClassifiedArtifacts', 'autoOverflowArtifacts', 'autoArtifactPoints', 'autoClassifierState', 'autoPatternPoints']
+        },
+        {
+          title: 'TeleOp Navigation & Control',
+          icon: GameControllerIcon,
+          color: '#06B6D4',
+          fields: ['robot1Teleop', 'robot2Teleop', 'driverControlledDelivered', 'driverControlledReturned', 'driverControlledPlaced', 'driverControlledDeliveryPoints', 'driverControlledPlacedPoints']
+        },
+        {
+          title: 'TeleOp Scoring',
+          icon: GameControllerIcon,
+          color: '#0891B2',
+          fields: ['dcTowerLow', 'dcTowerMid', 'dcTowerHigh', 'driverControlledStorageFreight', 'driverControlledFreight1', 'driverControlledFreight2', 'driverControlledFreight3', 'driverControlledAllianceHubPoints', 'driverControlledSharedHubPoints', 'driverControlledStoragePoints', 'sharedFreight', 'dcJunctions', 'dcJunctionCones', 'dcJunctionConePoints', 'dcTerminal', 'dcTerminalNear', 'dcTerminalFar', 'dcTerminalConePoints', 'dcBackdrop', 'dcBackstage', 'dcBackdropPoints', 'dcBackstagePoints', 'teleopSampleNet', 'teleopSampleLow', 'teleopSampleHigh', 'teleopSamplePoints', 'teleopSpecimenLow', 'teleopSpecimenHigh', 'teleopSpecimenPoints', 'teleopClassifiedArtifacts', 'teleopOverflowArtifacts', 'teleopDepotArtifacts', 'teleopArtifactPoints', 'teleopDepotPoints', 'teleopBasePoints', 'teleopPatternPoints']
+        },
+        {
+          title: 'Endgame Parking & Position',
+          icon: MedalIcon,
+          color: '#F97316',
+          fields: ['robot1Parked', 'robot2Parked', 'parkingPoints', 'endgameParked', 'endgameParked1', 'endgameParked2', 'endgameParkingPoints', 'egNavigated', 'egNavigated1', 'egNavigated2', 'egNavigationPoints', 'egRobot', 'egRobot1', 'egRobot2', 'egLocationPoints', 'teleopParkPoints', 'teleopAscentPoints']
+        },
+        {
+          title: 'Endgame Scoring & Bonus',
+          icon: MedalIcon,
+          color: '#EA580C',
+          fields: ['robot1CapstoneLevel', 'robot2CapstoneLevel', 'capstonePoints', 'wobbleDelivered1', 'wobbleDelivered2', 'wobbleRings1', 'wobbleRings2', 'wobbleEnd1', 'wobbleEnd2', 'wobbleEndPoints', 'wobbleRingPoints', 'autoWobblePoints', 'endPowerShotLeft', 'endPowerShotCenter', 'endPowerShotRight', 'endPowerShotPoints', 'carousel', 'carouselPoints', 'endgameDelivered', 'endgameDeliveryPoints', 'allianceBalanced', 'allianceBalancedPoints', 'sharedUnbalanced', 'sharedUnbalancedPoints', 'capped', 'cappingPoints', 'drone', 'drone1', 'drone2', 'egDronePoints', 'mosaics', 'mosaicPoints', 'maxSetLine', 'setBonusPoints']
+        },
+        {
+          title: 'Special Objectives',
+          icon: StarIcon,
+          color: '#A855F7',
+          fields: ['foundationRepositioned', 'foundationMoved', 'repositionedPoints', 'tallestSkyscraper', 'skyscraperBonusPoints', 'ownershipPoints', 'circuitPoints', 'circuit', 'beacons', 'ownedJunctions', 'movementRP', 'goalRP', 'patternRP']
+        },
+        {
+          title: 'Penalties & Fouls',
+          icon: WarningIcon,
+          color: '#EF4444',
+          fields: ['minorPenalties', 'majorPenalties', 'minorFouls', 'majorFouls', 'penaltyPointsCommitted', 'penaltyPoints', 'foulPointsCommitted', 'adjust']
+        }
+      ];
+
+      const formatLabel = (key: string): string => {
+        return key
+          .replace(/([A-Z])/g, ' $1')
+          .replace(/^./, str => str.toUpperCase())
+          .replace(/\s+/g, ' ')
+          .replace(/Dc /g, 'DC ')
+          .replace(/Eg /g, 'EG ')
+          .replace(/Opr/g, 'OPR')
+          .trim();
+      };
+
+      const renderCategory = (category: any) => {
+        const fieldsToRender = category.fields.filter((field: string) => {
+          const value = dataToRender[field];
+          // While loading, show all fields in summary category (will show dashes)
+          if (loadingScores && category.highlight) {
+            return true;
+          }
+          // After loading, only show fields with values
+          return value !== undefined && value !== null;
+        });
+
+        if (fieldsToRender.length === 0) return null;
+
+        const Icon = category.icon;
+
+        return (
+          <View key={category.title} style={styles.compactCategory}>
+            <View style={styles.compactCategoryHeader}>
+              <Icon width={14} height={14} fill={category.color} />
+              <Text style={[styles.compactCategoryTitle, { color: category.color }]}>
+                {category.title}
+              </Text>
+            </View>
+            <View style={styles.compactStatsGrid}>
+              {fieldsToRender.map((field: string) => {
+                const value = dataToRender[field];
+                const displayValue = Array.isArray(value) 
+                  ? JSON.stringify(value).replace(/[\[\]"]/g, '').replace(/,/g, ', ') 
+                  : value;
+                return renderStatItem(formatLabel(field), displayValue, category.highlight);
+              })}
+            </View>
+          </View>
+        );
+      };
+
+      return (
+        <View style={[styles.compactBreakdownColumn, { backgroundColor: bgColor }]}>
+          <View style={[styles.compactAllianceHeader, { borderBottomColor: accentColor }]}>
+            <Text style={[styles.compactAllianceTitle, { color: accentColor }]}>
+              {isRed ? 'RED ALLIANCE' : 'BLUE ALLIANCE'}
+            </Text>
+            <View style={styles.totalPointsContainer}>
+              {loadingScores && (
+                <ActivityIndicator 
+                  size="small" 
+                  color={accentColor} 
+                  style={{ marginRight: 8 }}
+                />
+              )}
+              <Text style={[styles.compactTotalPoints, { color: accentColor }]}>
+                {dataToRender.totalPoints !== undefined && dataToRender.totalPoints !== null 
+                  ? dataToRender.totalPoints 
+                  : '--'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.compactCategoriesContainer}>
+            {categories.map(renderCategory)}
+          </View>
+        </View>
+      );
+    };
+
     return (
       <View style={[
         styles.scoreBreakdown,
         { 
-          backgroundColor: isDarkMode ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.02)',
+          // backgroundColor: isDarkMode ? '#111827' : '#F9FAFB',
+          borderTopWidth: 0,
+          borderBottomWidth: 1,
           borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB'
         }
       ]}>
-        <View style={styles.breakdownRow}>
-          <View style={styles.breakdownColumn}>
-            <Text style={[styles.breakdownTitle, { color: isDarkMode ? '#FCA5A5' : '#DC2626' }]}>
-              Red Alliance
-            </Text>
-            <View style={styles.breakdownStats}>
-              <View style={styles.breakdownStat}>
-                <Text style={[styles.breakdownLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Total</Text>
-                <Text style={[styles.breakdownValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
-                  {match.redAlliance.totalPoints}
-                </Text>
-              </View>
-              <View style={styles.breakdownStat}>
-                <Text style={[styles.breakdownLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Tele</Text>
-                <Text style={[styles.breakdownValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
-                  {match.redAlliance.tele}
-                </Text>
-              </View>
-              <View style={styles.breakdownStat}>
-                <Text style={[styles.breakdownLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Penalty</Text>
-                <Text style={[styles.breakdownValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
-                  {match.redAlliance.penalty}
-                </Text>
-              </View>
-            </View>
-          </View>
-          <View style={styles.breakdownColumn}>
-            <Text style={[styles.breakdownTitle, { color: isDarkMode ? '#93C5FD' : '#2563EB' }]}>
-              Blue Alliance
-            </Text>
-            <View style={styles.breakdownStats}>
-              <View style={styles.breakdownStat}>
-                <Text style={[styles.breakdownLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Total</Text>
-                <Text style={[styles.breakdownValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
-                  {match.blueAlliance.totalPoints}
-                </Text>
-              </View>
-              <View style={styles.breakdownStat}>
-                <Text style={[styles.breakdownLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Tele</Text>
-                <Text style={[styles.breakdownValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
-                  {match.blueAlliance.tele}
-                </Text>
-              </View>
-              <View style={styles.breakdownStat}>
-                <Text style={[styles.breakdownLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Penalty</Text>
-                <Text style={[styles.breakdownValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
-                  {match.blueAlliance.penalty}
-                </Text>
-              </View>
-            </View>
-          </View>
+        <View style={styles.compactBreakdownRow}>
+          {renderAllianceBreakdown(match.redAlliance, 'red')}
+          {renderAllianceBreakdown(match.blueAlliance, 'blue')}
         </View>
       </View>
     );
@@ -241,7 +447,7 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
       return (
         <View key={index}>
           <TouchableOpacity 
-            onPress={() => handleMatchClick(match.matchNumber)}
+            onPress={() => handleMatchClick(match.matchNumber, match)}
             style={[styles.tableRowMobileStacked, { borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB' }, isLastRow && !isExpanded && styles.lastRow]}
           >
             <View style={styles.mobileMatchInfo}>
@@ -306,7 +512,7 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
     return (
       <View key={index}>
         <TouchableOpacity
-          onPress={() => handleMatchClick(match.matchNumber)}
+          onPress={() => handleMatchClick(match.matchNumber, match)}
           style={[
             styles.tableRow, 
             { borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB' }, 
@@ -1144,8 +1350,8 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   scoreBreakdown: {
-    padding: 16,
-    borderBottomWidth: 1,
+    padding: 6,
+    borderTopWidth: 1,
   },
   breakdownRow: {
     flexDirection: 'row',
@@ -1161,20 +1367,122 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 12,
   },
+  breakdownCategory: {
+    width: '100%',
+    marginBottom: 16,
+  },
+  breakdownCategoryTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 8,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   breakdownStats: {
     flexDirection: 'row',
     gap: 12,
   },
+  breakdownStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'center',
+  },
   breakdownStat: {
     alignItems: 'center',
+    minWidth: 80,
+    marginBottom: 8,
   },
   breakdownLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '500',
     marginBottom: 4,
+    textAlign: 'center',
   },
   breakdownValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
+  },
+  // New compact styles
+  compactBreakdownRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  compactBreakdownColumn: {
+    flex: 1,
+    borderRadius: 6,
+    padding: 6,
+  },
+  compactAllianceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 4,
+    marginBottom: 4,
+    borderBottomWidth: 1.5,
+  },
+  compactAllianceTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  totalPointsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  compactTotalPoints: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  compactCategoriesContainer: {
+    gap: 4,
+  },
+  compactCategory: {
+    padding: 4,
+  },
+  compactCategoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 5,
+  },
+  compactCategoryTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  compactStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 3,
+  },
+  compactStatItem: {
+    paddingHorizontal: 5,
+    paddingVertical: 3,
+    borderRadius: 3,
+    minWidth: 50,
+    maxWidth: 100,
+  },
+  highlightStatItem: {
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+  },
+  compactStatLabel: {
+    fontSize: 8,
+    fontWeight: '500',
+    marginBottom: 1,
+    opacity: 0.75,
+    flexWrap: 'wrap',
+  },
+  compactStatValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    flexWrap: 'wrap',
+  },
+  highlightStatValue: {
+    color: '#F59E0B',
   },
 });

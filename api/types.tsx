@@ -42,6 +42,8 @@ export interface AllianceInfo {
   averagePoints?: number;
   averageTele?: number;
   averagePenalty?: number;
+  // Detailed score fields (year-specific)
+  [key: string]: any; // Allow any additional fields for year-specific scoring
 }
 
 export interface MatchInfo {
@@ -56,6 +58,7 @@ export interface EventInfo {
   date: string;
   location: string;
   name: string;
+  eventCode: string;
   teamCount: number;
   winRate: number;
   OPR: number;

@@ -2,6 +2,9 @@ import { calculateTeamOPR } from './calcOPR';
 import { fetchTeamName, SupportedYear } from './dashboardInfo';
 import { EventInfo, MatchInfo, TeamInfoSimple } from './types';
 
+// Re-export SupportedYear for convenience
+export type { SupportedYear };
+
 // ------------------- YEAR ADAPTERS -------------------
 
 interface ScoreAdapter {
@@ -435,6 +438,7 @@ export const getFirstAPI = async (events: string[], team: number, season: Suppor
           : 'Unknown',
         location: `${eventData.address || ''}, ${eventData.city || ''}, ${eventData.stateprov || ''}`.replace(/^,\s*|,\s*$/g, ''),
         name: eventData.name ?? eventCode,
+        eventCode: eventCode,
         teamCount: teamSet.size,
         winRate,
         achievements: awardData?.length
@@ -617,6 +621,97 @@ export const getTeamProgression = async (
   };
 };
 
+// ------------------- MATCH SCORE DETAILS -------------------
+
+interface ScoreDetailsResponse {
+  matchScores: any[];
+}
+
+/**
+ * Cache for match score details to avoid repeated API calls
+ */
+const scoreDetailsCache = new Map<string, any>();
+
+function getScoreCacheKey(
+  season: SupportedYear,
+  eventCode: string,
+  tournamentLevel: string,
+  matchNumber: number
+): string {
+  return `${season}-${eventCode}-${tournamentLevel}-${matchNumber}`;
+}
+
+/**
+ * Fetch detailed score breakdown for a specific match
+ * @param season - The season year (e.g., 2024)
+ * @param eventCode - The event code (e.g., "USNYRO")
+ * @param tournamentLevel - "qual" or "playoff"
+ * @param matchNumber - Optional specific match number
+ */
+export async function getMatchScoreDetails(
+  season: SupportedYear,
+  eventCode: string,
+  tournamentLevel: 'qual' | 'playoff',
+  matchNumber?: number
+): Promise<any | null> {
+  const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+  const headers = { apikey: supabaseAnonKey };
+
+  try {
+    let url = `https://api.ares-bot.com/functions/v1/first/${season}/scores/${eventCode}/${tournamentLevel}`;
+    
+    if (matchNumber !== undefined) {
+      url += `?matchNumber=${matchNumber}`;
+    }
+
+    const response = await fetch(url, { headers });
+
+    if (!response.ok) {
+      console.error(`Failed to fetch score details: ${response.status}`);
+      return null;
+    }
+
+    const data: ScoreDetailsResponse = await response.json();
+    
+    // If looking for a specific match, return just that match's scores
+    if (matchNumber !== undefined && data.matchScores && data.matchScores.length > 0) {
+      return data.matchScores[0];
+    }
+    
+    return data.matchScores || null;
+  } catch (error) {
+    console.error('Error fetching match score details:', error);
+    return null;
+  }
+}
+
+/**
+ * Get score details with caching
+ */
+export async function getCachedMatchScoreDetails(
+  season: SupportedYear,
+  eventCode: string,
+  tournamentLevel: 'qual' | 'playoff',
+  matchNumber: number
+): Promise<any | null> {
+  const cacheKey = getScoreCacheKey(season, eventCode, tournamentLevel, matchNumber);
+  
+  // Check cache first
+  if (scoreDetailsCache.has(cacheKey)) {
+    return scoreDetailsCache.get(cacheKey);
+  }
+
+  // Fetch from API
+  const scores = await getMatchScoreDetails(season, eventCode, tournamentLevel, matchNumber);
+  
+  // Cache the result
+  if (scores) {
+    scoreDetailsCache.set(cacheKey, scores);
+  }
+
+  return scores;
+}
+
 // ------------------- UPCOMING EVENTS -------------------
 export const getUpcomingEvents = async (season: SupportedYear, team?: number): Promise<EventInfo[]> => {
   const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
@@ -652,6 +747,7 @@ export const getUpcomingEvents = async (season: SupportedYear, team?: number): P
     const eventPromises = teamEvents.slice(0, 10).map(async (event: any) => {
       const eventInfo: EventInfo = {
         name: event.name || 'Unknown Event',
+        eventCode: event.code || 'UNKNOWN',
         location: event.venue || event.city || 'TBD',
         date: event.dateStart 
           ? new Date(event.dateStart).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) 
