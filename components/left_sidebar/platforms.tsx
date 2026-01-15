@@ -35,7 +35,7 @@ const Platforms = ({ close }: PlatformsProps) => {
         }
         onPress={() => {
           router.push('/platforms/discord');
-          // close?.();
+          close?.();
         }}
         isDarkMode={isDarkMode}
       />

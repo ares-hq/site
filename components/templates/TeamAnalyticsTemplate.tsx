@@ -162,7 +162,7 @@ const TeamAnalyticsTemplate: React.FC<TeamAnalyticsTemplateProps> = ({ pageTitle
                   Last Updated
                 </Text>
                 <Text style={[styles.metadataValue, isSmallDevice && styles.metadataValueMobile, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
-                  {lastUpdated ? lastUpdated.toLocaleString() : 'Loading...'}
+                  {lastUpdated ? lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'Loading...'}
                 </Text>
               </View>
             </View>
@@ -219,8 +219,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 17,
+    // fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,
@@ -296,17 +296,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   metadataLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: 14,
+    // fontWeight: '600',
+    // textTransform: 'uppercase',
+    // letterSpacing: 0.5,
     marginBottom: 2,
   },
   metadataLabelMobile: {
-    fontSize: 9,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: 12,
+    // fontWeight: '600',
+    // textTransform: 'uppercase',
+    // letterSpacing: 0.5,
     marginBottom: 1,
   },
   metadataValue: {

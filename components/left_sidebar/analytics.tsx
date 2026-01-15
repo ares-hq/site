@@ -52,6 +52,7 @@ const Analytics = ({ close }: AnalyticsProps) => {
 
   const go = (path: string, label: string) => {
     router.push(path as any);
+    close?.();
   };
 
   const textColor = isDarkMode ? '#fff' : '#000';

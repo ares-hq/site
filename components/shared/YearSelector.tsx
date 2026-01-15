@@ -72,7 +72,7 @@ export const YearSelector: React.FC<YearSelectorProps> = ({
                   color: selectedYear === year
                     ? (isDarkMode ? '#F9FAFB' : '#111827')
                     : (isDarkMode ? '#D1D5DB' : '#6B7280'),
-                  fontWeight: selectedYear === year ? '700' : '500',
+                  fontWeight: selectedYear === year ? '500' : 'normal',
                 }
               ]}>
                 {year}
@@ -82,34 +82,34 @@ export const YearSelector: React.FC<YearSelectorProps> = ({
         </ScrollView>
         {scrollState.showLeftShadow && (
           <View style={styles.fadeLeft}>
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.98)' : 'rgba(248, 250, 252, 0.99)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.92)' : 'rgba(248, 250, 252, 0.95)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.84)' : 'rgba(248, 250, 252, 0.88)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.74)' : 'rgba(248, 250, 252, 0.79)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.62)' : 'rgba(248, 250, 252, 0.68)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.48)' : 'rgba(248, 250, 252, 0.54)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.35)' : 'rgba(248, 250, 252, 0.39)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.24)' : 'rgba(248, 250, 252, 0.26)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.14)' : 'rgba(248, 250, 252, 0.15)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.06)' : 'rgba(248, 250, 252, 0.06)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.02)' : 'rgba(248, 250, 252, 0.02)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0)' : 'rgba(248, 250, 252, 0)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.98)' : 'rgba(255, 255, 255, 0.99)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.92)' : 'rgba(255, 255, 255, 0.95)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.84)' : 'rgba(255, 255, 255, 0.88)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.74)' : 'rgba(255, 255, 255, 0.79)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.62)' : 'rgba(255, 255, 255, 0.68)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.48)' : 'rgba(255, 255, 255, 0.54)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.35)' : 'rgba(255, 255, 255, 0.39)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.24)' : 'rgba(255, 255, 255, 0.26)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.14)' : 'rgba(255, 255, 255, 0.15)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.06)' : 'rgba(255, 255, 255, 0.06)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.02)' : 'rgba(255, 255, 255, 0.02)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0)' : 'rgba(255, 255, 255, 0)' }]} />
           </View>
         )}
         {scrollState.showRightShadow && (
           <View style={styles.fadeRight}>
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0)' : 'rgba(248, 250, 252, 0)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.02)' : 'rgba(248, 250, 252, 0.02)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.06)' : 'rgba(248, 250, 252, 0.06)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.14)' : 'rgba(248, 250, 252, 0.15)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.24)' : 'rgba(248, 250, 252, 0.26)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.35)' : 'rgba(248, 250, 252, 0.39)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.48)' : 'rgba(248, 250, 252, 0.54)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.62)' : 'rgba(248, 250, 252, 0.68)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.74)' : 'rgba(248, 250, 252, 0.79)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.84)' : 'rgba(248, 250, 252, 0.88)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.92)' : 'rgba(248, 250, 252, 0.95)' }]} />
-            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.98)' : 'rgba(248, 250, 252, 0.99)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0)' : 'rgba(255, 255, 255, 0)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.02)' : 'rgba(255, 255, 255, 0.02)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.06)' : 'rgba(255, 255, 255, 0.06)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.14)' : 'rgba(255, 255, 255, 0.15)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.24)' : 'rgba(255, 255, 255, 0.26)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.35)' : 'rgba(255, 255, 255, 0.39)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.48)' : 'rgba(255, 255, 255, 0.54)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.62)' : 'rgba(255, 255, 255, 0.68)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.74)' : 'rgba(255, 255, 255, 0.79)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.84)' : 'rgba(255, 255, 255, 0.88)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.92)' : 'rgba(255, 255, 255, 0.95)' }]} />
+            <View style={[styles.fadeSegment, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 0.98)' : 'rgba(255, 255, 255, 0.99)' }]} />
           </View>
         )}
       </View>
@@ -122,10 +122,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 14,
+    // fontWeight: '600',
     marginBottom: 8,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   scrollContainer: {
@@ -162,7 +161,7 @@ const styles = StyleSheet.create({
   yearButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 8,
     minWidth: 48,
     alignItems: 'center',
   },

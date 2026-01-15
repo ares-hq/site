@@ -242,6 +242,11 @@ const SearchDropdown: React.FC<Props> = ({
           autoCorrect={false}
           autoCapitalize="none"
           editable={!isLoading}
+          onSubmitEditing={() => {
+            if (results.length > 0) {
+              router.push(`/dashboards/${getRoutePath(year)}?teamnumber=${results[0].teamNumber}` as any);
+            }
+          }}
         />
         <View style={[styles.keyHint, { backgroundColor: theme.hintBg, borderColor: theme.hintBorder }]}>
           <Text style={[styles.keyText, { color: theme.chipText }]}>/</Text>

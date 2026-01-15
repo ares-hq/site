@@ -206,7 +206,7 @@ export default function DataTable({ teams, data, selectedYear = 2025 }: DataTabl
         </Text>
       )}
       {visibleColumns.includes('rank') && (
-        <Text style={[styles.cell, styles.opr, { color: isDarkMode ? '#fff' : '#000' }]}>
+        <Text style={[styles.cell, styles.opr, { color: isDarkMode ? '#F8FAFC' : '#111827' }]}>
           {data === 'overall'
             ? item.overallRank
             : data === 'auto'
@@ -246,6 +246,12 @@ export default function DataTable({ teams, data, selectedYear = 2025 }: DataTabl
           placeholderTextColor={isDarkMode ? '#9ca3af' : '#6b7280'}
           value={query}
           onChangeText={setQuery}
+          onSubmitEditing={() => {
+            if (filtered.length > 0) {
+              router.push(`/dashboards/${getRoutePath(selectedYear)}?teamnumber=${filtered[0].teamNumber}` as any);
+              setQuery('');
+            }
+          }}
         />
         <View style={styles.dropdownWrapper}>
           <Pressable

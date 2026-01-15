@@ -24,6 +24,7 @@ const Home = ({ close }: { close?: () => void }) => {
       <Pressable
         onPress={() => {
           router.push('/');
+          close?.();
         }}
         onHoverIn={() => setHovered(true)}
         onHoverOut={() => setHovered(false)}
