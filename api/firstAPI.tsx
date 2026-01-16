@@ -347,7 +347,7 @@ export const getFirstAPI = async (events: string[], team: number, season: Suppor
             team_2: createTeam(redTeams[1]),
             date: match.actualStartTime ?? match.postResultTime,
             alliance: 'red',
-            matchType: match.tournamentLevel === 'Playoff' ? 'PLAYOFF' : match.tournamentLevel === 'Practice' ? 'PRACTICE' : 'QUALIFICATION',
+            matchType: isPlayoff ? 'PLAYOFF' : isQualification ? 'QUALIFICATION' : 'PRACTICE'
           },
           blueAlliance: {
             totalPoints: blueScore,
@@ -358,7 +358,7 @@ export const getFirstAPI = async (events: string[], team: number, season: Suppor
             team_2: createTeam(blueTeams[1]),
             date: match.actualStartTime ?? match.postResultTime,
             alliance: 'blue',
-            matchType: match.tournamentLevel === 'Playoff' ? 'PLAYOFF' : match.tournamentLevel === 'Practice' ? 'PRACTICE' : 'QUALIFICATION',
+            matchType: isPlayoff ? 'PLAYOFF' : isQualification ? 'QUALIFICATION' : 'PRACTICE'
           },
         };
       });
@@ -720,8 +720,77 @@ export async function getCachedMatchScoreDetails(
   return scores;
 }
 
+// ------------------- BASIC EVENTS (FAST LOADING) -------------------
+export interface BasicEventInfo {
+  name: string;
+  eventCode: string;
+  location: string;
+  date: string;
+  rawDate: string; // ISO date string for reliable parsing
+  type?: string;
+}
+
+export const getEventsBasic = async (season: SupportedYear, includeCompleted = false): Promise<BasicEventInfo[]> => {
+  const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+  const headers = { apikey: supabaseAnonKey };
+  
+  try {
+    const eventsRes = await fetchWithRetry(`https://api.ares-bot.com/functions/v1/first/${season}/events`, headers);
+    
+    if (!eventsRes.events || eventsRes.events.length === 0) {
+      console.log('No events found for season');
+      return [];
+    }
+    
+    let filteredEvents = eventsRes.events;
+    
+    // Filter for future and in-progress events based on end date unless includeCompleted is true
+    if (!includeCompleted) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      filteredEvents = eventsRes.events.filter((event: any) => {
+        if (!event.dateEnd && !event.dateStart) return false;
+        
+        // Use end date if available, otherwise use start date
+        const eventDate = new Date(event.dateEnd || event.dateStart);
+        eventDate.setHours(23, 59, 59, 999);
+        
+        // Include events that haven't ended yet (upcoming and ongoing)
+        return eventDate >= today;
+      });
+    }
+    
+    // Convert to basic format immediately without additional API calls
+    const basicEvents: BasicEventInfo[] = filteredEvents.map((event: any) => ({
+      name: event.name || 'Unknown Event',
+      eventCode: event.code || 'UNKNOWN',
+      location: event.venue || event.city || 'TBD',
+      date: event.dateStart 
+        ? new Date(event.dateStart).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) 
+        : 'TBD',
+      rawDate: event.dateStart || event.dateEnd || '',
+      type: event.type || undefined,
+    }));
+    
+    // Sort by date (most recent first)
+    basicEvents.sort((b, a) => {
+      const dateA = new Date(a.date || '');
+      const dateB = new Date(b.date || '');
+      return dateA.getTime() - dateB.getTime();
+    });
+    
+    console.log(`Returning ${basicEvents.length} basic events for fast loading`);
+    return basicEvents;
+    
+  } catch (error) {
+    console.error('Error fetching basic events:', error);
+    return [];
+  }
+};
+
 // ------------------- UPCOMING EVENTS -------------------
-export const getUpcomingEvents = async (season: SupportedYear, team?: number): Promise<EventInfo[]> => {
+export const getUpcomingEvents = async (season: SupportedYear, team?: number, includeTeamCounts = true, includeCompleted = false): Promise<EventInfo[]> => {
   const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
   const headers = { apikey: supabaseAnonKey };
   
@@ -733,29 +802,51 @@ export const getUpcomingEvents = async (season: SupportedYear, team?: number): P
       return [];
     }
     
-    // Return ALL events for the season, not just upcoming ones
-    let teamEvents = eventsRes.events;
+    let filteredEvents = eventsRes.events;
     
-    // Convert to EventInfo format - only fetch team count from FIRST API
+    // Filter for future and in-progress events based on end date unless includeCompleted is true
+    if (!includeCompleted) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      filteredEvents = eventsRes.events.filter((event: any) => {
+        if (!event.dateEnd && !event.dateStart) return false;
+        
+        // Use end date if available, otherwise use start date
+        const eventDate = new Date(event.dateEnd || event.dateStart);
+        eventDate.setHours(23, 59, 59, 999);
+        
+        // Include events that haven't ended yet (upcoming and ongoing)
+        return eventDate >= today;
+      });
+    }
+    
+    // If a team is specified, filter for events where the team is participating
+    let teamEvents = filteredEvents;
+    
+    // Convert to EventInfo format
     const eventPromises = teamEvents.map(async (event: any) => {
       let teamCount = 0;
       
-      // Fetch team count from FIRST API
-      try {
-        const teamsUrl = `https://ftc-api.firstinspires.org/v2.0/${season}/teams?eventCode=${event.code}`;
-        const teamsRes = await fetch(teamsUrl, {
-          headers: {
-            'Authorization': 'Basic ' + Buffer.from(process.env.EXPO_PUBLIC_FTC_USERNAME + ':' + process.env.EXPO_PUBLIC_FTC_API_KEY).toString('base64'),
-            'Accept': 'application/json'
+      // Only fetch team count if requested (slower but more complete data)
+      if (includeTeamCounts) {
+        // Fetch team count from FIRST API
+        try {
+          const teamsUrl = `https://ftc-api.firstinspires.org/v2.0/${season}/teams?eventCode=${event.code}`;
+          const teamsRes = await fetch(teamsUrl, {
+            headers: {
+              'Authorization': 'Basic ' + btoa(process.env.EXPO_PUBLIC_FTC_USERNAME + ':' + process.env.EXPO_PUBLIC_FTC_API_KEY),
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (teamsRes.ok) {
+            const teamsData = await teamsRes.json();
+            teamCount = teamsData.teamCountTotal || teamsData.teams?.length || 0;
           }
-        });
-        
-        if (teamsRes.ok) {
-          const teamsData = await teamsRes.json();
-          teamCount = teamsData.teamCountTotal || teamsData.teams?.length || 0;
+        } catch (error) {
+          console.error(`Error fetching team count for event ${event.code}:`, error);
         }
-      } catch (error) {
-        console.error(`Error fetching team count for event ${event.code}:`, error);
       }
       
       const eventInfo: EventInfo = {
@@ -794,4 +885,19 @@ export const getUpcomingEvents = async (season: SupportedYear, team?: number): P
     console.error('Error fetching upcoming events:', error);
     return [];
   }
+};
+
+// Get only upcoming and ongoing events (not completed ones)
+export const getUpcomingEventsOnly = async (season: SupportedYear, team?: number): Promise<EventInfo[]> => {
+  const allEvents = await getUpcomingEvents(season, team, true);
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  return allEvents.filter(event => {
+    if (!event.date || event.date === 'TBD') return true; // Include events with unknown dates
+    const eventDate = new Date(event.date);
+    // Include events that haven't ended yet (upcoming and ongoing)
+    return eventDate >= today;
+  });
 };

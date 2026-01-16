@@ -1,7 +1,7 @@
 // SearchDropdown.tsx
 import { filterTeams } from '@/api/algorithms/filter';
 import { getAllTeams, SupportedYear } from '@/api/dashboardInfo';
-import { getUpcomingEvents } from '@/api/firstAPI';
+import { getEventsBasic } from '@/api/firstAPI';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -75,7 +75,7 @@ const SearchDropdown: React.FC<Props> = ({
       try {
         const [teams, events] = await Promise.all([
           getAllTeams(year),
-          getUpcomingEvents(year)
+          getEventsBasic(year, true)
         ]);
         setAllTeamsData(teams || []);
         setAllEventsData(events || []);
@@ -121,7 +121,7 @@ const SearchDropdown: React.FC<Props> = ({
       if (!teamsData || teamsData.length === 0 || !eventsData) {
         const [teams, events] = await Promise.all([
           teamsData && teamsData.length > 0 ? Promise.resolve(teamsData) : getAllTeams(year),
-          eventsData ? Promise.resolve(eventsData) : getUpcomingEvents(year)
+          eventsData ? Promise.resolve(eventsData) : getEventsBasic(year, true)
         ]);
         if (teams) setAllTeamsData(teams);
         if (events) setAllEventsData(events);
@@ -188,7 +188,7 @@ const SearchDropdown: React.FC<Props> = ({
       onSelectTeam?.(item.teamNumber);
     } else if (item.type === 'event' && item.eventCode) {
       // Navigate to events page - you can add event filtering later if needed
-      router.push('/analytics/events' as any);
+      router.push(`/analytics/events/${item.eventCode}` as any);
     }
     setOpen(false);
     setQuery('');

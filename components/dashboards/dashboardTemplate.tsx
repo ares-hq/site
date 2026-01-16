@@ -1,6 +1,6 @@
 import { attachHourlyAverages, getAverageByMatchType, getAveragePlace, getAwards } from '@/api/averageMatchScores';
 import { getAverageOPRs, getCurrentUserTeam, getTeamHistoricalData, getTeamInfo, getTeamMatches, getWins, SupportedYear } from '@/api/dashboardInfo';
-import { getFirstAPI, getUpcomingEvents } from '@/api/firstAPI';
+import { getFirstAPI, getUpcomingEventsOnly } from '@/api/firstAPI';
 import { AllianceInfo, EventInfo, MatchTypeAverages, TeamInfo } from '@/api/types';
 import { usePageTitleContext } from '@/app/_layout';
 import EventPerformance from '@/components/graphs/eventPerformace';
@@ -223,7 +223,7 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
         
         const [eventData, upcomingEventData] = await Promise.all([
           events.length > 0 ? getFirstAPI(events, teamNumber, seasonYear) : Promise.resolve([]),
-          getUpcomingEvents(seasonYear, teamNumber)
+          getUpcomingEventsOnly(seasonYear, teamNumber)
         ]);
         console.log('Event data received:', eventData);
         console.log('Upcoming events received:', upcomingEventData);
@@ -527,12 +527,12 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
       
       <View style={styles.eventContainer}>
         {upcomingEvents && upcomingEvents.map((event, index) => (
-          <View key={`upcoming-${index}`} style={{ marginBottom: 5, flexShrink: 0 }}>
+          <View key={`upcoming-${event.eventCode || index}`} style={{ marginBottom: 5, flexShrink: 0 }}>
             <EventCard eventData={event} teamNumber={teamInfo?.teamNumber || 0} seasonYear={seasonYear} />
           </View>
         ))}
         {eventData && eventData.map((event, index) => (
-          <View key={index} style={{ marginBottom: 5, flexShrink: 0 }}>
+          <View key={`completed-${event.eventCode || index}`} style={{ marginBottom: 5, flexShrink: 0 }}>
             <EventCard eventData={event} teamNumber={teamInfo?.teamNumber || 0} seasonYear={seasonYear} />
           </View>
         ))}

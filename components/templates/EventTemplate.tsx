@@ -1,9 +1,9 @@
-import { getUpcomingEvents, SupportedYear } from '@/api/firstAPI';
-import { EventInfo } from '@/api/types';
+import { BasicEventInfo, getEventsBasic, SupportedYear } from '@/api/firstAPI';
 import { usePageTitleContext } from '@/app/_layout';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { YearSelector } from '@/components/shared/YearSelector';
 import { useDarkMode } from '@/context/DarkModeContext';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
@@ -26,7 +26,7 @@ import MapPin from '../../assets/icons/map-pin.svg';
 const ITEMS_PER_PAGE = 24;
 const MONTHS = ['All', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const SEARCH_DEBOUNCE_MS = 300;
-const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
 const GAME_NAMES: Record<SupportedYear, string> = {
     2019: 'Skystone', 2020: 'Ultimate Goal', 2021: 'Freight Frenzy',
@@ -34,7 +34,7 @@ const GAME_NAMES: Record<SupportedYear, string> = {
 };
 
 // Global cache for API responses
-const eventsCache = new Map<SupportedYear, { data: EventInfo[], timestamp: number }>();
+const eventsCache = new Map<SupportedYear, { data: BasicEventInfo[], timestamp: number }>();
 
 // Cache cleanup function
 const cleanupCache = () => {
@@ -72,16 +72,19 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
     const { width } = useWindowDimensions();
     const { isDarkMode } = useDarkMode();
     const { setPageTitleInfo } = usePageTitleContext();
+    const router = useRouter();
 
     // Memoized Event Card Component
     const EventCard = React.memo(({ 
         event, 
         getEventStatus, 
-        isDarkMode 
+        isDarkMode,
+        onPress
     }: { 
-        event: EventInfo; 
-        getEventStatus: (event: EventInfo) => 'upcoming' | 'ongoing' | 'completed'; 
-        isDarkMode: boolean; 
+        event: BasicEventInfo; 
+        getEventStatus: (event: BasicEventInfo) => 'upcoming' | 'ongoing' | 'completed'; 
+        isDarkMode: boolean;
+        onPress?: () => void;
     }) => {
         const status = getEventStatus(event);
         const cardBg = isDarkMode ? '#262626' : '#FFFFFF';
@@ -97,18 +100,12 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
 
         return (
             <View style={styles.cardWrapper}>
-                <TouchableOpacity activeOpacity={0.7} style={[styles.eventCard, { backgroundColor: cardBg, borderColor: borderColor }]}>
+                <TouchableOpacity activeOpacity={0.7} style={[styles.eventCard, { backgroundColor: cardBg, borderColor: borderColor }]} onPress={onPress}>
                     <View style={styles.eventCardTop}>
                         <View style={styles.eventHeader}>
                             <Text style={[styles.eventName, { color: textPrimary }]} numberOfLines={2}>{event.name}</Text>
                             <Text style={[styles.eventCode, { color: textSecondary }]}>{event.eventCode}</Text>
                         </View>
-                        {event.teamCount > 0 && (
-                            <View style={styles.teamCountBadge}>
-                                <Text style={[styles.teamCountLabel, { color: textSecondary }]}>Teams</Text>
-                                <Text style={[styles.teamCountValue, { color: textPrimary }]}>{event.teamCount}</Text>
-                            </View>
-                        )}
                     </View>
 
                     <View style={styles.eventDetails}>
@@ -130,8 +127,8 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
     });
 
     // State
-    const [selectedYear, setSelectedYear] = useState<SupportedYear>(pageTitle === 'Premier' ? 2025 : 2025);
-    const [events, setEvents] = useState<EventInfo[]>([]);
+    const [selectedYear, setSelectedYear] = useState<SupportedYear>(2025);
+    const [events, setEvents] = useState<BasicEventInfo[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -150,17 +147,7 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
     // Debounced search query
     const debouncedSearchQuery = useDebounce(searchQuery, SEARCH_DEBOUNCE_MS);
 
-    // Available years based on page type
-    const availableYears: SupportedYear[] = pageTitle === 'Premier' 
-        ? [2024, 2025] 
-        : [2019, 2020, 2021, 2022, 2023, 2024, 2025];
-
-    // Ensure selected year is valid for current page
-    useEffect(() => {
-        if (pageTitle === 'Premier' && !availableYears.includes(selectedYear)) {
-            setSelectedYear(2025);
-        }
-    }, [pageTitle, selectedYear, availableYears]);
+    const availableYears: SupportedYear[] = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
 
     const fetchEvents = useCallback(async (year: SupportedYear, isRefresh = false) => {
         try {
@@ -178,7 +165,7 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
             if (!isRefresh) setLoading(true);
             else setRefreshing(true);
             
-            const data = await getUpcomingEvents(year);
+            const data = await getEventsBasic(year, true);
             if (data) {
                 setEvents(data);
                 setLastUpdated(new Date());
@@ -209,7 +196,7 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
         setPage(0);
     }, [debouncedSearchQuery]);
 
-    const getEventStatus = useCallback((event: EventInfo) => {
+    const getEventStatus = useCallback((event: BasicEventInfo) => {
         const today = new Date(); today.setHours(0, 0, 0, 0);
         if (!event.date || event.date === 'TBD') return 'upcoming';
         const eventDate = new Date(event.date);
@@ -328,9 +315,25 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
                             </View>
                         </View>
 
+                        {/* Backdrop for closing dropdowns on mobile */}
+                        {(monthDropdownVisible || statusDropdownVisible) && (
+                            <TouchableOpacity 
+                                style={styles.dropdownBackdrop}
+                                onPress={() => {
+                                    setMonthDropdownVisible(false);
+                                    setStatusDropdownVisible(false);
+                                }}
+                                activeOpacity={1}
+                            />
+                        )}
+
                         {/* Month Selection Menu */}
                         {monthDropdownVisible && (
-                            <View style={[styles.dropdownMenu, { backgroundColor: isDarkMode ? 'rgba(61, 61, 61, 1)' : '#fff', borderColor: isDarkMode ? '#4B5563' : '#e5e7eb', right: 85, width: 140 }]}>
+                            <View style={[styles.dropdownMenu, isSmallDevice && styles.dropdownMenuMobile, { 
+                                backgroundColor: isDarkMode ? 'rgba(61, 61, 61, 1)' : '#fff', 
+                                borderColor: isDarkMode ? '#4B5563' : '#e5e7eb', 
+                                ...(isSmallDevice ? { right: 'auto', left: 0, width: '35%' } : { right: 85, width: 140 })
+                            }]}>
                                 <ScrollView style={{ maxHeight: 250 }}>
                                     {MONTHS.map(m => (
                                         <TouchableOpacity key={m} style={styles.dropdownItem} onPress={() => {setSelectedMonth(m); setMonthDropdownVisible(false); setPage(0);}}>
@@ -346,7 +349,11 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
 
                         {/* Status Selection Menu */}
                         {statusDropdownVisible && (
-                            <View style={[styles.dropdownMenu, { backgroundColor: isDarkMode ? 'rgba(61, 61, 61, 1)' : '#fff', borderColor: isDarkMode ? '#4B5563' : '#e5e7eb', right: 0, width: 160 }]}>
+                            <View style={[styles.dropdownMenu, isSmallDevice && styles.dropdownMenuMobile, { 
+                                backgroundColor: isDarkMode ? 'rgba(61, 61, 61, 1)' : '#fff', 
+                                borderColor: isDarkMode ? '#4B5563' : '#e5e7eb', 
+                                ...(isSmallDevice ? { right: 0, width: '35%' } : { right: 0, width: 160 })
+                            }]}>
                                 {['upcoming', 'ongoing', 'completed'].map(s => (
                                     <TouchableOpacity key={s} style={styles.dropdownItem} onPress={() => {
                                         const next = statusFilters.includes(s) ? statusFilters.filter(v => v !== s) : [...statusFilters, s];
@@ -367,7 +374,8 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
                                     key={event.eventCode || idx} 
                                     event={event} 
                                     getEventStatus={getEventStatus} 
-                                    isDarkMode={isDarkMode} 
+                                    isDarkMode={isDarkMode}
+                                    onPress={() => router.push(`/analytics/events/${event.eventCode}?year=${selectedYear}`)}
                                 />
                             ))}
                         </View>
@@ -420,6 +428,8 @@ const styles = StyleSheet.create({
     dropdown: { flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8, gap: 4, justifyContent: 'center', minWidth: 70 },
     dropdownText: { fontSize: 14 },
     dropdownMenu: { position: 'absolute', top: 55, zIndex: 100, borderRadius: 8, borderWidth: 1, paddingVertical: 4, elevation: 5, shadowOpacity: 0.1 },
+    dropdownMenuMobile: { top: 100 },
+    dropdownBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 },
     dropdownItem: { paddingHorizontal: 12, paddingVertical: 10 },
     eventsGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -6 },
     cardWrapper: {
@@ -439,9 +449,6 @@ const styles = StyleSheet.create({
     eventHeader: { flex: 1, marginRight: 8 },
     eventName: { fontSize: 16, fontWeight: '700', marginBottom: 3 },
     eventCode: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase' },
-    teamCountBadge: { alignItems: 'flex-end' },
-    teamCountLabel: { fontSize: 10, textTransform: 'uppercase' },
-    teamCountValue: { fontSize: 18, fontWeight: '700' },
     eventDetails: { gap: 5 },
     statusBanner: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4, alignSelf: 'flex-start', marginBottom: 4 },
     statusText: { fontSize: 9, fontWeight: '700' },
