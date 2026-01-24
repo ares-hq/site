@@ -1,6 +1,5 @@
 import { filterTeams } from '@/api/algorithms/filter';
-import { SupportedYear } from '@/api/dashboardInfo';
-import { TeamInfo } from '@/api/types';
+import { SupportedYear, TeamInfo } from '@/api/utils/types';
 import Down from '@/assets/icons/caret-down.svg';
 import UpDown from '@/assets/icons/caret-up-down.svg';
 import Check from '@/assets/icons/check-circle.svg';

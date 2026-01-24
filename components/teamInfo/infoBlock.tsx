@@ -1,4 +1,4 @@
-import { TeamInfo } from '@/api/types';
+import { TeamInfo } from '@/api/utils/types';
 import CalendarIcon from '@/assets/icons/calendar.svg';
 import UsersIcon from '@/assets/icons/handshake.svg';
 import ShieldIcon from '@/assets/icons/identification-card.svg';

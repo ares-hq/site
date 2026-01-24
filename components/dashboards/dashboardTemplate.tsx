@@ -1,7 +1,6 @@
-import { attachHourlyAverages, getAverageByMatchType, getAveragePlace, getAwards } from '@/api/averageMatchScores';
-import { getAverageOPRs, getCurrentUserTeam, getTeamHistoricalData, getTeamInfo, getTeamMatches, getWins, SupportedYear } from '@/api/dashboardInfo';
-import { getFirstAPI, getUpcomingEventsOnly } from '@/api/firstAPI';
-import { AllianceInfo, EventInfo, MatchTypeAverages, TeamInfo } from '@/api/types';
+import { attachHourlyAverages, getAverageByMatchType, getAveragePlace, getAwards } from '@/api/algorithms/averageMatchScores';
+import { getAverageOPRs, getCurrentUserTeam, getTeamHistoricalData, getTeamInfo, getTeamMatches, getWins } from '@/api/dashboardInfo';
+import { AllianceInfo, EventInfo, MatchTypeAverages, SupportedYear, TeamInfo } from '@/api/utils/types';
 import { usePageTitleContext } from '@/app/_layout';
 import EventPerformance from '@/components/graphs/eventPerformace';
 import EventScores from '@/components/graphs/eventScores';
@@ -21,6 +20,8 @@ import {
   View
 } from 'react-native';
 import Caret from '../../assets/icons/caret-up-down-bold.svg';
+import { getFirstAPI } from '@/api/event-service';
+import { getUpcomingEventsOnly } from '@/api/basic-event-service';
 
 type StatCardProps = {
   title: string;
@@ -208,6 +209,7 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
         }
         
         const match = await getTeamMatches(teamNumber, seasonYear);
+        console.error(match)
 
         const [enhancedMatches, matchType, wins] = await Promise.all([
           attachHourlyAverages(match ?? [], seasonYear),
@@ -225,7 +227,7 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
           events.length > 0 ? getFirstAPI(events, teamNumber, seasonYear) : Promise.resolve([]),
           getUpcomingEventsOnly(seasonYear, teamNumber)
         ]);
-        console.log('Event data received:', eventData);
+        console.error('Event data received:', eventData);
         console.log('Upcoming events received:', upcomingEventData);
 
         if (data) {

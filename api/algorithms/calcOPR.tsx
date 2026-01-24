@@ -1,6 +1,5 @@
-import { MatchInfo } from './types';
-import * as math from 'mathjs';
 import { Matrix, SingularValueDecomposition, pseudoInverse } from 'ml-matrix';
+import { MatchInfo } from '../utils/types';
 
 export class MatrixBuilder {
   private matches: MatchInfo[] = [];

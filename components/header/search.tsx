@@ -1,7 +1,8 @@
 // SearchDropdown.tsx
 import { filterTeams } from '@/api/algorithms/filter';
-import { getAllTeams, SupportedYear } from '@/api/dashboardInfo';
-import { getEventsBasic } from '@/api/firstAPI';
+import { getEventsBasic } from '@/api/basic-event-service';
+import { getAllTeams } from '@/api/dashboardInfo';
+import { SupportedYear } from '@/api/utils/types';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';

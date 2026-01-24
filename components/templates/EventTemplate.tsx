@@ -1,4 +1,3 @@
-import { BasicEventInfo, getEventsBasic, SupportedYear } from '@/api/firstAPI';
 import { usePageTitleContext } from '@/app/_layout';
 import { ErrorState } from '@/components/shared/ErrorState';
 import { YearSelector } from '@/components/shared/YearSelector';
@@ -22,6 +21,8 @@ import Down from '../../assets/icons/caret-down.svg';
 import Check from '../../assets/icons/check-circle.svg';
 import Clock from '../../assets/icons/clock.svg';
 import MapPin from '../../assets/icons/map-pin.svg';
+import { BasicEventInfo, SupportedYear } from '@/api/utils/types';
+import { getEventsBasic } from '@/api/basic-event-service';
 
 const ITEMS_PER_PAGE = 24;
 const MONTHS = ['All', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

@@ -1,4 +1,4 @@
-import { TeamInfo } from '@/api/types';
+import { TeamInfo } from '@/api/utils/types';
 import { useDarkMode } from '@/context/DarkModeContext';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';

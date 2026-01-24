@@ -1,5 +1,5 @@
-import { getCachedMatchScoreDetails, SupportedYear } from '@/api/firstAPI';
-import { EventInfo, MatchInfo } from '@/api/types';
+import { getCachedMatchScoreDetails } from '@/api/match-scores';
+import { EventInfo, MatchInfo, SupportedYear } from '@/api/utils/types';
 import CalendarIcon from '@/assets/icons/calendar.svg';
 import LocationIcon from '@/assets/icons/map-pin.svg';
 import TopScore from '@/assets/icons/ranking.svg';
@@ -100,26 +100,32 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
       setMatchScoreDetails(null);
       
       const eventCode = eventData.eventCode || 'UNKNOWN';
-      let tournamentLevel: 'qual' | 'playoff' = 'qual';
+      let tournamentLevel: 'qual' | 'playoff' | 'practice' = 'qual';
       
       // Check if it's any type of playoff match
       // matchType can be: QUALIFICATION, PLAYOFF, PRACTICE, or potentially FINAL, SEMIFINAL, QUARTERFINAL
       const matchTypeUpper = match.matchType?.toUpperCase() || '';
-      const isPlayoffMatch = matchTypeUpper !== 'QUALIFICATION' && 
-                             matchTypeUpper !== 'PRACTICE' &&
-                             matchTypeUpper !== '';
       
-      if (isPlayoffMatch) {
-        tournamentLevel = 'playoff';
-      }
-      
-      // Also check the match number format - playoff matches often start with 'P-', 'SF-', 'F-'
-      const matchNumberUpper = matchNumber?.toUpperCase() || '';
-      if (matchNumberUpper.startsWith('P-') || 
-          matchNumberUpper.startsWith('SF-') || 
-          matchNumberUpper.startsWith('F-') ||
-          matchNumberUpper.startsWith('QF-')) {
-        tournamentLevel = 'playoff';
+      // Check if it's a practice match first
+      if (matchTypeUpper === 'PRACTICE') {
+        tournamentLevel = 'practice';
+      } else {
+        // Then check if it's a playoff match
+        const isPlayoffMatch = matchTypeUpper !== 'QUALIFICATION' && 
+                               matchTypeUpper !== '';
+        
+        if (isPlayoffMatch) {
+          tournamentLevel = 'playoff';
+        }
+        
+        // Also check the match number format - playoff matches often start with 'P-', 'SF-', 'F-'
+        const matchNumberUpper = matchNumber?.toUpperCase() || '';
+        if (matchNumberUpper.startsWith('P-') || 
+            matchNumberUpper.startsWith('SF-') || 
+            matchNumberUpper.startsWith('F-') ||
+            matchNumberUpper.startsWith('QF-')) {
+          tournamentLevel = 'playoff';
+        }
       }
       
       const matchNum = parseInt(matchNumber.replace(/\D/g, '')) || 0;

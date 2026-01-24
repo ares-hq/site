@@ -1,31 +1,28 @@
-import { calculateTeamOPR } from '@/api/calcOPR';
-import { getEventsBasic, SupportedYear } from '@/api/firstAPI';
+import { calculateTeamOPR } from '@/api/algorithms/calcOPR';
+import { getEventistoricalData } from '@/api/dashboardInfo';
+import { EventInfo, MatchTypeAverages, SupportedYear } from '@/api/utils/types';
 import { usePageTitleContext } from '@/app/_layout';
+import EventPerformance from '@/components/graphs/eventPerformace';
+import EventMatchCard from '@/components/teamInfo/eventMatchCard';
 import { useDarkMode } from '@/context/DarkModeContext';
-import { useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { Picker } from '@react-native-picker/picker';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Animated,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    useWindowDimensions,
-    View
+  ActivityIndicator,
+  LayoutChangeEvent,
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
-
-// Icons
-import CalendarIcon from '@/assets/icons/calendar.svg';
-import ShieldIcon from '@/assets/icons/identification-card.svg';
-import LocationIcon from '@/assets/icons/map-pin.svg';
-import { Feather } from '@expo/vector-icons';
+import Caret from '../../assets/icons/caret-up-down-bold.svg';
+import { getEventData } from '@/api/event-service';
 
 type StatCardProps = {
   title: string;
   value: string;
-  change?: string;
-  positive?: boolean;
+  change: string;
+  positive: boolean;
   color: 'blue' | 'indigo';
   isMobile?: boolean;
 };
@@ -44,7 +41,7 @@ const StatCard = ({ title, value, change, positive, color, isMobile }: StatCardP
 
   return (
     <View style={[
-      isMobile ? styles.statCardMobile : styles.statCard,
+      isMobile ? styles.cardMobile : styles.card,
       { backgroundColor: getBackgroundColor() }
     ]}>
       <Text style={[
@@ -60,526 +57,562 @@ const StatCard = ({ title, value, change, positive, color, isMobile }: StatCardP
         ]}>
           {value}
         </Text>
-        {change && (
-          <View style={styles.changeRow}>
-            <Text style={[styles.change, { color: textColor }]}>{change}</Text>
-            <Feather name={positive ? 'trending-up' : 'trending-down'} size={isMobile ? 9 : 11} color={textColor} />
-          </View>
-        )}
+        <View style={styles.changeRow}>
+          <Text style={[styles.change, { color: textColor }]}>{change}</Text>
+        </View>
       </View>
     </View>
   );
 };
 
-const LiveDataIndicator = ({ isDarkMode }: { isDarkMode: boolean }) => {
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 0.5,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, []);
-
-  return (
-    <View style={styles.liveIndicatorContainer}>
-      <Animated.View style={[styles.liveDot, { opacity: pulseAnim }]} />
-      <Text style={[styles.liveText, { color: isDarkMode ? '#FCA5A5' : '#DC2626' }]}>
-        Live Data
-      </Text>
-    </View>
-  );
+const GAME_NAMES: Record<SupportedYear, string> = {
+  2019: '2019 - Skystone',
+  2020: '2020 - Ultimate Goal',
+  2021: '2021 - Freight Frenzy',
+  2022: '2022 - Power Play',
+  2023: '2023 - Centerstage',
+  2024: '2024 - Into the Deep',
+  2025: '2025 - Decode',
 };
 
-const EventDashboardTemplate = () => {
-  const { width } = useWindowDimensions();
-  const { isDarkMode } = useDarkMode();
-  const { setPageTitleInfo } = usePageTitleContext();
-  const params = useLocalSearchParams();
-  const isMobile = width < 820;
+const YEAR_TO_ROUTE: Record<SupportedYear, string> = {
+  2019: 'rise',
+  2020: 'gamechangers',
+  2021: 'forward',
+  2022: 'energize',
+  2023: 'inshow',
+  2024: 'intothedeep',
+  2025: 'age',
+};
 
+interface EventDashboardProps {
+  seasonYear?: SupportedYear;
+}
+
+export const EventDashboardTemplate = ({ seasonYear: propSeasonYear }: EventDashboardProps) => {
+  const params = useLocalSearchParams();
+  const { setPageTitleInfo } = usePageTitleContext();
   const eventCode = Array.isArray(params.eventCode) ? params.eventCode[0] : params.eventCode;
   const yearParam = Array.isArray(params.year) ? params.year[0] : params.year;
-  const seasonYear = (yearParam ? parseInt(yearParam, 10) : 2025) as SupportedYear;
+  const seasonYear: SupportedYear = (yearParam ? parseInt(yearParam) : propSeasonYear) as SupportedYear || 2025;
 
-  const [eventData, setEventData] = useState<any>(null);
-  const [allMatches, setAllMatches] = useState<any[]>([]);
-  const [teamOPRs, setTeamOPRs] = useState<Map<number, number>>(new Map());
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [eventInfo, setEventInfo] = useState<EventInfo | null>(null);
+  const [availableYears, setAvailableYears] = useState<SupportedYear[]>([]);
+  const [matchTypeAverages, setMatchTypeAverages] = useState<MatchTypeAverages | null>(null);
+  const [highestScore, setHighScore] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
+  const [noEventSelected, setNoEventSelected] = useState(false);
+  const [noDataForEvent, setNoDataForEvent] = useState(false);
+  const { isDarkMode } = useDarkMode();
+  const [averageOPR, setAverageOPR] = useState<{
+    autoOPR: number;
+    teleOPR: number;
+    endgameOPR: number;
+    overallOPR: number;
+  } | null>(null);
+  const [team14584OPR, setTeam14584OPR] = useState<{
+    autoOPR: number;
+    teleOPR: number;
+    endgameOPR: number;
+    overallOPR: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (eventCode) {
+      const seasonName = GAME_NAMES[seasonYear];
+      setPageTitleInfo({
+        customSuffix: `${eventCode} (${seasonName})`,
+      });
+    }
+  }, [eventCode, seasonYear, setPageTitleInfo]);
+
+  useEffect(() => {
+    const fetchAvailableYears = async () => {
+      try {
+        if (!eventCode) {
+          return;
+        }
+
+        const historicalData = await getEventistoricalData(eventCode);
+        const yearsWithData: SupportedYear[] = [];
+        historicalData.forEach((data, year) => {
+          if (data !== null) {
+            yearsWithData.push(year);
+          }
+        });
+        yearsWithData.sort((a, b) => b - a);
+        setAvailableYears(yearsWithData);
+      } catch (err) {
+        console.error('Error fetching available years:', err);
+      }
+    };
+    fetchAvailableYears();
+  }, [eventCode]);
 
   useEffect(() => {
     const fetchEventData = async () => {
+      setLoading(true);
+      setNoDataForEvent(false);
+      
       try {
-        setLoading(true);
-        if (!eventCode) throw new Error('No event code');
+        if (!eventCode) {
+          setNoEventSelected(true);
+          setLoading(false);
+          return;
+        }
 
-        // Fetch event basic info
-        const basicEvents = await getEventsBasic(seasonYear, true);
-        const basicEvent = basicEvents.find(e => e.eventCode === eventCode);
+        const fullEventData = await getEventData(eventCode, seasonYear);
+        console.error(fullEventData)
+        
+        if (!fullEventData) {
+          setNoDataForEvent(true);
+          setLoading(false);
+          return;
+        }
 
-        if (!basicEvent) throw new Error('Event not found');
+        setEventInfo(fullEventData);
 
-        // Fetch all matches for this event from FIRST API
-        const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
-        const headers = { apikey: supabaseAnonKey };
-
-        const matchRes = await fetch(
-          `https://api.ares-bot.com/functions/v1/first/${seasonYear}/matches/${eventCode}`,
-          { headers }
-        );
-        const matchData = await matchRes.json();
-        const fetchedMatches = matchData.matches || [];
-
-        // Fetch team names for all teams at the event
-        const allTeamNumbers = new Set<number>();
-        fetchedMatches.forEach((match: any) => {
-          match.teams?.forEach((t: any) => {
-            if (t?.teamNumber) allTeamNumbers.add(t.teamNumber);
+        // Compute per-team OPRs for this event and set averages
+        try {
+          const matches = fullEventData.matches || [];
+          const teamSet = new Set<number>();
+          matches.forEach((m) => {
+            if (m.redAlliance.team_1?.teamNumber) teamSet.add(m.redAlliance.team_1.teamNumber);
+            if (m.redAlliance.team_2?.teamNumber) teamSet.add(m.redAlliance.team_2.teamNumber);
+            if (m.blueAlliance.team_1?.teamNumber) teamSet.add(m.blueAlliance.team_1.teamNumber);
+            if (m.blueAlliance.team_2?.teamNumber) teamSet.add(m.blueAlliance.team_2.teamNumber);
           });
-        });
 
-        // Calculate OPR for all teams using qualification matches only
-        const qualMatches = fetchedMatches.filter((m: any) => 
-          m.tournamentLevel?.toUpperCase() === 'QUALIFICATION'
-        );
+          const teams = Array.from(teamSet);
+          if (teams.length > 0) {
+            const overallOPRs: number[] = [];
+            const teleOPRs: number[] = [];
+            const autoOPRs: number[] = [];
+            const endgameOPRs: number[] = [];
 
-        // Create a mapping of team numbers to OPR values
-        const oprMap = new Map<number, number>();
-        allTeamNumbers.forEach(teamNum => {
-          // For event-level OPR, we need to build match info for OPR calculation
-          const matchesForOPR = qualMatches.map((match: any) => {
-            const redTeams = match.teams?.filter((t: any) => t.station?.toLowerCase().includes('red')) || [];
-            const blueTeams = match.teams?.filter((t: any) => t.station?.toLowerCase().includes('blue')) || [];
-            
-            return {
-              redAlliance: {
-                team_1: redTeams[0] ? { teamNumber: redTeams[0].teamNumber } : undefined,
-                team_2: redTeams[1] ? { teamNumber: redTeams[1].teamNumber } : undefined,
-                totalPoints: match.scoreRedFinal || 0,
-                penalty: 0,
-              },
-              blueAlliance: {
-                team_1: blueTeams[0] ? { teamNumber: blueTeams[0].teamNumber } : undefined,
-                team_2: blueTeams[1] ? { teamNumber: blueTeams[1].teamNumber } : undefined,
-                totalPoints: match.scoreBlueFinal || 0,
-                penalty: 0,
+            // Prepare tele-only matches by replacing totalPoints with tele and zeroing penalty
+            const teleMatches = matches.map((m) => ({
+              ...m,
+              redAlliance: { ...m.redAlliance, totalPoints: m.redAlliance.tele ?? 0, penalty: 0 },
+              blueAlliance: { ...m.blueAlliance, totalPoints: m.blueAlliance.tele ?? 0, penalty: 0 },
+            }));
+
+            const autoMatches = matches.map((m) => ({
+              ...m,
+              redAlliance: { ...m.redAlliance, totalPoints: (m.redAlliance.auto ?? 0), penalty: 0 },
+              blueAlliance: { ...m.blueAlliance, totalPoints: (m.blueAlliance.auto ?? 0), penalty: 0 },
+            }));
+
+            const endgameMatches = matches.map((m) => ({
+              ...m,
+              redAlliance: { ...m.redAlliance, totalPoints: (m.redAlliance.endgame ?? 0), penalty: 0 },
+              blueAlliance: { ...m.blueAlliance, totalPoints: (m.blueAlliance.endgame ?? 0), penalty: 0 },
+            }));
+
+            for (const t of teams) {
+              const oprOverall = calculateTeamOPR(matches, t);
+              const oprTele = calculateTeamOPR(teleMatches, t);
+              const oprAuto = calculateTeamOPR(autoMatches, t);
+              const oprEndgame = calculateTeamOPR(endgameMatches, t);
+              if (t === 327) {
+                console.log(`[DEBUG] Team 327 OPR - Overall: ${oprOverall}, Tele: ${oprTele}, Auto: ${oprAuto}, Endgame: ${oprEndgame}`);
+                console.log(`[DEBUG] Team 327 matches count: ${matches.filter(m => m.redAlliance.team_1?.teamNumber === t || m.redAlliance.team_2?.teamNumber === t || m.blueAlliance.team_1?.teamNumber === t || m.blueAlliance.team_2?.teamNumber === t).length}`);
               }
-            };
-          });
+              overallOPRs.push(oprOverall);
+              teleOPRs.push(oprTele);
+              autoOPRs.push(oprAuto);
+              endgameOPRs.push(oprEndgame);
+            }
 
-          const opr = calculateTeamOPR(matchesForOPR, teamNum);
-          if (opr > 0) oprMap.set(teamNum, opr);
-        });
+            const avgOverall = overallOPRs.reduce((s, v) => s + v, 0) / overallOPRs.length;
+            const avgTele = teleOPRs.reduce((s, v) => s + v, 0) / teleOPRs.length;
+            const avgAuto = autoOPRs.reduce((s, v) => s + v, 0) / autoOPRs.length;
+            const avgEndgame = endgameOPRs.reduce((s, v) => s + v, 0) / endgameOPRs.length;
 
-        setEventData(basicEvent);
-        setAllMatches(fetchedMatches);
-        setTeamOPRs(oprMap);
-        setPageTitleInfo({ customSuffix: basicEvent.name });
+            setAverageOPR({
+              autoOPR: Number(avgAuto.toFixed(2)),
+              teleOPR: Number(avgTele.toFixed(2)),
+              endgameOPR: Number(avgEndgame.toFixed(2)),
+              overallOPR: Number(avgOverall.toFixed(2)),
+            });
+
+            // Compute OPRs for specific team 14584 if present
+            const specificTeam = 14584;
+            if (teams.includes(specificTeam)) {
+              try {
+                const tOverall = calculateTeamOPR(matches, specificTeam);
+                const tTele = calculateTeamOPR(teleMatches, specificTeam);
+                const tAuto = calculateTeamOPR(autoMatches, specificTeam);
+                const tEnd = calculateTeamOPR(endgameMatches, specificTeam);
+                setTeam14584OPR({
+                  autoOPR: Number(tAuto.toFixed(2)),
+                  teleOPR: Number(tTele.toFixed(2)),
+                  endgameOPR: Number(tEnd.toFixed(2)),
+                  overallOPR: Number(tOverall.toFixed(2)),
+                });
+              } catch (err) {
+                console.error('Error computing OPR for team 14584:', err);
+              }
+            } else {
+              setTeam14584OPR(null);
+            }
+          }
+        } catch (err) {
+          console.error('Error computing event OPR averages:', err);
+        }
       } catch (err) {
-        console.error('Error fetching event data:', err);
-        setError('Failed to load event');
+        console.error('Error fetching event dashboard info:', err);
+        setNoDataForEvent(true);
       } finally {
         setLoading(false);
       }
     };
-
     fetchEventData();
   }, [eventCode, seasonYear]);
 
-  if (loading) return (
-    <View style={[styles.container, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF' }]}>
-      <ActivityIndicator size="large" color={isDarkMode ? '#F9FAFB' : '#111827'} />
-    </View>
-  );
+  const handleLayout = (event: LayoutChangeEvent) => {
+    const { width } = event.nativeEvent.layout;
+    setContainerWidth((prevWidth) => {
+      if (Math.abs(width - prevWidth) > 5) {
+        return width;
+      }
+      return prevWidth;
+    });
+  };
 
-  if (error || !eventData) {
+  const getSeasonDisplayText = () => {
+    return GAME_NAMES[seasonYear] || `${seasonYear} Season`;
+  };
+
+  if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF' }]}>
-        <Text style={{ color: isDarkMode ? '#F9FAFB' : '#111827' }}>{error || 'Event not found'}</Text>
+      <View style={[
+        styles.loadingOverlay,
+      ]} onLayout={handleLayout}>
+        <View style={[
+          styles.loadingContainer,
+        ]}>
+          <ActivityIndicator size="large" color={isDarkMode ? '#9CA3AF' : '#6B7280'} />
+          <Text style={[
+            styles.loadingText,
+            { color: isDarkMode ? '#9CA3AF' : '#6B7280' }
+          ]}>
+            Loading Event Data...
+          </Text>
+        </View>
       </View>
     );
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const eventDate = new Date(eventData.date);
-  
-  let status = { label: 'Upcoming', color: '#EF4444' };
-  if (eventDate < today) status = { label: 'Completed', color: '#34C759' };
-  else if (eventDate.toDateString() === today.toDateString()) status = { label: 'Ongoing', color: '#F59E0B' };
-
-  const matchCount = allMatches.length;
-  const isOngoing = status.label === 'Ongoing';
-
-  // Calculate tournament difficulty rating (average OPR of all teams)
-  const avgOPR = teamOPRs.size > 0 
-    ? Array.from(teamOPRs.values()).reduce((a, b) => a + b, 0) / teamOPRs.size
-    : 0;
-
-  const getDifficultyRating = (avgOpr: number) => {
-    if (avgOpr >= 120) return { label: 'Elite', color: '#EF4444' };
-    if (avgOpr >= 100) return { label: 'Competitive', color: '#F59E0B' };
-    if (avgOpr >= 80) return { label: 'Balanced', color: '#3B82F6' };
-    if (avgOpr >= 60) return { label: 'Moderate', color: '#10B981' };
-    return { label: 'Accessible', color: '#8B5CF6' };
-  };
-
-  const difficulty = getDifficultyRating(avgOPR);
-
-  return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF' }]}
-      contentContainerStyle={styles.contentContainer}
-    >
-      {/* MAIN CARD - MATCHING EVENTCARD STYLE */}
-      <View
-        style={[styles.card, {
-          backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF',
-          borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#FAFBFC',
-        }]}
-      >
-        <View style={[styles.header, {
-          backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#FAFBFC',
-          borderBottomColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#E5E7EB',
-        }]}>
-          <View style={styles.titleSection}>
-            <Text style={[styles.mainTitle, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
-              {eventData.name}
-            </Text>
-            <View style={[styles.statusBadge, {
-              backgroundColor: status.label === 'Upcoming' ? 'rgba(239, 68, 68, 0.1)' : status.label === 'Ongoing' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(52, 199, 89, 0.1)',
-              borderColor: status.color,
-              borderWidth: 1,
-            }]}>
-              <Text style={[styles.statusText, { color: status.color }]}>
-                {status.label}
-              </Text>
-            </View>
-            {isOngoing && <LiveDataIndicator isDarkMode={isDarkMode} />}
-          </View>
-
-          <View style={styles.eventDetails}>
-            <View style={styles.detailRow}>
-              <CalendarIcon width={16} height={16} fill={isDarkMode ? '#fff' : '#000'} />
-              <Text style={[styles.detailText, { color: isDarkMode ? '#D1D5DB' : '#374151' }]}>
-                {eventData.date}
-              </Text>
-            </View>
-            <View style={styles.detailRow}>
-              <LocationIcon width={16} height={16} fill={isDarkMode ? '#fff' : '#000'} />
-              <Text style={[styles.detailText, { color: isDarkMode ? '#D1D5DB' : '#374151' }]}>
-                {eventData.location}
-              </Text>
-            </View>
-            <View style={styles.detailRow}>
-              <ShieldIcon width={16} height={16} fill={isDarkMode ? '#fff' : '#000'} />
-              <Text style={[styles.detailText, { color: isDarkMode ? '#D1D5DB' : '#374151' }]}>
-                {eventData.type || 'Regular'}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </View>
-
-      {/* STATS GRID - MATCHING DASHBOARDTEMPLATE */}
-      <View style={[styles.statsGridContainer, isMobile && styles.statsGridContainerMobile]}>
-        <StatCard
-          title="Total Matches"
-          value={matchCount.toString()}
-          color="blue"
-          isMobile={isMobile}
-        />
-        <StatCard
-          title="Participating Teams"
-          value={teamOPRs.size.toString()}
-          color="indigo"
-          isMobile={isMobile}
-        />
-        <StatCard
-          title="Tournament Difficulty"
-          value={difficulty.label}
-          color={difficulty.color === '#EF4444' ? 'blue' : 'indigo'}
-          isMobile={isMobile}
-        />
-        <StatCard
-          title="Avg Team OPR"
-          value={avgOPR.toFixed(1)}
-          color={difficulty.color === '#EF4444' ? 'indigo' : 'blue'}
-          isMobile={isMobile}
-        />
-      </View>
-
-      {/* DIFFICULTY INDICATOR */}
-      <View style={[styles.difficultyCard, {
-        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#FAFBFC',
-        borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : '#E5E7EB',
-      }]}>
-        <View style={styles.difficultyHeader}>
-          <Text style={[styles.difficultyLabel, { color: isDarkMode ? '#D1D5DB' : '#6B7280' }]}>
-            Tournament Difficulty
-          </Text>
-          <View style={[styles.difficultyBadge, { backgroundColor: `${difficulty.color}20` }]}>
-            <View style={[styles.difficultyDot, { backgroundColor: difficulty.color }]} />
-            <Text style={[styles.difficultyValue, { color: difficulty.color }]}>
-              {difficulty.label}
-            </Text>
-          </View>
-        </View>
-        <Text style={[styles.difficultyDesc, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
-          Based on average OPR across {teamOPRs.size} teams
+  if (noEventSelected) {
+    return (
+      <View style={[
+        styles.container,
+        { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' }
+      ]}>
+        <Text style={[
+          styles.errorText,
+          { color: isDarkMode ? '#F87171' : '#DC2626' }
+        ]}>
+          No event selected
         </Text>
       </View>
+    );
+  }
 
-      {/* MATCH RESULTS SECTION - MAIN CONTENT */}
-      {matchCount > 0 && (
-        <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionTitle, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
-            Matches ({matchCount})
+  if (noDataForEvent) {
+    return (
+      <View style={[
+        styles.container,
+        { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' }
+      ]}>
+        <View style={styles.headerRow}>
+          <Text style={[
+            styles.header,
+            { color: isDarkMode ? '#F9FAFB' : '#111827' }
+          ]}>
+            Event Overview - {getSeasonDisplayText()}
           </Text>
-          <View style={[styles.matchesContainer, {
-            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#FAFBFC',
-            borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : '#E5E7EB',
-          }]}>
-            {allMatches.map((match: any, idx: number) => {
-              const redTeams = match.teams?.filter((t: any) => t.station?.toLowerCase().includes('red')) || [];
-              const blueTeams = match.teams?.filter((t: any) => t.station?.toLowerCase().includes('blue')) || [];
-              const redScore = match.scoreRedFinal || 0;
-              const blueScore = match.scoreBlueFinal || 0;
-              const isExpanded = expandedMatch === match.matchNumber;
+        </View>
+        <Text style={[
+          styles.errorText,
+          { color: isDarkMode ? '#F87171' : '#DC2626' }
+        ]}>
+          No data available for event {eventCode}
+        </Text>
+        <Text style={[
+          styles.subErrorText,
+          { color: isDarkMode ? '#9CA3AF' : '#6B7280' }
+        ]}>
+          Check if the event code is correct or if data is available for {seasonYear}.
+        </Text>
+      </View>
+    );
+  }
 
-              return (
-                <View key={idx}>
-                  <TouchableOpacity
-                    onPress={() => setExpandedMatch(isExpanded ? null : match.matchNumber)}
-                    style={[styles.matchRow, {
-                      borderBottomColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#E5E7EB',
-                      borderBottomWidth: idx < allMatches.length - 1 ? 1 : 0,
-                      backgroundColor: isExpanded ? (isDarkMode ? 'rgba(255, 255, 255, 0.06)' : '#F5F7FA') : undefined
-                    }]}
-                  >
-                    <View style={styles.matchRowContent}>
-                      <Text style={[styles.matchNumber, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
-                        {match.matchNumber || `Match ${idx + 1}`}
-                      </Text>
+  return (
+    <View style={[
+      styles.container,
+      { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' }
+    ]} onLayout={handleLayout}>
+      <View style={styles.headerRow}>
+        <Text style={[
+          styles.header,
+          { color: isDarkMode ? '#F9FAFB' : '#111827' }
+        ]}>
+          {eventInfo?.name} ({eventCode}) Overview
+        </Text>
+        <View style={[
+          styles.seasonBadge,
+          {
+            backgroundColor: isDarkMode ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
+          }
+        ]}>
+          <View style={{ position: 'relative' }}>
+            <Picker
+              selectedValue={seasonYear}
+              onValueChange={(itemValue: SupportedYear) => {
+                const selectedYear = itemValue as SupportedYear;
+                router.push(`/analytics/events/${eventCode}?year=${selectedYear}` as any);
+              }}
+              style={[
+                styles.picker,
+                { 
+                  outline: 'none',
+                  borderWidth: 0,
+                  backgroundColor: 'transparent',
+                  fontWeight: '600',
+                  fontSize: 12,
+                  opacity: 0.0,
+                  position: 'absolute',
+                  height: '100%',
+                  width: '100%',
+                  zIndex: 10,
+                }
+              ]}
+              itemStyle={[
+                styles.pickerItem,
+                { 
+                  color: 'red'
+                }
+              ]}
+            >
+              {availableYears.map((year) => (
+                <Picker.Item 
+                  key={year} 
+                  label={GAME_NAMES[year]} 
+                  value={year}
+                  style={{color: 'red'}}
+                />
+              ))}
+            </Picker>
 
-                      <View style={styles.allianceContainer}>
-                        {/* RED ALLIANCE */}
-                        <View style={[styles.allianceBox, {
-                          backgroundColor: redScore > blueScore ? (isDarkMode ? 'rgba(220, 38, 38, 0.15)' : 'rgba(254, 226, 226, 0.4)') : (isDarkMode ? 'rgba(55, 65, 81, 0.2)' : '#F9FAFB')
-                        }]}>
-                          <View style={styles.teamListRed}>
-                            {redTeams.map((team: any, i: number) => (
-                              <View key={i} style={styles.teamBadgeRed}>
-                                <Text style={[styles.teamNumberBadge, { color: '#DC2626' }]}>
-                                  {team.teamNumber}
-                                </Text>
-                              </View>
-                            ))}
-                          </View>
-                          <Text style={[styles.scoreText, { color: '#DC2626' }]}>
-                            {redScore}
-                          </Text>
-                        </View>
+            {/* Custom Icon Overlay */}
+            <View 
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 7,
+                paddingVertical: 7,
+                pointerEvents: 'none',
+                width: 160,
+              }}
+            >
+              <Text style={{
+                color: isDarkMode ? '#F9FAFB' : '#111827',
+                fontSize: 12,
+                fontWeight: '600',
+                flex: 1,
+                // alignSelf: 'flex-end'
+              }}>
+                {GAME_NAMES[seasonYear]}
+              </Text>
+                  <Caret width={12} height={12} fill={isDarkMode ? '#F9FAFB' : '#111827'} stroke={isDarkMode ? '#F9FAFB' : '#111827'} strokeWidth={7}/>
+            </View>
+          </View>
+        </View>
+      </View>
 
-                        <Text style={[styles.vs, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>vs</Text>
+      <View style={containerWidth < 900 ? styles.cardRowMobile : styles.cardRow}>
+        <StatCard 
+          title="Avg Auto OPR"
+          value={averageOPR && !isNaN(averageOPR.autoOPR ?? NaN) ? (averageOPR.autoOPR as number).toFixed(2) : '--'}           
+          change={'+'}
+          positive={true}
+          color="indigo"
+          isMobile={containerWidth < 900}
+        />
+        <StatCard 
+          title="Avg TeleOp OPR" 
+          value={averageOPR && !isNaN(averageOPR.teleOPR ?? NaN) ? averageOPR.teleOPR.toFixed(2) : '--'}           
+          change={'+'}
+          positive={true}
+          color="blue"
+          isMobile={containerWidth < 900}
+        />
+        <StatCard 
+          title="Avg Endgame OPR" 
+          value={averageOPR && !isNaN(averageOPR.endgameOPR ?? NaN) ? (averageOPR.endgameOPR as number).toFixed(2) : '--'}           
+          change={'+'}
+          positive={true}
+          color="indigo"
+          isMobile={containerWidth < 900}
+        />
+        <StatCard 
+          title="Avg Overall OPR" 
+          value={averageOPR && !isNaN(averageOPR.overallOPR ?? NaN) ? averageOPR.overallOPR.toFixed(2) : '--'}           
+          change={'+'}
+          positive={true}
+          color="blue"
+          isMobile={containerWidth < 900}
+        />
+      </View>
 
-                        {/* BLUE ALLIANCE */}
-                        <View style={[styles.allianceBox, {
-                          backgroundColor: blueScore > redScore ? (isDarkMode ? 'rgba(37, 99, 235, 0.15)' : 'rgba(219, 234, 254, 0.4)') : (isDarkMode ? 'rgba(55, 65, 81, 0.2)' : '#F9FAFB')
-                        }]}>
-                          <View style={styles.teamListBlue}>
-                            {blueTeams.map((team: any, i: number) => (
-                              <View key={i} style={styles.teamBadgeBlue}>
-                                <Text style={[styles.teamNumberBadge, { color: '#2563EB' }]}>
-                                  {team.teamNumber}
-                                </Text>
-                              </View>
-                            ))}
-                          </View>
-                          <Text style={[styles.scoreText, { color: '#2563EB' }]}>
-                            {blueScore}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <Text style={[styles.matchType, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
-                        {match.tournamentLevel || 'QUALIFICATION'}
-                      </Text>
-                      <Text style={[styles.expandIcon, { color: isDarkMode ? '#D1D5DB' : '#374151' }]}>
-                        {isExpanded ? '−' : '+'}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-
-                  {/* EXPANDED DETAILS */}
-                  {isExpanded && (
-                    <View style={[styles.matchExpanded, {
-                      backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.02)' : '#FAFBFC',
-                      borderTopColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#E5E7EB',
-                    }]}>
-                      {/* RED TEAM DETAILS */}
-                      <View style={styles.allianceDetails}>
-                        <Text style={[styles.allianceTitle, { color: '#DC2626' }]}>Red Alliance</Text>
-                        {redTeams.map((team: any, i: number) => {
-                          const opr = teamOPRs.get(team.teamNumber) || 0;
-                          return (
-                            <View key={i} style={styles.teamDetailRow}>
-                              <Text style={[styles.teamDetailNumber, { color: isDarkMode ? '#D1D5DB' : '#374151' }]}>
-                                Team {team.teamNumber}
-                              </Text>
-                              {opr > 0 && (
-                                <View style={[styles.oprBadge, { backgroundColor: 'rgba(220, 38, 38, 0.1)' }]}>
-                                  <Text style={[styles.oprText, { color: '#DC2626' }]}>OPR: {opr.toFixed(1)}</Text>
-                                </View>
-                              )}
-                            </View>
-                          );
-                        })}
-                      </View>
-
-                      {/* BLUE TEAM DETAILS */}
-                      <View style={styles.allianceDetails}>
-                        <Text style={[styles.allianceTitle, { color: '#2563EB' }]}>Blue Alliance</Text>
-                        {blueTeams.map((team: any, i: number) => {
-                          const opr = teamOPRs.get(team.teamNumber) || 0;
-                          return (
-                            <View key={i} style={styles.teamDetailRow}>
-                              <Text style={[styles.teamDetailNumber, { color: isDarkMode ? '#D1D5DB' : '#374151' }]}>
-                                Team {team.teamNumber}
-                              </Text>
-                              {opr > 0 && (
-                                <View style={[styles.oprBadge, { backgroundColor: 'rgba(37, 99, 235, 0.1)' }]}>
-                                  <Text style={[styles.oprText, { color: '#2563EB' }]}>OPR: {opr.toFixed(1)}</Text>
-                                </View>
-                              )}
-                            </View>
-                          );
-                        })}
-                      </View>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
+      {team14584OPR && (
+        <View style={{ marginTop: 8, marginBottom: 8, paddingHorizontal: 6 }}>
+          <Text style={[styles.header, { fontSize: 13, marginBottom: 6, color: isDarkMode ? '#F9FAFB' : '#111827' }]}>Team 14584 OPR (event)</Text>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <Text style={{ color: isDarkMode ? '#F9FAFB' : '#111827' }}>Auto: {team14584OPR.autoOPR.toFixed(2)}</Text>
+            <Text style={{ color: isDarkMode ? '#F9FAFB' : '#111827' }}>Tele: {team14584OPR.teleOPR.toFixed(2)}</Text>
+            <Text style={{ color: isDarkMode ? '#F9FAFB' : '#111827' }}>Endgame: {team14584OPR.endgameOPR.toFixed(2)}</Text>
+            <Text style={{ color: isDarkMode ? '#F9FAFB' : '#111827' }}>Overall: {team14584OPR.overallOPR.toFixed(2)}</Text>
           </View>
         </View>
       )}
 
-      {/* EMPTY STATE */}
-      {matchCount === 0 && (
-        <View style={[styles.emptyCard, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#FAFBFC' }]}>
-          <Text style={[styles.emptyTitle, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
-            {status.label === 'Upcoming' ? 'Event Upcoming' : 'Event In Progress'}
-          </Text>
-          <Text style={[styles.emptyText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
-            Match data will appear here once the event starts or concludes.
-          </Text>
+      {/* DEBUG: Average Scores by Section */}
+      {eventInfo && eventInfo.matches && (
+        <View style={{ marginTop: 12, marginBottom: 12, paddingHorizontal: 6, paddingVertical: 8, backgroundColor: isDarkMode ? 'rgba(75, 85, 99, 0.2)' : 'rgba(229, 231, 235, 0.5)', borderRadius: 6 }}>
+          <Text style={[styles.header, { fontSize: 13, marginBottom: 8, color: isDarkMode ? '#FBBF24' : '#D97706' }]}>DEBUG: Avg Scores by Section</Text>
+          {(() => {
+            const matches = eventInfo.matches;
+            console.error('[DEBUG] First 3 matches endgame values:', matches.slice(0, 3).map(m => ({
+              match: m.matchNumber,
+              redEndgame: m.redAlliance.endgame,
+              blueEndgame: m.blueAlliance.endgame,
+              redTotal: m.redAlliance.totalPoints,
+              blueTotal: m.blueAlliance.totalPoints,
+              redAuto: m.redAlliance.auto,
+              blueAuto: m.blueAlliance.auto,
+              redTele: m.redAlliance.tele,
+              blueTele: m.blueAlliance.tele,
+            })));
+            const autoScores = matches.map(m => (m.redAlliance.auto || 0) + (m.blueAlliance.auto || 0));
+            const teleScores = matches.map(m => (m.redAlliance.tele || 0) + (m.blueAlliance.tele || 0));
+            const endgameScores = matches.map(m => (m.redAlliance.endgame || 0) + (m.blueAlliance.endgame || 0));
+            
+            const avgAuto = autoScores.length > 0 ? autoScores.reduce((a, b) => a + b, 0) / autoScores.length : 0;
+            const avgTele = teleScores.length > 0 ? teleScores.reduce((a, b) => a + b, 0) / teleScores.length : 0;
+            const avgEndgame = endgameScores.length > 0 ? endgameScores.reduce((a, b) => a + b, 0) / endgameScores.length : 0;
+            
+            return (
+              <View style={{ gap: 4 }}>
+                <Text style={{ color: isDarkMode ? '#F9FAFB' : '#111827', fontSize: 12 }}>Avg Auto (both alliances): {avgAuto.toFixed(2)}</Text>
+                <Text style={{ color: isDarkMode ? '#F9FAFB' : '#111827', fontSize: 12 }}>Avg TeleOp (both alliances): {avgTele.toFixed(2)}</Text>
+                <Text style={{ color: isDarkMode ? '#F9FAFB' : '#111827', fontSize: 12 }}>Avg Endgame (both alliances): {avgEndgame.toFixed(2)}</Text>
+                <Text style={{ color: isDarkMode ? '#9CA3AF' : '#6B7280', fontSize: 11, marginTop: 6 }}>Total matches: {matches.length}</Text>
+              </View>
+            );
+          })()}
         </View>
       )}
-    </ScrollView>
+
+      <View style={styles.headerRow}>
+        <Text style={[
+          styles.header,
+          { color: isDarkMode ? '#F9FAFB' : '#111827' }
+        ]}>
+          Event Information
+        </Text>
+      </View>
+      
+      {/* {eventInfo && (
+        <InfoBlock screenWidth={containerWidth} teamInfo={eventInfo} highScore={highestScore}/>
+      )} */}
+
+      <View style={styles.headerRow}>
+        <Text style={[
+          styles.header,
+          { color: isDarkMode ? '#F9FAFB' : '#111827' }
+        ]}>
+          Performance
+        </Text>
+      </View>
+      
+      {containerWidth < 600 ? (
+        <View style={[styles.chartScrollContainer, styles.chartScrollContainerMobile]}>
+          {matchTypeAverages && (
+            <View style={styles.mobileChartWrapper}>
+              <EventPerformance matchType={matchTypeAverages}/>
+            </View>
+          )}
+          {/* {eventInfo && (
+            <View style={styles.mobileChartWrapper}>
+              <EventScores teamInfo={eventInfo} />
+            </View>
+          )} */}
+        </View>
+      ) : (
+        <View style={styles.chartScrollContainer}>
+          {matchTypeAverages && <EventPerformance matchType={matchTypeAverages}/>}
+          {/* {eventInfo && <EventScores teamInfo={eventInfo} />} */}
+        </View>
+      )}
+
+      {eventInfo && (
+        <EventMatchCard eventData={eventInfo} seasonYear={seasonYear} />
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingHorizontal: 4,
+    position: 'relative',
   },
-  contentContainer: {
-    padding: 16,
-    paddingBottom: 32,
+  seasonBadge: {
+    paddingHorizontal: 7,
+    borderRadius: 20,
   },
-  card: {
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
-    marginBottom: 20,
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 13,
   },
   header: {
-    padding: 16,
-    borderBottomWidth: 1,
-  },
-  titleSection: {
-    marginBottom: 12,
-  },
-  mainTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    marginBottom: 8,
-  },
-  statusText: {
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: '600',
   },
-  liveIndicatorContainer: {
+  cardRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 6,
-  },
-  liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#DC2626',
-  },
-  liveText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  eventDetails: {
-    gap: 8,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  detailText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  statsGridContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
     flexWrap: 'wrap',
+    gap: 13,
+    marginBottom: 13,
   },
-  statsGridContainerMobile: {
-    flexDirection: 'column',
+  cardRowMobile: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
+    marginBottom: 10,
   },
-  statCard: {
+  card: {
     flex: 1,
-    minWidth: 160,
+    minWidth: 220,
     height: 97,
     borderRadius: 13,
     padding: 20,
   },
-  statCardMobile: {
+  cardMobile: {
     flex: 1,
     minWidth: 160,
     height: 80,
     borderRadius: 10,
     padding: 12,
+    justifyContent: 'center',
   },
   title: {
     fontSize: 15,
@@ -588,6 +621,14 @@ const styles = StyleSheet.create({
   titleMobile: {
     fontSize: 12,
     marginBottom: 10,
+  },
+  picker: {
+    height: 28,
+    width: 155,
+  },
+  pickerItem: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   row: {
     flexDirection: 'row',
@@ -617,183 +658,47 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  difficultyCard: {
-    borderRadius: 13,
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 20,
-  },
-  difficultyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  difficultyLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  difficultyBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  difficultyDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  difficultyValue: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  difficultyDesc: {
-    fontSize: 12,
-  },
-  sectionContainer: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 12,
-  },
-  matchesContainer: {
-    borderRadius: 13,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  matchRow: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  matchRowContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
-  matchNumber: {
-    fontSize: 14,
-    fontWeight: '600',
-    minWidth: 70,
-  },
-  allianceContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  allianceBox: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    minHeight: 40,
-  },
-  teamListRed: {
-    flexDirection: 'row',
-    gap: 4,
-    flex: 1,
-  },
-  teamListBlue: {
-    flexDirection: 'row',
-    gap: 4,
-    flex: 1,
-  },
-  teamBadgeRed: {
-    backgroundColor: 'rgba(220, 38, 38, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  teamBadgeBlue: {
-    backgroundColor: 'rgba(37, 99, 235, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  teamNumberBadge: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  scoreText: {
-    fontSize: 16,
-    fontWeight: '700',
-    minWidth: 40,
-    textAlign: 'right',
-  },
-  vs: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginHorizontal: 4,
-  },
-  matchType: {
-    fontSize: 11,
-    fontWeight: '600',
-    minWidth: 50,
-  },
-  expandIcon: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  matchExpanded: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderTopWidth: 1,
-    flexDirection: 'row',
+  chartScrollContainer: {
     gap: 16,
-  },
-  allianceDetails: {
-    flex: 1,
-  },
-  allianceTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  teamDetailRow: {
+    marginBottom: 20,
     flexDirection: 'row',
+    alignItems: 'stretch',
     justifyContent: 'space-between',
+  },
+  chartScrollContainerMobile: {
+    flexDirection: 'column',
+  },
+  mobileChartWrapper: {
+    width: '100%',
+    alignSelf: 'stretch',
+    minHeight: 320,
+  },
+  loadingOverlay: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 6,
   },
-  teamDetailNumber: {
-    fontSize: 12,
-    fontWeight: '500',
+  loadingContainer: {
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
   },
-  oprBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  oprText: {
-    fontSize: 11,
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
     fontWeight: '600',
   },
-  emptyCard: {
-    padding: 32,
-    borderRadius: 13,
-    borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.1)',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  emptyTitle: {
-    fontSize: 18,
+  errorText: {
+    fontSize: 16,
     fontWeight: '600',
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    lineHeight: 20,
     textAlign: 'center',
+    marginTop: 50,
+  },
+  subErrorText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 10,
+    paddingHorizontal: 20,
   },
 });
 

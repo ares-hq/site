@@ -1,5 +1,5 @@
-import { supabase, SupportedYear } from "./dashboardInfo";
-import { AllianceInfo, EventInfo, MatchInfo, MatchTypeAverages } from "./types";
+import { supabase } from "../dashboardInfo";
+import { AllianceInfo, EventInfo, MatchInfo, MatchTypeAverages, SupportedYear } from "../utils/types";
 
 /** Shape of rows we read from matches tables */
 type MatchRow = {
@@ -422,7 +422,7 @@ export async function getMatchTypeAveragesMultiYear(
   years: SupportedYear[]
 ): Promise<Map<SupportedYear, MatchTypeAverages>> {
   const results = new Map<SupportedYear, MatchTypeAverages>();
-  const { getTeamMatches } = await import('./dashboardInfo');
+  const { getTeamMatches } = await import('../dashboardInfo');
 
   await Promise.all(
     years.map(async (year) => {
@@ -453,7 +453,7 @@ export async function getTeamPerformanceAcrossYears(
   teamNumber: number,
   years: SupportedYear[]
 ): Promise<YearlyPerformance[]> {
-  const { getTeamMatches, getWins } = await import('./dashboardInfo');
+  const { getTeamMatches, getWins } = await import('../dashboardInfo');
 
   const performances: YearlyPerformance[] = [];
 

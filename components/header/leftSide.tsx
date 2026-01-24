@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { getFavoritesForUser, toggleFavorite } from '@/api/auth';
 import { supabase } from '@/api/dashboardInfo';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { usePathname } from 'expo-router';
@@ -68,28 +67,6 @@ const LeftSide = ({ toggleSidebar, pageTitle, showRoute }: LeftSideProps) => {
     fetchUser();
   }, []);
 
-  useEffect(() => {
-    if (!userId || !isFavoritable) return;
-
-    const favoriteItem = `${pageTitle}:${pathname}`;
-
-    const checkFavoriteStatus = async () => {
-      const { data } = await getFavoritesForUser(userId);
-      setIsFavorite(data?.includes(favoriteItem));
-    };
-
-    checkFavoriteStatus();
-    const interval = setInterval(checkFavoriteStatus, 2000);
-    return () => clearInterval(interval);
-  }, [userId, pageTitle, pathname, isFavoritable]);
-
-  const handleToggleFavorite = async () => {
-    if (!userId || !isFavoritable) return;
-    const favoriteItem = `${pageTitle}:${pathname}`;
-    const { action, error } = await toggleFavorite(userId, favoriteItem);
-    if (!error) setIsFavorite(action === 'added');
-  };
-
   let routeLabel: string | null = null;
   if (pageTitle === 'AGE' || pageTitle === 'DIVE' || pageTitle === 'ENERGIZE' || pageTitle === 'INSHOW' || pageTitle === 'RISE' || pageTitle === 'GAMECHANGERS' || pageTitle === 'FORWARD' || pageTitle === 'INSHOW') {
     routeLabel = 'Dashboards';
@@ -109,16 +86,6 @@ const LeftSide = ({ toggleSidebar, pageTitle, showRoute }: LeftSideProps) => {
         <HoverIcon onPress={toggleSidebar}>
           <Sidebar width={15} height={15} fill={isDarkMode ? '#fff' : '#000'} />
         </HoverIcon>
-
-        {isLoggedIn && showRoute && pageTitle !== '' && (
-          <HoverIcon onPress={handleToggleFavorite}>
-            {isFavorite ? (
-              <StarFill width={15} height={15} fill={isDarkMode ? '#FACC15' : '#F59E0B'} />
-            ) : (
-              <Star width={15} height={15} fill={isDarkMode ? '#fff' : '#000'} />
-            )}
-          </HoverIcon>
-        )}
       </View>
 
       {showRoute && pageTitle !== '' && (

@@ -1,4 +1,4 @@
-import { AllianceInfo, MatchInfo } from '@/api/types';
+import { AllianceInfo, MatchInfo } from '@/api/utils/types';
 import { useDarkMode } from '@/context/DarkModeContext';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -34,6 +34,7 @@ export default function MatchRow({
 
   const isExpanded = expandedMatch === match.matchNumber;
   const isLastRow = index === totalMatches - 1;
+  const isPracticeMatch = match.matchType === 'PRACTICE';
 
   useEffect(() => {
     Animated.timing(rotateAnim, {
@@ -122,7 +123,9 @@ export default function MatchRow({
                       borderTopLeftRadius: 0,
                       borderBottomLeftRadius: 0,
                       borderTopRightRadius: 4,
-                      borderBottomRightRadius: 4
+                      borderBottomRightRadius: 4,
+                      maxWidth: '100%',
+                      overflow: 'hidden',
                     }}
                     // @ts-ignore - Web only props
                     onMouseEnter={() => !isHighlighted && setHoveredTeam(t?.teamNumber || null)}
@@ -136,8 +139,9 @@ export default function MatchRow({
                         isHighlighted && styles.highlightedTeam
                       ]}
                       numberOfLines={1}
+                      ellipsizeMode='tail'
                     >
-                      Team {t?.teamNumber}
+                      {t?.teamName || 'Unknown'}
                     </Text>
                     <Text
                       style={[
@@ -146,8 +150,9 @@ export default function MatchRow({
                         isSmallDevice && styles.teamNameSmall
                       ]}
                       numberOfLines={1}
+                      ellipsizeMode='tail'
                     >
-                      {t?.teamName || 'Unknown'}
+                      {t?.teamNumber}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -230,11 +235,11 @@ export default function MatchRow({
                     onMouseEnter={() => !isHighlighted && setHoveredTeam(t?.teamNumber || null)}
                     onMouseLeave={() => setHoveredTeam(null)}
                   >
-                    <View>
+                    <View style={{ maxWidth: '100%' }}>
                       <Text style={[styles.mobileTeamText, { color: isDarkMode ? '#FCA5A5' : '#DC2626' }, isHighlighted && styles.highlightedTeam]}>
                         {t?.teamNumber}
                       </Text>
-                      <Text style={[styles.mobileTeamName, { color: isDarkMode ? '#F87171' : '#B91C1C' }]} numberOfLines={1}>
+                      <Text style={[styles.mobileTeamName, { color: isDarkMode ? '#F87171' : '#B91C1C' }]} numberOfLines={1} ellipsizeMode='tail'>
                         {t?.teamName}
                       </Text>
                     </View>
@@ -280,11 +285,11 @@ export default function MatchRow({
                     onMouseEnter={() => !isHighlighted && setHoveredTeam(t?.teamNumber || null)}
                     onMouseLeave={() => setHoveredTeam(null)}
                   >
-                    <View>
+                    <View style={{ maxWidth: '100%' }}>
                       <Text style={[styles.mobileTeamText, { color: isDarkMode ? '#93C5FD' : '#2563EB' }, isHighlighted && styles.highlightedTeam]}>
                         {t?.teamNumber}
                       </Text>
-                      <Text style={[styles.mobileTeamName, { color: isDarkMode ? '#60A5FA' : '#1D4ED8' }]} numberOfLines={1}>
+                      <Text style={[styles.mobileTeamName, { color: isDarkMode ? '#60A5FA' : '#1D4ED8' }]} numberOfLines={1} ellipsizeMode='tail'>
                         {t?.teamName}
                       </Text>
                     </View>
@@ -333,7 +338,7 @@ export default function MatchRow({
         {renderTeamCell(teamRed, isHovered)}
         {renderTeamCell(teamBlue, isHovered)}
       </TouchableOpacity>
-      {isExpanded && renderScoreBreakdown(match)}
+        {isExpanded && renderScoreBreakdown(match)}
     </View>
   );
 };
@@ -461,17 +466,21 @@ const styles = StyleSheet.create({
   teamNumber: {
     fontSize: 13,
     fontWeight: '600',
+    maxWidth: '100%',
   },
   teamNumberSmall: {
     fontSize: 8,
+    maxWidth: '100%',
   },
   teamName: {
     fontSize: 10,
     marginTop: 1,
+    maxWidth: '100%',
   },
   teamNameSmall: {
     fontSize: 6,
     marginTop: 0,
+    maxWidth: '100%',
   },
   highlightedTeam: {
     fontWeight: '600',
@@ -504,6 +513,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     paddingVertical: 2,
     marginBottom: 2,
+    maxWidth: '100%',
   },
   expandIndicator: {
     width: 20,
@@ -537,5 +547,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '400',
     marginTop: 1,
+    maxWidth: '100%',
   },
 });

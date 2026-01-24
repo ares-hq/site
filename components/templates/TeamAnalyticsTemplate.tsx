@@ -1,5 +1,4 @@
-import { getAllTeams, SupportedYear } from '@/api/dashboardInfo';
-import { TeamInfo } from '@/api/types';
+import { SupportedYear, TeamInfo } from '@/api/utils/types';
 import { usePageTitleContext } from '@/app/_layout';
 import DataTable from '@/components/graphs/teamTables';
 import { ErrorState } from '@/components/shared/ErrorState';
@@ -18,6 +17,7 @@ import {
 } from 'react-native';
 import Clock from '../../assets/icons/clock.svg';
 import People from '../../assets/icons/users.svg';
+import { getAllTeams } from '@/api/dashboardInfo';
 
 interface TeamAnalyticsTemplateProps {
   pageTitle: string;

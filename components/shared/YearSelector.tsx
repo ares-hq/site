@@ -1,4 +1,3 @@
-import { SupportedYear } from '@/api/dashboardInfo';
 import { useDarkMode } from '@/context/DarkModeContext';
 import React, { useRef, useState } from 'react';
 import {
@@ -12,6 +11,7 @@ import {
 } from 'react-native';
 import Left from '../../assets/icons/caret-left.svg';
 import Right from '../../assets/icons/caret-right.svg';
+import { SupportedYear } from '@/api/utils/types';
 
 interface YearSelectorProps {
   selectedYear: SupportedYear;

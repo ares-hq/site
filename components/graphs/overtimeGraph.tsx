@@ -1,5 +1,5 @@
 import { getTeamCount } from '@/api/dashboardInfo';
-import { AllianceInfo, TeamInfo } from '@/api/types';
+import { AllianceInfo, TeamInfo } from '@/api/utils/types';
 import { useDarkMode } from '@/context/DarkModeContext';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';

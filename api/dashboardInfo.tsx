@@ -1,13 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
-import { AllianceInfo, TeamInfo } from './types';
+import { getEventData } from './event-service';
+import { ApiClient } from './utils/api-client';
+import { AllianceInfo, EventInfo, SupportedYear, TeamInfo } from './utils/types';
 
 const supabaseUrl = 'https://api.ares-bot.com';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// ------------------- TYPES -------------------
-export type SupportedYear = 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025;
 
 // ------------------- CACHE -------------------
 const allTeamsCache = new Map<SupportedYear, TeamInfo[] | null>();
@@ -349,6 +348,24 @@ export async function getTeamHistoricalData(teamNumber: number, years: Supported
   return historicalData;
 }
 
+export async function getEventistoricalData(eventCode: string, years: SupportedYear[] = [2019, 2020, 2021, 2022, 2023, 2024, 2025]): Promise<Map<SupportedYear, EventInfo | null>> {
+  const historicalData = new Map<SupportedYear, EventInfo | null>();
+  
+  await Promise.all(
+    years.map(async (year) => {
+      try {
+        const teamInfo = await getEventData(eventCode, year);
+        historicalData.set(year, teamInfo);
+      } catch (error) {
+        console.warn(`No data found for team ${eventCode} in year ${year}`);
+        historicalData.set(year, null);
+      }
+    })
+  );
+  
+  return historicalData;
+}
+
 export async function getAvailableYears(): Promise<SupportedYear[]> {
   // You could make this dynamic by querying your database for available tables
   // For now, returning all supported years
@@ -466,27 +483,5 @@ export const getName = async () => {
     return name;
   } catch (err) {
     console.error('Unexpected error:', err);
-  }
-};
-
-export const deleteAccount = async () => {
-  const session = await supabase.auth.getSession();
-  const user = await supabase.auth.getUser();
-
-  const res = await fetch('https://api.ares-bot.com/functions/v1/delete-user', {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.data.session?.access_token}`,
-    },
-    body: JSON.stringify({ userId: user.data.user?.id })
-  });
-
-  const result = await res.json();
-
-  if (res.ok) {
-    await supabase.auth.signOut();
-  } else {
-    console.error('Delete error:', result.error);
   }
 };

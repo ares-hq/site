@@ -1,4 +1,4 @@
-import { TeamInfo } from "../types";
+import { TeamInfo } from "../utils/types";
 
 export const filterTeams = (teams: TeamInfo[] | null, query: string): TeamInfo[] => {
   if (!teams) return [];

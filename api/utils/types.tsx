@@ -22,6 +22,8 @@ export interface TeamInfo {
   events?: string[];
 }
 
+export type SupportedYear = 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025;
+
 export interface TeamInfoSimple {
   teamName: string;
   teamNumber: number;
@@ -41,6 +43,7 @@ export interface AllianceInfo {
   // Average comparison data
   averagePoints?: number;
   averageTele?: number;
+  averageEndgame?: number;
   averagePenalty?: number;
   // Detailed score fields (year-specific)
   [key: string]: any; // Allow any additional fields for year-specific scoring
@@ -82,4 +85,58 @@ export interface OPRResult {
   autoOPR?: number;
   endgameOPR?: number;
   penaltyOPR?: number;
+}
+
+export interface MatchInfo {
+  matchType: 'QUALIFICATION' | 'PLAYOFF' | 'PRACTICE';
+  matchNumber: string;
+  date: string;
+  redAlliance: AllianceInfo;
+  blueAlliance: AllianceInfo;
+}
+
+export interface EventInfo {
+  date: string;
+  location: string;
+  name: string;
+  eventCode: string;
+  teamCount: number;
+  winRate: number;
+  achievements: string;
+  OPR: number;
+  averageScore: number;
+  place: string;
+  record: string;
+  matches: MatchInfo[];
+  type?: string;
+}
+
+export interface BasicEventInfo {
+  name: string;
+  eventCode: string;
+  location: string;
+  date: string;
+  rawDate: string;
+  type?: string;
+}
+
+export interface SeasonPerformanceSummary {
+  season: SupportedYear;
+  eventsAttended: number;
+  totalMatches: number;
+  averageWinRate: number;
+  averageOPR: number;
+  averageScore: number;
+  totalAwards: number;
+  bestRanking: number;
+  events: EventInfo[];
+}
+
+export interface TeamProgression {
+  seasons: SupportedYear[];
+  winRateProgression: number[];
+  oprProgression: number[];
+  scoreProgression: number[];
+  eventsProgression: number[];
+  awardsProgression: number[];
 }

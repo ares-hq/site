@@ -1,14 +1,13 @@
-import { useEffect, useState } from "react"
-import { View, Text, StyleSheet, Pressable, Linking, Image, ActivityIndicator, Platform } from "react-native"
-import { useRouter } from "expo-router"
-import { Feather } from "@expo/vector-icons"
 import { getAllTeams, getAverageOPRs, getTeamMatchCount } from "@/api/dashboardInfo"
-import DataTable from "./graphs/teamTables"
-import { TeamInfo } from "@/api/types"
+import { TeamInfo } from "@/api/utils/types"
 import { useDarkMode } from "@/context/DarkModeContext"
-import Medal from '../assets/icons/medal.svg';
-import People from '../assets/icons/users.svg';
-import Target from '../assets/icons/target.svg';
+import { Feather } from "@expo/vector-icons"
+import { useEffect, useState } from "react"
+import { ActivityIndicator, Image, Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native"
+import Medal from '../assets/icons/medal.svg'
+import Target from '../assets/icons/target.svg'
+import People from '../assets/icons/users.svg'
+import DataTable from "./graphs/teamTables"
 
 const boxShadowStyle = {
   boxShadow: Platform.OS === 'web'

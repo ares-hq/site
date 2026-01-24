@@ -1,4 +1,4 @@
-import { MatchInfo } from '@/api/types';
+import { MatchInfo } from '@/api/utils/types';
 import { useDarkMode } from '@/context/DarkModeContext';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
@@ -62,10 +62,18 @@ export default function MatchScoreBreakdown({
   };
 
   const matchSeason = match?.date ? getSeasonFromDate(match.date) : new Date().getFullYear();
+  
+  // Check if this is a practice match
+  const isPracticeMatch = match?.matchType?.toUpperCase() === 'PRACTICE';
 
   // Filter point totals based on season
   const getRelevantPointTotals = (season: number): string[] => {
     const allPointTotals = ['totalPoints', 'autoPoints', 'dcPoints', 'teleopPoints', 'driverControlledPoints', 'endgamePoints', 'endGamePoints', 'prePenaltyTotal', 'preFoulTotal'];
+    
+    // For practice matches, only show total points (no auto points)
+    if (isPracticeMatch) {
+      return ['totalPoints'];
+    }
     
     // Season-specific point total fields
     const seasonFields: { [key: number]: string[] } = {
@@ -87,11 +95,24 @@ export default function MatchScoreBreakdown({
       {
         title: 'Point Totals',
         color: '#F59E0B',
-        fields: loadingScores ? getRelevantPointTotals(matchSeason) : ['totalPoints', 'autoPoints', 'dcPoints', 'teleopPoints', 'driverControlledPoints', 'endgamePoints', 'endGamePoints', 'prePenaltyTotal', 'preFoulTotal'],
+        fields: loadingScores ? getRelevantPointTotals(matchSeason) : (isPracticeMatch ? ['totalPoints'] : ['totalPoints', 'autoPoints', 'dcPoints', 'teleopPoints', 'driverControlledPoints', 'endgamePoints', 'endGamePoints', 'prePenaltyTotal', 'preFoulTotal']),
         highlight: true,
         collapsible: true
       }
     ];
+
+    // For practice matches, only show Point Totals and Penalties
+    if (isPracticeMatch) {
+      return [
+        ...baseCategories,
+        {
+          title: 'Penalties & Fouls',
+          color: '#DC2626',
+          fields: ['foulPointsCommitted'],
+          collapsible: true
+        }
+      ];
+    }
 
     const seasonSpecificCategories: { [key: number]: any[] } = {
       2019: [
