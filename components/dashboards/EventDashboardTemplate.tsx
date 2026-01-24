@@ -1,5 +1,6 @@
 import { calculateTeamOPR } from '@/api/algorithms/calcOPR';
 import { getEventistoricalData } from '@/api/dashboardInfo';
+import { getEventData } from '@/api/event-service';
 import { EventInfo, MatchTypeAverages, SupportedYear } from '@/api/utils/types';
 import { usePageTitleContext } from '@/app/_layout';
 import EventPerformance from '@/components/graphs/eventPerformace';
@@ -16,7 +17,7 @@ import {
   View
 } from 'react-native';
 import Caret from '../../assets/icons/caret-up-down-bold.svg';
-import { getEventData } from '@/api/event-service';
+import { Feather } from '@expo/vector-icons';
 
 type StatCardProps = {
   title: string;
@@ -59,6 +60,7 @@ const StatCard = ({ title, value, change, positive, color, isMobile }: StatCardP
         </Text>
         <View style={styles.changeRow}>
           <Text style={[styles.change, { color: textColor }]}>{change}</Text>
+          <Feather name={positive ? 'trending-up' : 'trending-down'} size={isMobile ? 9 : 11} color={textColor} />
         </View>
       </View>
     </View>
@@ -163,7 +165,6 @@ export const EventDashboardTemplate = ({ seasonYear: propSeasonYear }: EventDash
         }
 
         const fullEventData = await getEventData(eventCode, seasonYear);
-        console.error(fullEventData)
         
         if (!fullEventData) {
           setNoDataForEvent(true);
@@ -191,33 +192,35 @@ export const EventDashboardTemplate = ({ seasonYear: propSeasonYear }: EventDash
             const autoOPRs: number[] = [];
             const endgameOPRs: number[] = [];
 
-            // Prepare tele-only matches by replacing totalPoints with tele and zeroing penalty
-            const teleMatches = matches.map((m) => ({
+            // Filter matches to include only qualification matches
+            const qualificationMatches = matches.filter((m) => m.matchType === 'QUALIFICATION');
+
+            const teleMatches = qualificationMatches.map((m) => ({
               ...m,
               redAlliance: { ...m.redAlliance, totalPoints: m.redAlliance.tele ?? 0, penalty: 0 },
               blueAlliance: { ...m.blueAlliance, totalPoints: m.blueAlliance.tele ?? 0, penalty: 0 },
             }));
 
-            const autoMatches = matches.map((m) => ({
+            const autoMatches = qualificationMatches.map((m) => ({
               ...m,
               redAlliance: { ...m.redAlliance, totalPoints: (m.redAlliance.auto ?? 0), penalty: 0 },
               blueAlliance: { ...m.blueAlliance, totalPoints: (m.blueAlliance.auto ?? 0), penalty: 0 },
             }));
 
-            const endgameMatches = matches.map((m) => ({
+            const endgameMatches = qualificationMatches.map((m) => ({
               ...m,
               redAlliance: { ...m.redAlliance, totalPoints: (m.redAlliance.endgame ?? 0), penalty: 0 },
               blueAlliance: { ...m.blueAlliance, totalPoints: (m.blueAlliance.endgame ?? 0), penalty: 0 },
             }));
 
             for (const t of teams) {
-              const oprOverall = calculateTeamOPR(matches, t);
+              const oprOverall = calculateTeamOPR(qualificationMatches, t);
               const oprTele = calculateTeamOPR(teleMatches, t);
               const oprAuto = calculateTeamOPR(autoMatches, t);
               const oprEndgame = calculateTeamOPR(endgameMatches, t);
               if (t === 327) {
                 console.log(`[DEBUG] Team 327 OPR - Overall: ${oprOverall}, Tele: ${oprTele}, Auto: ${oprAuto}, Endgame: ${oprEndgame}`);
-                console.log(`[DEBUG] Team 327 matches count: ${matches.filter(m => m.redAlliance.team_1?.teamNumber === t || m.redAlliance.team_2?.teamNumber === t || m.blueAlliance.team_1?.teamNumber === t || m.blueAlliance.team_2?.teamNumber === t).length}`);
+                console.log(`[DEBUG] Team 327 matches count: ${qualificationMatches.filter(m => m.redAlliance.team_1?.teamNumber === t || m.redAlliance.team_2?.teamNumber === t || m.blueAlliance.team_1?.teamNumber === t || m.blueAlliance.team_2?.teamNumber === t).length}`);
               }
               overallOPRs.push(oprOverall);
               teleOPRs.push(oprTele);
@@ -438,38 +441,54 @@ export const EventDashboardTemplate = ({ seasonYear: propSeasonYear }: EventDash
         <StatCard 
           title="Avg Auto OPR"
           value={averageOPR && !isNaN(averageOPR.autoOPR ?? NaN) ? (averageOPR.autoOPR as number).toFixed(2) : '--'}           
-          change={'+'}
-          positive={true}
+          change={
+            team14584OPR && averageOPR
+              ? `${(team14584OPR.autoOPR - averageOPR.autoOPR >= 0 ? '+' : '')}${(team14584OPR.autoOPR - averageOPR.autoOPR).toFixed(2)}`
+              : '--'
+          }
+          positive={!!(team14584OPR && averageOPR && team14584OPR.autoOPR - averageOPR.autoOPR >= 0)}
           color="indigo"
           isMobile={containerWidth < 900}
         />
         <StatCard 
           title="Avg TeleOp OPR" 
           value={averageOPR && !isNaN(averageOPR.teleOPR ?? NaN) ? averageOPR.teleOPR.toFixed(2) : '--'}           
-          change={'+'}
-          positive={true}
+          change={
+            team14584OPR && averageOPR
+              ? `${(team14584OPR.teleOPR - averageOPR.teleOPR >= 0 ? '+' : '')}${(team14584OPR.teleOPR - averageOPR.teleOPR).toFixed(2)}`
+              : '--'
+          }
+          positive={!!(team14584OPR && averageOPR && team14584OPR.teleOPR - averageOPR.teleOPR >= 0)}
           color="blue"
           isMobile={containerWidth < 900}
         />
         <StatCard 
           title="Avg Endgame OPR" 
           value={averageOPR && !isNaN(averageOPR.endgameOPR ?? NaN) ? (averageOPR.endgameOPR as number).toFixed(2) : '--'}           
-          change={'+'}
-          positive={true}
+          change={
+            team14584OPR && averageOPR
+              ? `${(team14584OPR.endgameOPR - averageOPR.endgameOPR >= 0 ? '+' : '')}${(team14584OPR.endgameOPR - averageOPR.endgameOPR).toFixed(2)}`
+              : '--'
+          }
+          positive={!!(team14584OPR && averageOPR && team14584OPR.endgameOPR - averageOPR.endgameOPR >= 0)}
           color="indigo"
           isMobile={containerWidth < 900}
         />
         <StatCard 
           title="Avg Overall OPR" 
           value={averageOPR && !isNaN(averageOPR.overallOPR ?? NaN) ? averageOPR.overallOPR.toFixed(2) : '--'}           
-          change={'+'}
-          positive={true}
+          change={
+            team14584OPR && averageOPR
+              ? `${(team14584OPR.overallOPR - averageOPR.overallOPR >= 0 ? '+' : '')}${(team14584OPR.overallOPR - averageOPR.overallOPR).toFixed(2)}`
+              : '--'
+          }
+          positive={!!(team14584OPR && averageOPR && team14584OPR.overallOPR - averageOPR.overallOPR >= 0)}
           color="blue"
           isMobile={containerWidth < 900}
         />
       </View>
 
-      {team14584OPR && (
+      {/* {team14584OPR && (
         <View style={{ marginTop: 8, marginBottom: 8, paddingHorizontal: 6 }}>
           <Text style={[styles.header, { fontSize: 13, marginBottom: 6, color: isDarkMode ? '#F9FAFB' : '#111827' }]}>Team 14584 OPR (event)</Text>
           <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -481,23 +500,11 @@ export const EventDashboardTemplate = ({ seasonYear: propSeasonYear }: EventDash
         </View>
       )}
 
-      {/* DEBUG: Average Scores by Section */}
       {eventInfo && eventInfo.matches && (
         <View style={{ marginTop: 12, marginBottom: 12, paddingHorizontal: 6, paddingVertical: 8, backgroundColor: isDarkMode ? 'rgba(75, 85, 99, 0.2)' : 'rgba(229, 231, 235, 0.5)', borderRadius: 6 }}>
           <Text style={[styles.header, { fontSize: 13, marginBottom: 8, color: isDarkMode ? '#FBBF24' : '#D97706' }]}>DEBUG: Avg Scores by Section</Text>
           {(() => {
             const matches = eventInfo.matches;
-            console.error('[DEBUG] First 3 matches endgame values:', matches.slice(0, 3).map(m => ({
-              match: m.matchNumber,
-              redEndgame: m.redAlliance.endgame,
-              blueEndgame: m.blueAlliance.endgame,
-              redTotal: m.redAlliance.totalPoints,
-              blueTotal: m.blueAlliance.totalPoints,
-              redAuto: m.redAlliance.auto,
-              blueAuto: m.blueAlliance.auto,
-              redTele: m.redAlliance.tele,
-              blueTele: m.blueAlliance.tele,
-            })));
             const autoScores = matches.map(m => (m.redAlliance.auto || 0) + (m.blueAlliance.auto || 0));
             const teleScores = matches.map(m => (m.redAlliance.tele || 0) + (m.blueAlliance.tele || 0));
             const endgameScores = matches.map(m => (m.redAlliance.endgame || 0) + (m.blueAlliance.endgame || 0));
@@ -516,29 +523,29 @@ export const EventDashboardTemplate = ({ seasonYear: propSeasonYear }: EventDash
             );
           })()}
         </View>
-      )}
+      )} */}
 
-      <View style={styles.headerRow}>
+      {/* <View style={styles.headerRow}>
         <Text style={[
           styles.header,
           { color: isDarkMode ? '#F9FAFB' : '#111827' }
         ]}>
           Event Information
         </Text>
-      </View>
+      </View> */}
       
       {/* {eventInfo && (
         <InfoBlock screenWidth={containerWidth} teamInfo={eventInfo} highScore={highestScore}/>
       )} */}
 
-      <View style={styles.headerRow}>
+      {/* <View style={styles.headerRow}>
         <Text style={[
           styles.header,
           { color: isDarkMode ? '#F9FAFB' : '#111827' }
         ]}>
           Performance
         </Text>
-      </View>
+      </View> */}
       
       {containerWidth < 600 ? (
         <View style={[styles.chartScrollContainer, styles.chartScrollContainerMobile]}>

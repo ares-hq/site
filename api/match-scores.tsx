@@ -14,9 +14,18 @@ function getScoreCacheKey(
   season: SupportedYear,
   eventCode: string,
   tournamentLevel: string,
-  matchNumber: number
+  matchNumberStr: string
 ): string {
-  return `${season}-${eventCode}-${tournamentLevel}-${matchNumber}`;
+  // Parse match number and series from string format like "P-6-1", "Q-21", "PR-1"
+  const parts = matchNumberStr.split('-');
+  const rawSeries = parts[1] || '0';      // For "P-6-1", series = "6"
+  const matchNumber = parts[2] || '0';    // For "P-6-1", matchNumber = "1"
+  
+  // For finals matches, series is always 0
+  const isFinalMatch = parts[0]?.toUpperCase() === 'F';
+  const series = isFinalMatch ? '0' : rawSeries;
+  
+  return `${season}-${eventCode}-${tournamentLevel}-${series}-${matchNumber}`;
 }
 
 /**
@@ -34,9 +43,9 @@ export function clearCacheEntry(
   season: SupportedYear,
   eventCode: string,
   tournamentLevel: string,
-  matchNumber: number
+  matchNumberStr: string
 ): void {
-  const cacheKey = getScoreCacheKey(season, eventCode, tournamentLevel, matchNumber);
+  const cacheKey = getScoreCacheKey(season, eventCode, tournamentLevel, matchNumberStr);
   scoreDetailsCache.delete(cacheKey);
   console.log(`Cleared cache for match: ${cacheKey}`);
 }
@@ -65,15 +74,41 @@ export async function getMatchScoreDetails(
   season: SupportedYear,
   eventCode: string,
   tournamentLevel: "qual" | "playoff" | "practice",
+  series?: number,
   matchNumber?: number
 ): Promise<any | null> {
   const apiClient = new ApiClient();
 
   try {
-    const response = await apiClient.fetchMatchScores(season, eventCode, tournamentLevel, matchNumber);
-
-    // If looking for a specific match, return just that match's scores
-    if (matchNumber !== undefined && response.matchScores?.length > 0) {
+    const response = await apiClient.fetchMatchScores(season, eventCode, tournamentLevel, series);
+    
+    // If looking for a specific match in playoffs, find by both series and match number
+    if (tournamentLevel === 'playoff' && series !== undefined && matchNumber !== undefined && response.matchScores?.length > 0) {
+      const specificMatch = response.matchScores.find((match: any) => {
+        // Handle different match level names (PLAYOFF, Semifinal, Final, etc.)
+        const matchLevelUpper = (match.matchLevel || '').toUpperCase();
+        const isPlayoffMatch = ['PLAYOFF', 'SEMIFINAL', 'FINAL', 'QUARTERFINAL'].includes(matchLevelUpper);
+        
+        if (!isPlayoffMatch) return false;
+        
+        // For finals, the series is always 0
+        const expectedSeries = matchLevelUpper === 'FINAL' ? 0 : series;
+        
+        return match.matchSeries === expectedSeries && match.matchNumber === matchNumber;
+      });
+      return specificMatch || null;
+    }
+    
+    // For qualification matches, find by match number
+    if (tournamentLevel === 'qual' && matchNumber !== undefined && response.matchScores?.length > 0) {
+      const specificMatch = response.matchScores.find((match: any) => 
+        match.matchNumber === matchNumber
+      );
+      return specificMatch || null;
+    }
+    
+    // If no specific match criteria, return first match or all matches
+    if (response.matchScores?.length > 0) {
       return response.matchScores[0];
     }
 
@@ -92,29 +127,38 @@ export async function getCachedMatchScoreDetails(
   season: SupportedYear,
   eventCode: string,
   tournamentLevel: "qual" | "playoff" | "practice",
-  matchNumber: number
+  matchNumberStr: string
 ): Promise<any | null> {
   const cacheKey = getScoreCacheKey(
     season,
     eventCode,
     tournamentLevel,
-    matchNumber
+    matchNumberStr
   );
 
+  // Parse series and match number from string for API call
+  const parts = matchNumberStr.split('-');
+  const series = parseInt(parts[1] || '0') || 0;      // For "P-6-1", series = 6
+  const matchNumber = parseInt(parts[2] || '0') || 0;  // For "P-6-1", matchNumber = 1
+  
+  // For qualification matches, use the series as the match number ("Q-21" -> matchNumber = 21)
+  // For finals matches, series is always 0
+  const isFinalMatch = parts[0]?.toUpperCase() === 'F';
+  const actualSeries = tournamentLevel === 'qual' ? undefined : (isFinalMatch ? 0 : series);
+  const actualMatchNumber = tournamentLevel === 'qual' ? series : matchNumber;
+  
   // Check cache first
   if (scoreDetailsCache.has(cacheKey)) {
-    console.log(`Cache hit for: ${cacheKey}`);
     return scoreDetailsCache.get(cacheKey);
   }
-
-  console.log(`Cache miss for: ${cacheKey}, fetching from API...`);
 
   // Fetch from API
   const scores = await getMatchScoreDetails(
     season,
     eventCode,
     tournamentLevel,
-    matchNumber
+    actualSeries,
+    actualMatchNumber
   );
 
   // Cache the result (even if null, to avoid repeated failed requests)
@@ -134,24 +178,23 @@ export async function getCachedMatchScoreDetailsBatch(
   season: SupportedYear,
   eventCode: string,
   tournamentLevel: "qual" | "playoff" | "practice",
-  matchNumbers: number[]
-): Promise<Map<number, any>> {
-  const results = new Map<number, any>();
-  const uncachedMatches: number[] = [];
+  matchNumbers: string[]
+): Promise<Map<string, any>> {
+  const results = new Map<string, any>();
+  const uncachedMatches: string[] = [];
 
   // Check cache for all matches
-  for (const matchNum of matchNumbers) {
+  for (const matchNumStr of matchNumbers) {
     const cacheKey = getScoreCacheKey(
       season,
       eventCode,
       tournamentLevel,
-      matchNum
+      matchNumStr
     );
-
     if (scoreDetailsCache.has(cacheKey)) {
-      results.set(matchNum, scoreDetailsCache.get(cacheKey));
+      results.set(matchNumStr, scoreDetailsCache.get(cacheKey));
     } else {
-      uncachedMatches.push(matchNum);
+      uncachedMatches.push(matchNumStr);
     }
   }
 
@@ -161,12 +204,24 @@ export async function getCachedMatchScoreDetailsBatch(
       `Fetching ${uncachedMatches.length} uncached matches from API`
     );
 
-    const fetchPromises = uncachedMatches.map(async (matchNum) => {
+    const fetchPromises = uncachedMatches.map(async (matchNumStr) => {
+      // Parse series and match number from string for API call
+      const parts = matchNumStr.split('-');
+      const series = parseInt(parts[1] || '0') || 0;      // For "P-6-1", series = 6
+      const matchNumber = parseInt(parts[2] || '0') || 0;  // For "P-6-1", matchNumber = 1
+      
+      // For qualification matches, use the series as the match number
+      // For finals matches, series is always 0
+      const isFinalMatch = parts[0]?.toUpperCase() === 'F';
+      const actualSeries = tournamentLevel === 'qual' ? undefined : (isFinalMatch ? 0 : series);
+      const actualMatchNumber = tournamentLevel === 'qual' ? series : matchNumber;
+      
       const scores = await getMatchScoreDetails(
         season,
         eventCode,
         tournamentLevel,
-        matchNum
+        actualSeries,
+        actualMatchNumber
       );
 
       if (scores !== null) {
@@ -174,13 +229,13 @@ export async function getCachedMatchScoreDetailsBatch(
           season,
           eventCode,
           tournamentLevel,
-          matchNum
+          matchNumStr
         );
         scoreDetailsCache.set(cacheKey, scores);
-        results.set(matchNum, scores);
+        results.set(matchNumStr, scores);
       }
 
-      return { matchNum, scores };
+      return { matchNumStr, scores };
     });
 
     await Promise.all(fetchPromises);

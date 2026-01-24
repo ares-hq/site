@@ -102,8 +102,8 @@ export default function EventMatchCard({ eventData, seasonYear }: UserGraphSecti
         tournamentLevel = 'practice';
       } else {
         // Then check if it's a playoff match
-        const isPlayoffMatch = matchTypeUpper !== 'QUALIFICATION' && 
-                               matchTypeUpper !== '';
+        const isPlayoffMatch = ['PLAYOFF', 'SEMIFINAL', 'FINAL', 'QUARTERFINAL'].includes(matchTypeUpper) ||
+                               (matchTypeUpper !== 'QUALIFICATION' && matchTypeUpper !== '');
         
         if (isPlayoffMatch) {
           tournamentLevel = 'playoff';
@@ -118,14 +118,14 @@ export default function EventMatchCard({ eventData, seasonYear }: UserGraphSecti
         }
       }
       
-      const matchNum = parseInt(matchNumber.replace(/\D/g, '')) || 0;
-      
+      console.error(getCachedMatchScoreDetails(seasonYear, eventCode, tournamentLevel, matchNumber))
       try {
-        const details = await getCachedMatchScoreDetails(seasonYear, eventCode, tournamentLevel, matchNum);
+        const details = await getCachedMatchScoreDetails(seasonYear, eventCode, tournamentLevel, matchNumber);
+
         if (details) {
           setMatchScoreDetails(details);
         } else {
-          console.log('No details returned for match:', matchNumber, tournamentLevel);
+          console.error('No details returned for match:', matchNumber, tournamentLevel);
         }
       } catch (error) {
         console.error('Error fetching match score details:', error);

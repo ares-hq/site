@@ -30,8 +30,14 @@ class DefaultModernAdapter implements ScoreAdapter {
 
 class Skystone2019Adapter implements ScoreAdapter {
   endgamePoints(match: any): [number, number] {
-    const red = (match.alliances?.[1]?.parkingPoints || 0) + (match.alliances?.[1]?.capstonePoints || 0);
-    const blue = (match.alliances?.[0]?.parkingPoints || 0) + (match.alliances?.[0]?.capstonePoints || 0);
+    console.log('Match object for endgamePoints:', match);
+    const redAlliance = match.alliances?.find((alliance: any) => alliance.alliance === 'Red') || {};
+    const blueAlliance = match.alliances?.find((alliance: any) => alliance.alliance === 'Blue') || {};
+
+    const red = (redAlliance.teleopParkPoints || 0) + (redAlliance.teleopAscentPoints || 0);
+    const blue = (blueAlliance.teleopParkPoints || 0) + (blueAlliance.teleopAscentPoints || 0);
+
+    console.log('Endgame points - Red:', red, 'Blue:', blue);
     return [red, blue];
   }
 
@@ -162,8 +168,8 @@ class IntoTheDeep2024Adapter implements ScoreAdapter {
 
 class Decode2025Adapter implements ScoreAdapter {
   endgamePoints(match: any): [number, number] {
-    const red = match.alliances?.[1]?.endgamePoints || 0;
-    const blue = match.alliances?.[0]?.endgamePoints || 0;
+    const red = (match.alliances?.[1]?.teleopBasePoints || 0);
+    const blue = (match.alliances?.[0]?.teleopBasePoints || 0);
     return [red, blue];
   }
 
@@ -174,11 +180,9 @@ class Decode2025Adapter implements ScoreAdapter {
   }
 
   teleopPoints(match: any): [number, number] {
-    const redTotal = match.scoreRedFinal || 0;
-    const blueTotal = match.scoreBlueFinal || 0;
-    const redAuto = match.scoreRedAuto || 0;
-    const blueAuto = match.scoreBlueAuto || 0;
-    return [Math.max(0, redTotal - redAuto), Math.max(0, blueTotal - blueAuto)];
+    const redTotal = match.alliances?.[1]?.teleopPoints || 0;
+    const blueTotal = match.alliances?.[0]?.teleopPoints || 0;
+    return [redTotal, blueTotal];
   }
 }
 

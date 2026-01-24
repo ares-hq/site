@@ -1,3 +1,4 @@
+import { getScoreAdapter } from './utils/adapters';
 import { MatchInfo, SupportedYear, TeamInfoSimple } from "./utils/types";
 
 function createTeam(teamData: any, teamNameMap: Map<number, string>): TeamInfoSimple | undefined {
@@ -15,6 +16,8 @@ export function processMatches(
   teamNameMap: Map<number, string>
 ): MatchInfo[] {
   return rawMatches.map((match) => {
+    const adapter = getScoreAdapter(season);
+
     // Normalize tournament level
     const tournamentLevelUpper = (match.tournamentLevel || match.matchLevel || '').toUpperCase();
     const isPlayoff = tournamentLevelUpper === 'PLAYOFF' || tournamentLevelUpper === 'FINAL' || 
@@ -27,13 +30,16 @@ export function processMatches(
     const redTeams = allTeams.filter((t: any) => t?.station?.toLowerCase?.()?.includes('red')) || [];
     const blueTeams = allTeams.filter((t: any) => t?.station?.toLowerCase?.()?.includes('blue')) || [];
 
+    const [redEndgame, blueEndgame] = isQualification ? adapter.endgamePoints(match) : [0, 0];
+    const [redTele, blueTele] = isQualification ? adapter.teleopPoints(match) : [0, 0];
+
     const redScore = match.scoreRedFinal || 0;
     const blueScore = match.scoreBlueFinal || 0;
 
     return {
       matchType: isPlayoff ? 'PLAYOFF' : isQualification ? 'QUALIFICATION' : 'PRACTICE',
       matchNumber: isPlayoff
-        ? `P-${match.matchSeries || match.series || 1}-${match.matchNumber}`
+        ? `P-${match.matchSeries || match.series || 'F'}-${match.matchNumber}`
         : isQualification
         ? `Q-${match.matchNumber}`
         : `Pr-${match.matchNumber}`,
@@ -41,7 +47,8 @@ export function processMatches(
       redAlliance: {
         totalPoints: redScore,
         auto: match.scoreRedAuto ?? 0,
-        tele: Math.max(0, redScore - (match.scoreRedAuto ?? 0)),
+        tele: redTele,
+        endgame: redEndgame,
         penalty: match.scoreRedFoul ?? 0,
         win: redScore > blueScore,
         team_1: createTeam(redTeams[0], teamNameMap),
@@ -53,7 +60,8 @@ export function processMatches(
       blueAlliance: {
         totalPoints: blueScore,
         auto: match.scoreBlueAuto ?? 0,
-        tele: Math.max(0, blueScore - (match.scoreBlueAuto ?? 0)),
+        tele: blueTele,
+        endgame: blueEndgame,
         penalty: match.scoreBlueFoul ?? 0,
         win: blueScore > redScore,
         team_1: createTeam(blueTeams[0], teamNameMap),

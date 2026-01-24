@@ -111,8 +111,8 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
         tournamentLevel = 'practice';
       } else {
         // Then check if it's a playoff match
-        const isPlayoffMatch = matchTypeUpper !== 'QUALIFICATION' && 
-                               matchTypeUpper !== '';
+        const isPlayoffMatch = ['PLAYOFF', 'SEMIFINAL', 'FINAL', 'QUARTERFINAL'].includes(matchTypeUpper) ||
+                               (matchTypeUpper !== 'QUALIFICATION' && matchTypeUpper !== '');
         
         if (isPlayoffMatch) {
           tournamentLevel = 'playoff';
@@ -128,19 +128,16 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
         }
       }
       
-      const matchNum = parseInt(matchNumber.replace(/\D/g, '')) || 0;
-      
       console.log('Fetching match details:', {
         matchNumber,
         matchType: match.matchType,
         tournamentLevel,
-        matchNum,
         eventCode,
         season: seasonYear
       });
       
       try {
-        const details = await getCachedMatchScoreDetails(seasonYear, eventCode, tournamentLevel, matchNum);
+        const details = await getCachedMatchScoreDetails(seasonYear, eventCode, tournamentLevel, matchNumber);
         if (details) {
           setMatchScoreDetails(details);
         } else {

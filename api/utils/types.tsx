@@ -55,6 +55,7 @@ export interface MatchInfo {
   date: string;
   redAlliance: AllianceInfo;
   blueAlliance: AllianceInfo;
+  series?: number; // For playoff matches
 }
 
 export interface EventInfo {
@@ -93,6 +94,7 @@ export interface MatchInfo {
   date: string;
   redAlliance: AllianceInfo;
   blueAlliance: AllianceInfo;
+  series?: number; // For playoff matches
 }
 
 export interface EventInfo {
