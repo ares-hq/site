@@ -244,11 +244,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   matchesSectionSmall: {
-    padding: 12,
+    // padding: 12,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
     marginBottom: 16,
   },
   sectionTitleSmall: {

@@ -88,7 +88,7 @@ export async function getUpcomingEvents(
         if (!event.dateEnd && !event.dateStart) return false;
         const eventDate = new Date(event.dateEnd || event.dateStart);
         eventDate.setHours(23, 59, 59, 999);
-        return eventDate >= today;
+        return eventDate > today;
       });
     }
 
@@ -119,13 +119,7 @@ export async function getUpcomingEvents(
           name: event.name || "Unknown Event",
           eventCode: event.code || "UNKNOWN",
           location: event.venue || event.city || "TBD",
-          date: event.dateStart
-            ? new Date(event.dateStart).toLocaleDateString("en-US", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })
-            : "TBD",
+          date: new Date(event.dateStart).toDateString(),
           teamCount,
           winRate: 0,
           OPR: 0,
@@ -171,7 +165,7 @@ export async function getUpcomingEventsOnly(
   return allEvents.filter((event) => {
     if (!event.date || event.date === "TBD") return true; // Include events with unknown dates
     const eventDate = new Date(event.date);
-    return eventDate >= today;
+    return eventDate > today; // Changed from >= to > to exclude today's date
   });
 }
 

@@ -114,18 +114,19 @@ export async function getFirstAPI(events: string[], team: number, season: Suppor
 
     const stats = calculateTeamStats(teamMatches, team);
     const opr = calculateTeamOPR(allProcessed.filter(m => m.matchType === 'QUALIFICATION'), team);
-
+    
+    console.error(eventR)
     return {
       ...stats,
       OPR: opr,
       name: eventR.events?.[0]?.name,
-      date: eventR.events?.[0]?.dateStart,
+      date: new Date(eventR.events?.[0]?.dateStart).toDateString(),
       place: formatOrdinal(rankR.rankings?.[0]?.rank),
       achievements: awardR.awards?.map((a: any) => a.name).join(' • ') || 'None',
       matches: teamMatches,
       eventCode: code,
       teamCount: extractTeamNumbers(allMatches).size,
-      location: eventR.events?.[0]?.city
+      location: eventR.events?.[0]?.venue
     } as EventInfo;
   }));
 

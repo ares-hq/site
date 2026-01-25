@@ -556,8 +556,9 @@ const styles = StyleSheet.create({
     marginBottom: 13,
   },
   header: {
-    fontSize: 15,
+    fontSize: 13, // Reduced font size for better fit on mobile
     fontWeight: '600',
+    paddingRight: 10, // Added right padding
   },
   seasonBadge: {
     paddingHorizontal: 7,
