@@ -1,5 +1,7 @@
 import { attachHourlyAverages, getAverageByMatchType, getAveragePlace, getAwards } from '@/api/algorithms/averageMatchScores';
+import { getUpcomingEventsOnly } from '@/api/basic-event-service';
 import { getAverageOPRs, getCurrentUserTeam, getTeamHistoricalData, getTeamInfo, getTeamMatches, getWins } from '@/api/dashboardInfo';
+import { getFirstAPI } from '@/api/event-service';
 import { AllianceInfo, EventInfo, MatchTypeAverages, SupportedYear, TeamInfo } from '@/api/utils/types';
 import { usePageTitleContext } from '@/app/_layout';
 import EventPerformance from '@/components/graphs/eventPerformace';
@@ -14,14 +16,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   LayoutChangeEvent,
   StyleSheet,
   Text,
   View
 } from 'react-native';
 import Caret from '../../assets/icons/caret-up-down-bold.svg';
-import { getFirstAPI } from '@/api/event-service';
-import { getUpcomingEventsOnly } from '@/api/basic-event-service';
 
 type StatCardProps = {
   title: string;
@@ -227,8 +228,6 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
           events.length > 0 ? getFirstAPI(events, teamNumber, seasonYear) : Promise.resolve([]),
           getUpcomingEventsOnly(seasonYear, teamNumber)
         ]);
-        console.error('Event data received:', eventData);
-        console.log('Upcoming events received:', upcomingEventData);
 
         if (data) {
           data.averagePlace = getAveragePlace(eventData ?? []);
@@ -342,12 +341,24 @@ export const DashboardTemplate = ({ seasonYear }: DashboardProps) => {
       { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#ffffff' }
     ]} onLayout={handleLayout}>
       <View style={styles.headerRow}>
-        <Text style={[
-          styles.header,
-          { color: isDarkMode ? '#F9FAFB' : '#111827' }
-        ]}>
-          {teamInfo?.teamName} ({teamInfo?.teamNumber}) Overview
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={[
+            styles.header,
+            { color: isDarkMode ? '#F9FAFB' : '#111827' }
+          ]}>
+            {teamInfo?.teamName} ({teamInfo?.teamNumber}) Overview
+          </Text>
+          {Number(teamParam) === 14584 && (
+            <Image 
+              source={require('../../assets/images/2023PioneerPatch.png')}
+              style={{
+                width: 32,
+                height: 32,
+                resizeMode: 'contain',
+              }}
+            />
+          )}
+        </View>
         <View style={[
           styles.seasonBadge,
           {

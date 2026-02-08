@@ -6,15 +6,15 @@ import TopScore from '@/assets/icons/ranking.svg';
 import TrophyIcon from '@/assets/icons/trophy.svg';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { useRouter } from 'expo-router';
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
   Linking,
   StyleSheet,
   Text,
   TouchableOpacity,
   useWindowDimensions,
-  View,
-  Animated
+  View
 } from 'react-native';
 import MatchRow from './MatchRow';
 import MatchScoreBreakdown from './MatchScoreBreakdown';
@@ -47,7 +47,7 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
   const [highlightedTeam, setHighlightedTeam] = useState<number | null>(teamNumber);
   const [matchScoreDetails, setMatchScoreDetails] = useState<any>(null);
-  const [loadingScores, setLoadingScores] = useState(false);
+  const [matchScoreLoading, setMatchScoreLoading] = useState<Record<string, boolean>>({});
 
   const getRoutePath = (year: SupportedYear) => {
     const routePaths: Record<SupportedYear, string> = {
@@ -73,7 +73,6 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
   const matches = eventData.matches || [];
 
   const handleEventPress = () => {
-    // Navigate to the specific event page using eventCode
     router.push(`/analytics/events/${eventData.eventCode}?year=${seasonYear}` as any);
   };
 
@@ -94,14 +93,16 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
     const isExpanding = expandedMatch !== matchNumber;
     setExpandedMatch(isExpanding ? matchNumber : null);
     if (isExpanding) {
-      setLoadingScores(true);
+      setMatchScoreLoading(prev => ({ ...prev, [matchNumber]: true }));
       const eventCode = eventData.eventCode || 'UNKNOWN';
       const tournamentLevel = (match.matchType?.toUpperCase() === 'PRACTICE') ? 'practice' : 
                              (['PLAYOFF', 'SEMIFINAL', 'FINAL'].includes(match.matchType?.toUpperCase() || '')) ? 'playoff' : 'qual';
       try {
         const details = await getCachedMatchScoreDetails(seasonYear, eventCode, tournamentLevel, matchNumber);
         if (details) setMatchScoreDetails(details);
-      } catch (error) { console.error(error); } finally { setLoadingScores(false); }
+      } catch (error) { console.error(error); } finally { 
+        setMatchScoreLoading(prev => ({ ...prev, [matchNumber]: false })); 
+      }
     }
   };
 
@@ -182,10 +183,30 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
           <View style={styles.matchesSection}>
             <Text style={[styles.sectionTitle, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>Match Results</Text>
             <View style={[styles.table, { borderColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
-              <View style={[styles.mobileTableHeader, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9FAFB' }]}>
-                <Text style={styles.mobileHeaderText}>Match</Text>
-                <Text style={styles.mobileHeaderText}>Score</Text>
-              </View>
+              {isSmallDevice ? (
+                <View style={[styles.mobileTableHeader, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9FAFB', borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
+                  <Text style={[styles.mobileHeaderText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Match</Text>
+                  <Text style={[styles.mobileHeaderText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Score</Text>
+                </View>
+              ) : (
+                <View style={[styles.desktopTableHeader, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9FAFB', borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
+                  {/* Account for the 20px Expand Indicator in MatchRow */}
+                  <View style={{ width: 20 }} /> 
+                  
+                  <View style={[styles.headerCell, { flex: 1 }]}>
+                    <Text style={[styles.headerText, { color: isDarkMode ? '#9CA3AF' : '#6B7280', marginLeft: -27.5 }]}>Match</Text>
+                  </View>
+                  <View style={[styles.headerCell, { flex: 1.2 }]}>
+                    <Text style={[styles.headerText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Score</Text>
+                  </View>
+                  <View style={[styles.headerCell, { flex: 2.5 }]}>
+                    <Text style={[styles.headerText, { color: isDarkMode ? '#9CA3AF' : '#6B7280', paddingLeft: 8 }]}>Red Alliance</Text>
+                  </View>
+                  <View style={[styles.headerCell, { flex: 2.5 }]}>
+                    <Text style={[styles.headerText, { color: isDarkMode ? '#9CA3AF' : '#6B7280', paddingLeft: 8 }]}>Blue Alliance</Text>
+                  </View>
+                </View>
+              )}
               {matches.map((match, index) => (
                 <MatchRow
                   key={index} match={match} index={index} totalMatches={matches.length}
@@ -193,7 +214,11 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
                   highlightedTeam={highlightedTeam} onMatchClick={handleMatchClick}
                   onTeamClick={handleTeamClick}
                   renderScoreBreakdown={() => (
-                    <MatchScoreBreakdown match={match} matchScoreDetails={matchScoreDetails} loadingScores={loadingScores} />
+                    <MatchScoreBreakdown 
+                      match={match} 
+                      matchScoreDetails={matchScoreDetails} 
+                      loadingScores={matchScoreLoading[match.matchNumber]} 
+                    />
                   )}
                 />
               ))}
@@ -233,6 +258,9 @@ const styles = StyleSheet.create({
   matchesSection: { padding: 16 },
   sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
   table: { borderRadius: 8, borderWidth: 1, overflow: 'hidden' },
-  mobileTableHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 10, borderBottomWidth: 1, borderColor: '#374151' },
-  mobileHeaderText: { fontSize: 11, fontWeight: '600', color: '#9CA3AF' }
+  mobileTableHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 10, borderBottomWidth: 1 },
+  mobileHeaderText: { fontSize: 11, fontWeight: '600' },
+  desktopTableHeader: { flexDirection: 'row', borderBottomWidth: 1 },
+  headerCell: { paddingVertical: 12, justifyContent: 'center', alignItems: 'center' },
+  headerText: { fontSize: 13, fontWeight: '700' }
 });
