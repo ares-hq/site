@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { supabase } from '@/api/dashboardInfo';
 import { useDarkMode } from '@/context/DarkModeContext';
+import { webTransition } from '@/components/shared/motion';
 import { usePathname } from 'expo-router';
 import Sidebar from '../../assets/icons/sidebar-simple.svg';
 import StarFill from '../../assets/icons/star-fill.svg';
@@ -33,10 +34,12 @@ const HoverIcon = ({
       onPress={onPress}
       style={[
         styles.iconWrapper,
+        webTransition('background-color, transform'),
         hovered && {
           backgroundColor: isDarkMode
             ? 'rgba(255, 255, 255, 0.08)'
             : 'rgba(0, 0, 0, 0.05)',
+          transform: [{ scale: 1.08 }],
         },
       ]}
     >

@@ -1,6 +1,8 @@
+import CommandPalette from '@/components/CommandPalette';
 import Footer from '@/components/footer';
 import HeaderBar from '@/components/header';
 import LeftSidebar from '@/components/leftSidebar';
+import { DEFAULT_SEASON, seasonFromRoute } from '@/api/utils/seasons';
 import { DarkModeProvider, useDarkMode } from '@/context/DarkModeContext';
 import { useFonts } from 'expo-font';
 import { router, Slot, usePathname } from 'expo-router';
@@ -58,7 +60,28 @@ function InnerLayout() {
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const pathname = usePathname();
   const [refreshing, setRefreshing] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const { customSuffix } = usePageTitleContext();
+
+  const handleScroll = (e: any) => {
+    setScrolled((e?.nativeEvent?.contentOffset?.y ?? 0) > 6);
+  };
+
+  // Global ⌘K / Ctrl-K opens the command palette.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  const paletteSeason = seasonFromRoute(pathname) ?? DEFAULT_SEASON;
   const scrollViewRef = useRef<ScrollView>(null);
   
   const theme = {
@@ -123,7 +146,7 @@ function InnerLayout() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    router.replace(usePathname() as any);
+    router.replace(pathname as any);
     setRefreshing(false);
   };
 
@@ -190,18 +213,23 @@ function InnerLayout() {
         </Animated.View>
 
         <View style={[styles2.contentArea, { backgroundColor: theme.contentBackground }]}>
-          <HeaderBar toggleSidebar={() => setSidebarVisible(!sidebarVisible)} currentPage={currentPage} />
-          <ScrollView 
+          <HeaderBar toggleSidebar={() => setSidebarVisible(!sidebarVisible)} currentPage={currentPage} scrolled={scrolled} />
+          <ScrollView
             ref={scrollViewRef}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             contentContainerStyle={[styles2.scrollContent, { backgroundColor: theme.backgroundColor }]}
           >
             <View style={[styles.pageContent, { backgroundColor: theme.pageBackground }]}>
-              <Slot />
+              <View style={styles.pageInner}>
+                <Slot />
+              </View>
             </View>
             <Footer />
           </ScrollView>
         </View>
+        <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} year={paletteSeason} />
       </View>
     );
   }
@@ -210,14 +238,18 @@ function InnerLayout() {
     <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
       <StatusBar barStyle={barStyle} backgroundColor={theme.backgroundColor} />
       <View style={[styles.contentArea, { backgroundColor: theme.backgroundColor }]}>
-        <HeaderBar toggleSidebar={() => setSidebarVisible(!sidebarVisible)} currentPage={currentPage} />
-        <ScrollView 
+        <HeaderBar toggleSidebar={() => setSidebarVisible(!sidebarVisible)} currentPage={currentPage} scrolled={scrolled} />
+        <ScrollView
           ref={scrollViewRef}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           contentContainerStyle={[styles.scrollContent, { backgroundColor: theme.backgroundColor }]}
         >
           <View style={[styles.pageContent, { backgroundColor: theme.pageBackground }]}>
-            <Slot />
+            <View style={styles.pageInner}>
+              <Slot />
+            </View>
           </View>
           <Footer />
         </ScrollView>
@@ -239,6 +271,8 @@ function InnerLayout() {
           </Animated.View>
         )}
       </Animated.View>
+
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} year={paletteSeason} />
     </View>
   );
 }
@@ -247,7 +281,8 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   container: { flex: 1, flexDirection: 'row' },
   contentArea: { flex: 1, flexDirection: 'column' },
-  pageContent: { flex: 1, padding: 15 },
+  pageContent: { flex: 1, padding: 15, alignItems: 'center' },
+  pageInner: { flex: 1, width: '100%', maxWidth: 1320, alignSelf: 'center' },
   scrollContent: { flexGrow: 1, justifyContent: 'space-between' },
   sidebar: { position: 'absolute', top: 0, left: 0, width: 209, height: '100%', zIndex: 1000 },
   blurOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.3)', zIndex: 999 },

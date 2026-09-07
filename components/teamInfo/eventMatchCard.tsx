@@ -1,324 +1,108 @@
-import { getCachedMatchScoreDetails } from '@/api/match-scores';
-import { EventInfo, MatchInfo, SupportedYear } from '@/api/utils/types';
-import { useDarkMode } from '@/context/DarkModeContext';
+import { routeFromSeason } from '@/api/utils/seasons';
+import { EventInfo, SupportedYear } from '@/api/utils/types';
+import { webTransition } from '@/components/shared/motion';
+import { useTheme } from '@/components/shared/theme';
 import { useRouter } from 'expo-router';
-import React, { useRef, useState } from 'react';
-import {
-  Linking,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View
-} from 'react-native';
-import MatchRow from './MatchRow';
-import MatchScoreBreakdown from './MatchScoreBreakdown';
+import React, { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import MatchResultRow from './MatchResultRow';
 
-interface UserGraphSectionProps {
+interface Props {
   eventData: EventInfo;
   seasonYear: SupportedYear;
+  /** ring this team inside the alliance pills */
+  highlightTeam?: number;
+  /** deep-link: expand + scroll to this match number */
+  focusMatch?: string;
 }
 
-export default function EventMatchCard({ eventData, seasonYear }: UserGraphSectionProps) {
-  const { width } = useWindowDimensions();
-  const { isDarkMode } = useDarkMode();
+type Filter = 'all' | 'QUALIFICATION' | 'PLAYOFF';
+
+export default function EventMatchCard({ eventData, seasonYear, highlightTeam, focusMatch }: Props) {
+  const t = useTheme();
   const router = useRouter();
-  
-  const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
-  const [highlightedTeam, setHighlightedTeam] = useState<number | null>(null);
-  const [matchScoreDetails, setMatchScoreDetails] = useState<any>(null);
-  const [loadingScores, setLoadingScores] = useState(false);
-  const lastClickRef = useRef<{ teamNumber: number; timestamp: number } | null>(null);
+  const [filter, setFilter] = useState<Filter>('all');
+  const [hl, setHl] = useState<number | undefined>(highlightTeam);
 
-  const getRoutePath = (year: SupportedYear) => {
-    const routePaths: Record<SupportedYear, string> = {
-      2019: 'rise',
-      2020: 'forward', 
-      2021: 'gamechangers',
-      2022: 'energize',
-      2023: 'inshow',
-      2024: 'intothedeep',
-      2025: 'age',
-    };
-    return routePaths[year] || 'age';
-  };
-
-  const getEventStatus = (dateStr?: string) => {
-    if (!dateStr) return { label: 'Unknown', color: '#9CA3AF' };
-    const eventDate = new Date(dateStr);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (eventDate < today) return { label: 'Completed', color: '#34C759' };
-    if (eventDate.toDateString() === today.toDateString()) return { label: 'Ongoing', color: '#F59E0B' };
-    return { label: 'Upcoming', color: '#EF4444' };
-  };
-
-  const status = getEventStatus(eventData.date);
-  const isSmallDevice = width < 768;
-  const matches = eventData.matches || [];
-
-  const isUpcomingEvent = status.label === 'Upcoming' || status.label === 'Ongoing';
-
-  const handleWebsitePress = async () => {
-    const url = 'https://www.google.com/search?q=' + eventData.location.replace(/\s+/g, '+');
-    try {
-      await Linking.openURL(url);
-    } catch (error) {
-      console.error('Failed to open URL:', error);
-    }
-  };
-
-  const handleTeamClick = (clickedTeamNumber: number) => {
-    if (highlightedTeam === clickedTeamNumber) {
-      const routePath = getRoutePath(seasonYear);
-      router.push(`/dashboards/${routePath}?teamnumber=${clickedTeamNumber}` as any);
-    //   setHighlightedTeam(clickedTeamNumber);
-      lastClickRef.current = null;
+  // First tap on a team highlights it across every match; a second tap opens its dashboard.
+  const onTeamPress = (n: number) => {
+    if (hl === n) {
+      router.push(`/dashboards/${routeFromSeason(seasonYear)}?teamnumber=${n}` as any);
     } else {
-      setHighlightedTeam(clickedTeamNumber);
-      lastClickRef.current = { teamNumber: clickedTeamNumber, timestamp: Date.now() };
+      setHl(n);
     }
   };
 
-  const handleMatchClick = async (matchNumber: string, match: MatchInfo) => {
-    const isExpanding = expandedMatch !== matchNumber;
-    
-    if (isExpanding && expandedMatch !== null && expandedMatch !== matchNumber) {
-      setMatchScoreDetails(null);
-    }
-    
-    setExpandedMatch(isExpanding ? matchNumber : null);
-    
-    if (isExpanding) {
-      setLoadingScores(true);
-      setMatchScoreDetails(null);
-      
-      const eventCode = eventData.eventCode || 'UNKNOWN';
-      let tournamentLevel: 'qual' | 'playoff' | 'practice' = 'qual';
-      
-      const matchTypeUpper = match.matchType?.toUpperCase() || '';
-      
-      // Check if it's a practice match first
-      if (matchTypeUpper === 'PRACTICE') {
-        tournamentLevel = 'practice';
-      } else {
-        // Then check if it's a playoff match
-        const isPlayoffMatch = ['PLAYOFF', 'SEMIFINAL', 'FINAL', 'QUARTERFINAL'].includes(matchTypeUpper) ||
-                               (matchTypeUpper !== 'QUALIFICATION' && matchTypeUpper !== '');
-        
-        if (isPlayoffMatch) {
-          tournamentLevel = 'playoff';
-        }
-        
-        const matchNumberUpper = matchNumber?.toUpperCase() || '';
-        if (matchNumberUpper.startsWith('P-') || 
-            matchNumberUpper.startsWith('SF-') || 
-            matchNumberUpper.startsWith('F-') ||
-            matchNumberUpper.startsWith('QF-')) {
-          tournamentLevel = 'playoff';
-        }
-      }
-      
-      console.error(getCachedMatchScoreDetails(seasonYear, eventCode, tournamentLevel, matchNumber))
-      try {
-        const details = await getCachedMatchScoreDetails(seasonYear, eventCode, tournamentLevel, matchNumber);
+  const matches = useMemo(
+    () => (eventData.matches ?? []).filter((m) => m.matchType !== 'PRACTICE'),
+    [eventData.matches],
+  );
 
-        if (details) {
-          setMatchScoreDetails(details);
-        } else {
-          console.error('No details returned for match:', matchNumber, tournamentLevel);
-        }
-      } catch (error) {
-        console.error('Error fetching match score details:', error);
-      } finally {
-            setLoadingScores(false);
-        }
-        }
-    };
+  const counts = useMemo(
+    () => ({
+      all: matches.length,
+      QUALIFICATION: matches.filter((m) => m.matchType === 'QUALIFICATION').length,
+      PLAYOFF: matches.filter((m) => m.matchType === 'PLAYOFF').length,
+    }),
+    [matches],
+  );
 
-    const renderScoreBreakdown = (match: MatchInfo) => (
-        <MatchScoreBreakdown
-        match={match}
-        matchScoreDetails={matchScoreDetails}
-        loadingScores={loadingScores}
-        />
+  const shown = filter === 'all' ? matches : matches.filter((m) => m.matchType === filter);
+
+  const Chip = ({ id, label }: { id: Filter; label: string }) => {
+    const active = filter === id;
+    const n = id === 'all' ? counts.all : counts[id];
+    if (id !== 'all' && n === 0) return null;
+    return (
+      <Pressable
+        onPress={() => setFilter(id)}
+        style={[
+          styles.chip,
+          webTransition(),
+          { backgroundColor: active ? t.c.accentSoft : t.c.bgSubtle, borderColor: active ? t.c.accent : t.c.border },
+        ]}
+      >
+        <Text style={[styles.chipText, { color: active ? t.c.accentText : t.c.textMuted }]}>
+          {label} <Text style={{ color: t.c.textFaint }}>{n}</Text>
+        </Text>
+      </Pressable>
     );
+  };
 
   return (
-    <View style={[styles.container]}>
-        <View style={[styles.matchesSection, { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#FFFFFF' }, isSmallDevice && styles.matchesSectionSmall]}>
-          <Text style={[styles.sectionTitle, { color: isDarkMode ? '#F9FAFB' : '#111827' }, isSmallDevice && styles.sectionTitleSmall]}>
-            Match Results
-          </Text>
-          <View style={[styles.table, { borderColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
-            {!isSmallDevice && (
-              <View style={[styles.tableHeader, {
-                backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9FAFB',
-                borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB',
-              }]}>
-                <View style={[styles.matchHeaderCell, isSmallDevice && styles.matchHeaderCellSmall]}>
-                  <Text style={[styles.headerText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }, isSmallDevice && styles.headerTextSmall]}>Match</Text>
-                </View>
-                <View style={[styles.scoreHeaderCell, isSmallDevice && styles.scoreHeaderCellSmall]}>
-                  <Text style={[styles.headerText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }, isSmallDevice && styles.headerTextSmall]}>Score</Text>
-                </View>
-                <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
-                  <Text style={[styles.headerText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }, isSmallDevice && styles.headerTextSmall]}>Red Alliance</Text>
-                </View>
-                <View style={[styles.allianceHeaderCell, isSmallDevice && styles.allianceHeaderCellSmall]}>
-                  <Text style={[styles.headerText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }, isSmallDevice && styles.headerTextSmall]}>Blue Alliance</Text>
-                </View>
-              </View>
-            )}
-            {isSmallDevice && (
-              <View style={[styles.mobileTableHeader, {
-                backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9FAFB',
-                borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB',
-              }]}>
-                <Text style={[styles.mobileHeaderText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Match</Text>
-                <Text style={[styles.mobileHeaderText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Score</Text>
-              </View>
-            )}
-            {matches.map((match, index) => (
-              <MatchRow
-                key={index}
-                match={match}
-                index={index}
-                totalMatches={matches.length}
-                isSmallDevice={isSmallDevice}
-                expandedMatch={expandedMatch}
-                highlightedTeam={highlightedTeam}
-                onMatchClick={handleMatchClick}
-                onTeamClick={handleTeamClick}
-                renderScoreBreakdown={renderScoreBreakdown}
-              />
-            ))}
-          </View>
-        </View>
+    <View>
+      <View style={styles.filterRow}>
+        <Chip id="all" label="All" />
+        <Chip id="QUALIFICATION" label="Qual" />
+        <Chip id="PLAYOFF" label="Playoff" />
+      </View>
+
+      <View style={[styles.card, { backgroundColor: t.c.bgSubtle, borderColor: t.c.border }]}>
+        {shown.length === 0 ? (
+          <Text style={{ color: t.c.textMuted, fontSize: 13, padding: 18, textAlign: 'center' }}>No matches to show.</Text>
+        ) : (
+          shown.map((m, i) => (
+            <MatchResultRow
+              key={`${m.matchNumber}-${i}`}
+              match={m}
+              seasonYear={seasonYear}
+              eventCode={eventData.eventCode}
+              highlightTeam={hl}
+              first={i === 0}
+              last={i === shown.length - 1}
+              defaultOpen={!!focusMatch && String(m.matchNumber) === String(focusMatch)}
+              onTeam={onTeamPress}
+            />
+          ))
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    padding: 20,
-    overflow: 'hidden',
-  },
-  headerSmall: {
-    padding: 12,
-  },
-  titleSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    flex: 1,
-    marginRight: 12,
-    lineHeight: 28,
-  },
-  titleSmall: {
-    fontSize: 18,
-    lineHeight: 24,
-    marginRight: 8,
-  },
-  titleLarge: {
-    fontSize: 26,
-    lineHeight: 32,
-  },
-  performanceCard: {
-    borderRadius: 6,
-    padding: 16,
-    borderWidth: 1,
-  },
-  performanceCardSmall: {
-    padding: 12,
-    borderRadius: 4,
-  },
-  matchesSection: {
-    overflow: 'hidden',
-  },
-  matchesSectionSmall: {
-    // padding: 12,
-  },
-  sectionTitle: {
-    marginBottom: 16,
-  },
-  sectionTitleSmall: {
-    fontSize: 16,
-    marginBottom: 12,
-  },
-  table: {
-    flex: 1,
-    borderRadius: 12,
-    borderWidth: 1,
-    overflow: 'hidden',
-    width: '100%',
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-  },
-  mobileTableHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-  },
-  mobileHeaderText: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  matchHeaderCell: {
-    flex: 1,
-    padding: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  matchHeaderCellSmall: {
-    flex: 1,
-    minWidth: 0,
-    padding: 8,
-  },
-  scoreHeaderCell: {
-    flex: 1.2,
-    padding: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scoreHeaderCellSmall: {
-    flex: 1.2,
-    minWidth: 0,
-    padding: 8,
-  },
-  allianceHeaderCell: {
-    flex: 2.5,
-    padding: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  allianceHeaderCellSmall: {
-    flex: 1,
-    minWidth: 0,
-    padding: 8,
-  },
-  headerText: {
-    fontSize: 13,
-    fontWeight: '600',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  headerTextSmall: {
-    fontSize: 11,
-  },
+  filterRow: { flexDirection: 'row', gap: 8, marginBottom: 12, flexWrap: 'wrap' },
+  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
+  chipText: { fontSize: 12, fontWeight: '600' },
+  card: { borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
 });

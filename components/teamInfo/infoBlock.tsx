@@ -1,206 +1,117 @@
 import { TeamInfo } from '@/api/utils/types';
-import CalendarIcon from '@/assets/icons/calendar.svg';
-import UsersIcon from '@/assets/icons/handshake.svg';
-import ShieldIcon from '@/assets/icons/identification-card.svg';
-import GlobeIcon from '@/assets/icons/link-simple-horizontal.svg';
-import LocationIcon from '@/assets/icons/map-pin.svg';
-import TrophyIcon from '@/assets/icons/ranking.svg';
-import TopScore from '@/assets/icons/trophy.svg';
-import { useDarkMode } from '@/context/DarkModeContext';
+import { webTransition } from '@/components/shared/motion';
+import { useTheme } from '@/components/shared/theme';
+import { Feather } from '@expo/vector-icons';
 import React from 'react';
-import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-interface InfoSectionProps {
+interface Props {
   screenWidth: number;
   teamInfo: TeamInfo;
   highScore: number;
 }
 
-const InfoBox = ({ screenWidth, teamInfo, highScore }: InfoSectionProps) => {
-  const { isDarkMode } = useDarkMode();
+function openLink(url: string) {
+  const prefixed = url.startsWith('http') ? url : `https://${url}`;
+  Linking.openURL(prefixed).catch(() => Alert.alert("Can't open URL", url));
+}
+
+const InfoBox = ({ screenWidth, teamInfo, highScore }: Props) => {
+  const t = useTheme();
+  const c = t.c;
+  const cols = screenWidth > 0 && screenWidth < 520 ? 2 : screenWidth < 860 ? 3 : 5;
+
+  type Cell = { icon: keyof typeof Feather.glyphMap; label: string; value: string; href?: string };
+  const cells: Cell[] = [
+    { icon: 'shield', label: 'Team name', value: teamInfo.teamName || '—' },
+    { icon: 'map-pin', label: 'Location', value: teamInfo.location || '—' },
+    { icon: 'calendar', label: 'Founded', value: teamInfo.founded && teamInfo.founded !== 'N/A' ? teamInfo.founded : '—' },
+    { icon: 'zap', label: 'Highest score', value: highScore ? String(highScore) : '—' },
+    {
+      icon: 'link',
+      label: 'Website',
+      value: teamInfo.website && teamInfo.website !== 'None' ? teamInfo.website.replace(/^https?:\/\//, '') : '—',
+      href: teamInfo.website && teamInfo.website !== 'None' ? teamInfo.website : undefined,
+    },
+  ];
+
+  const awards = (teamInfo.achievements ?? '')
+    .split(/\s*[•,]\s*/)
+    .map((s) => s.trim())
+    .filter((s) => s && !/^(none|none this season|no awards received|n\/?a|—|-)$/i.test(s));
+
+  const stacked: { icon: keyof typeof Feather.glyphMap; label: string; value: string }[] = [
+    { icon: 'users', label: 'Sponsors', value: teamInfo.sponsors || '—' },
+    {
+      icon: 'award',
+      label: 'Achievements',
+      value: awards.length ? awards.join(' • ') : 'None this season',
+    },
+  ];
 
   return (
-    <View style={[
-      styles.container,
-      screenWidth < 820 && styles.containerMobile,
-      screenWidth >= 820 && screenWidth < 1400 && styles.containerTablet,
-    ]}>
-      <View style={[styles.infoItemsGridRow]}>
-        <View style={[styles.infoItem, { backgroundColor: 'rgba(59, 130, 246, 0.12)', borderColor: 'rgba(59, 130, 246, 0.3)' }]}>
-          <View style={styles.itemIconLabel}>
-            <View style={[styles.iconContainer, { backgroundColor: 'rgba(59, 130, 246, 0.25)' }]}>
-              <ShieldIcon width={14} height={14} fill={isDarkMode ? '#60A5FA' : '#1E40AF'} />
+    <View style={styles.wrap}>
+      <View style={styles.grid}>
+        {cells.map((cell) => {
+          const inner = (
+            <View style={[styles.cell, { backgroundColor: c.surface, borderColor: c.border }]}>
+              <View style={styles.cellHead}>
+                <Feather name={cell.icon} size={12} color={c.textFaint} />
+                <Text style={[styles.label, { color: c.textMuted }]}>{cell.label}</Text>
+              </View>
+              <Text style={[styles.value, { color: cell.href ? c.accentText : c.text }]} numberOfLines={1}>
+                {cell.value}
+              </Text>
             </View>
-            <Text style={[styles.itemLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Team Name</Text>
-          </View>
-          <Text style={[styles.itemValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.teamName || 'N/A'}</Text>
-        </View>
-        <View style={[styles.infoItem, { backgroundColor: 'rgba(34, 197, 94, 0.12)', borderColor: 'rgba(34, 197, 94, 0.3)' }]}>
-          <View style={styles.itemIconLabel}>
-            <View style={[styles.iconContainer, { backgroundColor: 'rgba(34, 197, 94, 0.25)' }]}>
-              <LocationIcon width={14} height={14} fill={isDarkMode ? '#34D399' : '#047857'} />
+          );
+          return (
+            <View key={cell.label} style={{ width: `${100 / cols}%` }}>
+              {cell.href ? (
+                <Pressable onPress={() => openLink(cell.href!)} style={webTransition()}>
+                  {inner}
+                </Pressable>
+              ) : (
+                inner
+              )}
             </View>
-            <Text style={[styles.itemLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Location</Text>
-          </View>
-          <Text style={[styles.itemValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.location || 'N/A'}</Text>
-        </View>
-        <View style={[styles.infoItem, { backgroundColor: 'rgba(168, 85, 247, 0.12)', borderColor: 'rgba(168, 85, 247, 0.3)' }]}>
-          <View style={styles.itemIconLabel}>
-            <View style={[styles.iconContainer, { backgroundColor: 'rgba(168, 85, 247, 0.25)' }]}>
-              <CalendarIcon width={14} height={14} fill={isDarkMode ? '#A78BFA' : '#5B21B6'} />
-            </View>
-            <Text style={[styles.itemLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Founded</Text>
-          </View>
-          <Text style={[styles.itemValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.founded || 'N/A'}</Text>
-        </View>
-        <View style={[styles.infoItem, { backgroundColor: 'rgba(251, 146, 60, 0.12)', borderColor: 'rgba(251, 146, 60, 0.3)' }]}>
-          <View style={styles.itemIconLabel}>
-            <View style={[styles.iconContainer, { backgroundColor: 'rgba(251, 146, 60, 0.25)' }]}>
-              <TopScore width={14} height={14} fill={isDarkMode ? '#FBBF24' : '#92400E'} />
-            </View>
-            <Text style={[styles.itemLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Highest Score</Text>
-          </View>
-          <Text style={[styles.itemValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{highScore.toString()}</Text>
-        </View>
-        <View style={[styles.infoItem, { backgroundColor: 'rgba(14, 165, 233, 0.12)', borderColor: 'rgba(14, 165, 233, 0.3)' }]}>
-          <View style={styles.itemIconLabel}>
-            <View style={[styles.iconContainer, { backgroundColor: 'rgba(14, 165, 233, 0.25)' }]}>
-              <GlobeIcon width={14} height={14} fill={isDarkMode ? '#38BDF8' : '#0C4A6E'} />
-            </View>
-            <Text style={[styles.itemLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Website</Text>
-          </View>
-          <Pressable onPress={() => openLink(teamInfo.website || '')} disabled={!teamInfo.website}>
-            <Text style={[styles.itemValue, styles.link, { color: teamInfo.website ? (isDarkMode ? '#60A5FA' : '#3B82F6') : (isDarkMode ? '#9CA3AF' : '#6B7280') }]}>
-              {teamInfo.website ? `Team ${teamInfo.teamNumber}` : 'N/A'}
-            </Text>
-          </Pressable>
-        </View>
+          );
+        })}
       </View>
-      
-      <View style={[styles.infoItemsGridRowFull]}>
-        <View style={[styles.infoItemFull, { backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.3)' }]}>
-          <View style={styles.itemIconLabel}>
-            <View style={[styles.iconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.25)' }]}>
-              <UsersIcon width={14} height={14} fill={isDarkMode ? '#F87171' : '#7F1D1D'} />
-            </View>
-            <Text style={[styles.itemLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Sponsors</Text>
+
+      {stacked.map((s) => (
+        <View key={s.label} style={[styles.cellFull, { backgroundColor: c.surface, borderColor: c.border }]}>
+          <View style={styles.cellHead}>
+            <Feather name={s.icon} size={12} color={c.textFaint} />
+            <Text style={[styles.label, { color: c.textMuted }]}>{s.label}</Text>
           </View>
-          <Text style={[styles.itemValue, styles.multiLineText, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.sponsors || 'N/A'}</Text>
+          <Text style={[styles.valueMulti, { color: c.text }]}>{s.value}</Text>
         </View>
-      </View>
-      
-      <View style={[styles.infoItemsGridRowFull]}>
-        <View style={[styles.infoItemFull, { backgroundColor: 'rgba(20, 184, 166, 0.12)', borderColor: 'rgba(20, 184, 166, 0.3)' }]}>
-          <View style={styles.itemIconLabel}>
-            <View style={[styles.iconContainer, { backgroundColor: 'rgba(20, 184, 166, 0.25)' }]}>
-              <TrophyIcon width={14} height={14} fill={isDarkMode ? '#5EEAD4' : '#0D9488'} />
-            </View>
-            <Text style={[styles.itemLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Achievements</Text>
-          </View>
-          <Text style={[styles.itemValue, styles.multiLineText, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.achievements || 'N/A'}</Text>
-        </View>
-      </View>
+      ))}
     </View>
   );
-
-  function openLink(url: string) {
-    const prefixed = url.startsWith('http') ? url : `https://${url}`;
-    Linking.openURL(prefixed).catch(() => Alert.alert("Can't open URL", url));
-  }
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 20,
-    paddingHorizontal: 0,
-    backgroundColor: 'transparent',
-  },
-  containerMobile: {
-    gap: 10,
-    marginBottom: 20,
-  },
-  containerTablet: {
-    gap: 10,
-  },
-  infoItemsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    width: '100%',
-    columnGap: 28,
-    rowGap: 12,
-  },
-  infoItemsGridRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    width: '100%',
+  wrap: { gap: 8, marginBottom: 20 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
+  cell: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    margin: 4,
+    minHeight: 70,
     justifyContent: 'space-between',
-    marginBottom: 0,
+    ...(Platform.OS === 'web' ? {} : {}),
   },
-  infoItemsGridRowFull: {
-    flexDirection: 'row',
-    width: '100%',
-    marginBottom: 0,
-  },
-  infoItemFull: {
-    flex: 1,
-    padding: 6,
-    borderRadius: 10,
+  cellFull: {
     borderWidth: 1,
-    borderColor: 'transparent',
-    minHeight: 60,
+    borderRadius: 12,
+    padding: 12,
   },
-  infoItem: {
-    flexBasis: 'auto',
-    flex: 1,
-    padding: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    minWidth: 100,
-  },
-  itemIconLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  iconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  itemLabel: {
-    fontSize: 10,
-    textTransform: 'uppercase',
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  itemValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    lineHeight: 18,
-    marginLeft: 10
-  },
-  multiLineText: {
-    flexWrap: 'wrap',
-    flexShrink: 1,
-  },
-  link: {
-    textDecorationLine: 'underline',
-  },
-  textContainer: {
-    flex: 1,
-    minWidth: 0,
-    maxWidth: '100%',
-    overflow: 'hidden',
-  },
+  cellHead: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 8 },
+  label: { fontSize: 11.5, fontWeight: '500' },
+  value: { fontSize: 14, fontWeight: '600' },
+  valueMulti: { fontSize: 13, fontWeight: '500', lineHeight: 19 },
 });
 
 export default InfoBox;

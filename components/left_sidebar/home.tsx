@@ -1,23 +1,20 @@
-import { useDarkMode } from '@/context/DarkModeContext';
-import { useRouter } from 'expo-router';
+import { webTransition } from '@/components/shared/motion';
+import { useTheme } from '@/components/shared/theme';
+import { usePathname, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import House from '../../assets/icons/house.svg';
 
 const Home = ({ close, isMobile }: { close?: () => void; isMobile?: boolean }) => {
   const router = useRouter();
-  const { isDarkMode } = useDarkMode();
+  const pathname = usePathname();
+  const t = useTheme();
   const [hovered, setHovered] = useState(false);
 
-  // MATCHING YOUR SIDEBAR THEME EXACTLY
-  const hoverBg = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
-  const textColor = isDarkMode ? '#fff' : '#000';
-  const subTextColor = isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)';
-
-  // ICON CIRCLE THEME
-  const iconBg = isDarkMode ? "#1E2A4A" : "#EBF4FF";
-  const iconBorder = isDarkMode ? "#3B5998" : "#BFDBFE";
-  const iconFill = isDarkMode ? '#60A5FA' : '#1D4ED8';
+  const active = pathname === '/' || pathname === '/index';
+  const iconBg = t.isDark ? '#1E2A4A' : '#EBF4FF';
+  const iconBorder = t.isDark ? '#3B5998' : '#BFDBFE';
+  const iconFill = t.isDark ? '#60A5FA' : '#1D4ED8';
 
   return (
     <View style={styles.sidebarWrapper}>
@@ -30,22 +27,18 @@ const Home = ({ close, isMobile }: { close?: () => void; isMobile?: boolean }) =
         onHoverOut={() => setHovered(false)}
         style={[
           styles.item,
-          hovered && { backgroundColor: hoverBg, borderRadius: 13 },
+          webTransition('background-color'),
+          (hovered || active) && { backgroundColor: active ? t.c.accentSoft : t.c.rowHover },
         ]}
       >
         <View style={styles.iconLabel}>
-          <View style={[
-            styles.iconCircle, 
-            { backgroundColor: iconBg, borderColor: iconBorder, borderWidth: 1 }
-          ]}>
+          <View style={[styles.iconCircle, { backgroundColor: iconBg, borderColor: iconBorder, borderWidth: 1 }]}>
             <House width={16} height={16} fill={iconFill} />
           </View>
 
           <View style={styles.textStack}>
-            {/* Matches your Platforms label size and weight */}
-            <Text style={[styles.label, { color: textColor }]}>ARES</Text>
-            {/* Sub-label matches the opacity of your sectionTitle */}
-            <Text style={[styles.subLabel, { color: subTextColor }]}>Home</Text>
+            <Text style={[styles.label, { color: active ? t.c.accentText : t.c.text }]}>ARES</Text>
+            <Text style={[styles.subLabel, { color: t.c.textFaint }]}>Home</Text>
           </View>
         </View>
       </Pressable>
@@ -63,6 +56,7 @@ const styles = StyleSheet.create({
   item: {
     paddingVertical: 9,
     paddingHorizontal: 13,
+    borderRadius: 13,
   },
   iconLabel: {
     flexDirection: 'row',

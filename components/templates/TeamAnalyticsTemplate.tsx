@@ -2,11 +2,11 @@ import { SupportedYear, TeamInfo } from '@/api/utils/types';
 import { usePageTitleContext } from '@/app/_layout';
 import DataTable from '@/components/graphs/teamTables';
 import { ErrorState } from '@/components/shared/ErrorState';
+import { MetaRow } from '@/components/shared/MetaRow';
 import { YearSelector } from '@/components/shared/YearSelector';
 import { useDarkMode } from '@/context/DarkModeContext';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -15,13 +15,12 @@ import {
   useWindowDimensions,
   View
 } from 'react-native';
-import Clock from '../../assets/icons/clock.svg';
-import People from '../../assets/icons/users.svg';
 import { getAllTeams } from '@/api/dashboardInfo';
 
 interface TeamAnalyticsTemplateProps {
   pageTitle: string;
   dataType: 'overall' | 'auto' | 'teleop' | 'endgame';
+  summary?: string;
 }
 
 const GAME_NAMES: Record<SupportedYear, string> = {
@@ -34,7 +33,7 @@ const GAME_NAMES: Record<SupportedYear, string> = {
   2025: 'Decode',
 };
 
-const TeamAnalyticsTemplate: React.FC<TeamAnalyticsTemplateProps> = ({ pageTitle, dataType }) => {
+const TeamAnalyticsTemplate: React.FC<TeamAnalyticsTemplateProps> = ({ pageTitle, dataType, summary }) => {
   const { width } = useWindowDimensions();
   const { isDarkMode } = useDarkMode();
   const { setPageTitleInfo } = usePageTitleContext();
@@ -98,7 +97,6 @@ const TeamAnalyticsTemplate: React.FC<TeamAnalyticsTemplateProps> = ({ pageTitle
     });
   }, [selectedYear, setPageTitleInfo]);
 
-  const isSmallDevice = width < 768;
 
   if (error) {
     return (
@@ -131,35 +129,32 @@ const TeamAnalyticsTemplate: React.FC<TeamAnalyticsTemplateProps> = ({ pageTitle
           <Text style={[styles.subtitle, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
             {getSeasonName(selectedYear)}
           </Text>
-          <View style={[styles.metadataContent, isSmallDevice ? styles.metadataContentMobile : styles.metadataContentDesktop, styles.metadataContentRight]}>
-            <View style={[styles.metadataItem, !isSmallDevice && styles.metadataItemDesktop, isSmallDevice && styles.metadataItemMobile]}>
-              <View style={[styles.iconContainer, isSmallDevice && styles.iconContainerMobile]}>
-                <People width={isSmallDevice ? 20 : 25} height={isSmallDevice ? 20 : 25} fill={isDarkMode ? '#9CA3AF' : '#6B7280'}/>
-              </View>
-              <View style={styles.textContainer}>
-                <Text style={[styles.metadataLabel, isSmallDevice && styles.metadataLabelMobile, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
-                  Teams Loaded
-                </Text>
-                <Text style={[styles.metadataValue, isSmallDevice && styles.metadataValueMobile, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
-                  {loading ? 'Loading...' : teams.length.toLocaleString()}
-                </Text>
-              </View>
-            </View>
-            
-            <View style={[styles.metadataItem, !isSmallDevice && styles.metadataItemDesktop, isSmallDevice && styles.metadataItemMobile]}>
-              <View style={[styles.iconContainer, isSmallDevice && styles.iconContainerMobile]}>
-                <Clock width={isSmallDevice ? 20 : 25} height={isSmallDevice ? 20 : 25} fill={isDarkMode ? '#9CA3AF' : '#6B7280'}/>
-              </View>
-              <View style={styles.textContainer}>
-                <Text style={[styles.metadataLabel, isSmallDevice && styles.metadataLabelMobile, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
-                  Last Updated
-                </Text>
-                <Text style={[styles.metadataValue, isSmallDevice && styles.metadataValueMobile, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>
-                  {lastUpdated ? lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'Loading...'}
-                </Text>
-              </View>
-            </View>
-          </View>
+          {!!summary && (
+            <Text style={[styles.summary, { color: isDarkMode ? '#8A94A3' : '#8A94A3' }]}>
+              {summary}
+            </Text>
+          )}
+          <MetaRow
+            items={[
+              { icon: 'users', label: 'Teams Loaded', value: loading ? 'Loading…' : teams.length },
+              { icon: 'calendar', label: 'Season', value: getSeasonName(selectedYear) },
+              {
+                icon: 'award',
+                label: 'Top OPR',
+                value: loading
+                  ? 'Loading…'
+                  : (teams[0]?.[
+                      dataType === 'auto' ? 'autoOPR' : dataType === 'teleop' ? 'teleOPR' : dataType === 'endgame' ? 'endgameOPR' : 'overallOPR'
+                    ] ?? null),
+                decimals: 1,
+              },
+              {
+                icon: 'clock',
+                label: 'Last Updated',
+                value: lastUpdated ? lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'Loading…',
+              },
+            ]}
+          />
         </View>
 
         <YearSelector
@@ -168,26 +163,12 @@ const TeamAnalyticsTemplate: React.FC<TeamAnalyticsTemplateProps> = ({ pageTitle
           onYearChange={handleYearChange}
         />
 
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator
-              size="large"
-              color={isDarkMode ? '#F9FAFB' : '#111827'}
-            />
-            <Text style={[styles.loadingText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>
-              Loading team data...
-            </Text>
-          </View>
-        ) : (
-          <>
-            <DataTable
-              teams={teams}
-              data={dataType}
-              selectedYear={selectedYear}
-            />
-
-          </>
-        )}
+        <DataTable
+          teams={teams}
+          data={dataType}
+          selectedYear={selectedYear}
+          loading={loading}
+        />
       </ScrollView>
     </View>
   );
@@ -214,6 +195,12 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 17,
     // fontWeight: '500',
+  },
+  summary: {
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 6,
+    maxWidth: 620,
   },
   loadingContainer: {
     flex: 1,

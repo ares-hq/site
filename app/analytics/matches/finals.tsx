@@ -1,22 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import MatchAnalyticsTemplate from '@/components/templates/MatchAnalyticsTemplate';
 
-const Finals = () => (
-  <View style={styles.container}>
-    <Text style={styles.text}>Finals — Coming Soon</Text>
-  </View>
-);
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  text: {
-    fontSize: 18,
-    color: '#9ca3af',
-  },
-});
-
-export default Finals;
+export default function Finals() {
+  return (
+    <MatchAnalyticsTemplate
+      pageTitle="Finals Match Rankings"
+      filter="PLAYOFF"
+      blurb="Elimination-bracket performances — playoff and finals matches only, ranked by alliance score."
+    />
+  );
+}

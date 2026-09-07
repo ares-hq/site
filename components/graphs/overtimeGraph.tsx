@@ -1,9 +1,12 @@
-import { getTeamCount } from '@/api/dashboardInfo';
 import { AllianceInfo, TeamInfo } from '@/api/utils/types';
-import { useDarkMode } from '@/context/DarkModeContext';
-import React, { useEffect, useState } from 'react';
+import TeamRadar from '@/components/dashboards/TeamRadar';
+import { useTheme } from '@/components/shared/theme';
+import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Area, ComposedChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+
+// SVG <text> defaults to serif — force the app's system sans stack on every axis tick.
+const CHART_FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
 interface UserGraphSectionProps {
   screenWidth: number;
@@ -32,31 +35,7 @@ interface TooltipProps {
 const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins, year }: UserGraphSectionProps) => {
   const [chartWrapperWidth, setChartWrapperWidth] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<string>('Match Score');
-  const [teamCount, setTeamCount] = useState<number>(60); // default to 60
-  const { isDarkMode } = useDarkMode();
-
-  useEffect(() => {
-    const fetchTeamCount = async () => {
-      try {
-        const count = await getTeamCount(year as any); // cast to SupportedYear
-        setTeamCount(count);
-      } catch (error) {
-        console.error('Failed to fetch team count:', error);
-      }
-    };
-    fetchTeamCount();
-  }, [year]);
-
-  // Helper function to calculate percentile from rank (lower rank = higher percentile)
-  const rankToPercentile = (rank: number | null | undefined): number | null => {
-    if (rank == null || rank <= 0) return null;
-    // Percentile calculation: (teams ranked worse / total teams) * 100
-    // Formula: (1 - (rank - 1) / (estimated_total_teams - 1)) * 100
-    // Using actual team count for the year
-    const estimatedTotalTeams = teamCount;
-    const percentile = (1 - (rank - 1) / (estimatedTotalTeams - 1)) * 100;
-    return Math.max(0, Math.floor(percentile)) == 100 ? 99 : Math.max(0, Math.floor(percentile));
-  };
+  const th = useTheme();
 
   const onChartWrapperLayout = (event: LayoutEvent): void => {
     const { width } = event.nativeEvent.layout;
@@ -103,33 +82,17 @@ const UserGraphSection = ({ screenWidth, teamInfo, matches, averages, wins, year
 const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   if (active && payload && payload.length) {
     return (
-      <View
-        style={[
-          styles.tooltip,
-          {
-            backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff',
-            borderColor: isDarkMode ? '#374151' : '#e5e7eb',
-          },
-        ]}
-      >
-        <Text
-          style={[
-            styles.tooltipLabel,
-            { color: isDarkMode ? '#F9FAFB' : '#000' },
-          ]}
-        >
+      <View style={[styles.tooltip, { backgroundColor: th.c.raised, borderColor: th.c.border }]}>
+        <Text style={[styles.tooltipLabel, { color: th.c.text }]}>
           {`Match ${label ? label.replace(/^M\\s*/, '') : ''}`}
         </Text>
         {payload.map((entry: any, index: number) => (
-          <Text
-            key={index}
-            style={[
-              styles.tooltipValue,
-              { color: isDarkMode ? '#D1D5DB' : '#374151' },
-            ]}
-          >
-            {entry.name === 'current' ? 'Current Team' : 'Average'}: {entry.value.toLocaleString()}
-          </Text>
+          <View key={index} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+            <View style={{ width: 7, height: 7, borderRadius: 2, backgroundColor: entry.name === 'current' ? th.c.accent : th.c.textFaint }} />
+            <Text style={[styles.tooltipValue, { color: th.c.textMuted }]}>
+              {entry.name === 'current' ? 'This team' : 'Field avg'}: {entry.value.toLocaleString()}
+            </Text>
+          </View>
         ))}
       </View>
     );
@@ -137,185 +100,11 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   return null;
 };
 
-  const trafficData = [
-    {
-      name: 'Events Attended',
-      // support both string (CSV) and numeric representations
-      value: (() => {
-        const ev = teamInfo.eventsAttended as unknown;
-        if (typeof ev === 'string') return ev.replace(/[\[\]\s]/g, '').split(',').filter(Boolean).length;
-        if (typeof ev === 'number') return ev;
-        return 0;
-      })(),
-      total: 20
-    },
-    { name: 'Matches Played', value: matches?.length ?? 0, total: 200 },
-    { name: 'Wins', value: wins, total: matches?.length ?? 0},
-    { 
-      name: 'Average Place', 
-      // Normalize average place so higher is better for the visual (10 = top, 0 = bottom)
-      value: teamInfo.averagePlace != null
-        ? teamInfo.averagePlace <= 5 ? 10
-        : teamInfo.averagePlace <= 10 ? 7.5
-        : teamInfo.averagePlace <= 20 ? 5
-        : 2.5
-        : 0.01,
-      total: 10,
-    },
-  ];
-
-  // Penalty metrics (penalties stored as string in TeamInfo)
-  const penaltyValue = teamInfo.penalties ? Number(String(teamInfo.penalties).replace(/[^0-9.-]+/g, '')) : null;
-
-  const TeamData = () => (
-      <View style={[
-        styles.trafficContainer,
-        screenWidth <= 820 && styles.trafficContainerMobile,
-        {
-          backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9F9FA',
-        }
-      ]}>
-        <View style={styles.trafficHeader}>
-          <Text style={[
-            styles.trafficTitle,
-            { color: isDarkMode ? '#F9FAFB' : '#111827' }
-          ]}>
-            Team Data
-          </Text>
-          <Text style={[
-            styles.trafficSubheader,
-            { color: isDarkMode ? '#9CA3AF' : '#6b7280' }
-          ]}>
-            Performance Overview
-          </Text>
-        </View>
-        
-        <View style={styles.metricsCompactGrid}>
-          {/* Events Attended */}
-          <View style={[styles.compactMetricCard]}>
-            <Text style={[styles.compactLabel, { color: isDarkMode ? '#D1D5DB' : '#374151' }]}>Events Attended</Text>
-            <Text style={[styles.compactValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{trafficData[0].value}</Text>
-          </View>
-
-          {/* Matches Played */}
-          <View style={[styles.compactMetricCard]}>
-            <Text style={[styles.compactLabel, { color: isDarkMode ? '#D1D5DB' : '#374151' }]}>Matches Played</Text>
-            <Text style={[styles.compactValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{trafficData[1].value}</Text>
-          </View>
-
-          {/* Wins with visual bar */}
-          <View style={[styles.compactMetricCard]}>
-            <View style={styles.compactHeader}>
-              <Text style={[styles.compactLabel, { color: isDarkMode ? '#D1D5DB' : '#374151' }]}>Wins</Text>
-              <View style={styles.winsValueRow}>
-                <Text style={[styles.compactValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{wins}</Text>
-                <Text style={[styles.winsTotal, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>/{matches?.length ?? 0}</Text>
-              </View>
-            </View>
-            {(() => {
-              const winPct = matches?.length ? (wins / matches.length) * 100 : 0;
-              let winColor = '#ef4444';
-              if (winPct >= 60) winColor = '#10b981';
-              else if (winPct >= 40) winColor = '#facc15';
-              return (
-                <View style={[styles.winBarSmall, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#E5E7EB' }]}>
-                  <View 
-                    style={[
-                      styles.winBarFillSmall, 
-                      { 
-                        width: `${winPct}%`,
-                        backgroundColor: winColor
-                      }
-                    ]} 
-                  />
-                </View>
-              );
-            })()}
-          </View>
-
-          {/* Average Place with visual indicator */}
-          <View style={[styles.compactMetricCard]}>
-            <View style={styles.compactHeader}>
-              <Text style={[styles.compactLabel, { color: isDarkMode ? '#D1D5DB' : '#374151' }]}>Avg Place</Text>
-              <Text style={[styles.compactValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.averagePlace ?? '--'}</Text>
-            </View>
-            {(() => {
-              const place = teamInfo.averagePlace;
-              if (place == null) return null;
-              let badgeColor = '#ef4444';
-              let badgeLabel = 'Poor';
-              if (place <= 5) { 
-                badgeColor = '#10b981'; 
-                badgeLabel = 'Excellent'; 
-              } else if (place <= 10) { 
-                badgeColor = '#06b6d4'; 
-                badgeLabel = 'Good'; 
-              } else if (place <= 20) { 
-                badgeColor = '#f97316'; 
-                badgeLabel = 'Fair'; 
-              }
-              return (
-                <View style={[styles.placeBadge, { backgroundColor: badgeColor }]}>
-                  <Text style={styles.placeBadgeText}>{badgeLabel}</Text>
-                </View>
-              );
-            })()}
-          </View>
-        </View>
-
-        {/* Penalty Rank Box */}
-        <View style={[styles.penaltyBoxTop, { borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E5E7EB' }]}>
-          <View style={styles.rankRowsBottom}>
-            <View style={styles.rankItemBottom}>
-              <Text style={[styles.rankLabelSmall, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Penalty Rank</Text>
-              <Text style={[styles.rankValueSmall, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.penaltyRank ?? '--'}</Text>
-              <Text style={[styles.rankSubtext, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>{rankToPercentile(teamInfo.penaltyRank) != null ? `P${rankToPercentile(teamInfo.penaltyRank)}` : '--'}</Text>
-            </View>
-            <View style={styles.rankItemBottom}>
-              <Text style={[styles.rankLabelSmall, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Penalty OPR</Text>
-              <Text style={[styles.rankValueSmall, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{penaltyValue != null && !isNaN(penaltyValue) ? penaltyValue.toFixed(1) : '--'}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Ranks Box */}
-        <View style={[styles.ranksBoxBottom, { borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E5E7EB' }]}>
-          <View style={styles.rankHeader}>
-            <Text style={[styles.rankTitle, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>Ranks</Text>
-          </View>
-          <View style={styles.rankRowsBottom}>
-            <View style={styles.rankItemBottom}>
-              <Text style={[styles.rankLabelSmall, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Overall</Text>
-              <Text style={[styles.rankValueSmall, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.overallRank ?? '--'}</Text>
-              <Text style={[styles.rankSubtext, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>{rankToPercentile(teamInfo.overallRank) != null ? `P${rankToPercentile(teamInfo.overallRank)}` : '--'}</Text>
-            </View>
-            <View style={styles.rankItemBottom}>
-              <Text style={[styles.rankLabelSmall, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Auto</Text>
-              <Text style={[styles.rankValueSmall, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.autoRank ?? '--'}</Text>
-              <Text style={[styles.rankSubtext, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>{rankToPercentile(teamInfo.autoRank) != null ? `P${rankToPercentile(teamInfo.autoRank)}` : '--'}</Text>
-            </View>
-            <View style={styles.rankItemBottom}>
-              <Text style={[styles.rankLabelSmall, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Tele</Text>
-              <Text style={[styles.rankValueSmall, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.teleRank ?? '--'}</Text>
-              <Text style={[styles.rankSubtext, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>{rankToPercentile(teamInfo.teleRank) != null ? `P${rankToPercentile(teamInfo.teleRank)}` : '--'}</Text>
-            </View>
-            <View style={styles.rankItemBottom}>
-              <Text style={[styles.rankLabelSmall, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>End</Text>
-              <Text style={[styles.rankValueSmall, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{teamInfo.endgameRank ?? '--'}</Text>
-              <Text style={[styles.rankSubtext, { color: isDarkMode ? '#6B7280' : '#9CA3AF' }]}>{rankToPercentile(teamInfo.endgameRank) != null ? `P${rankToPercentile(teamInfo.endgameRank)}` : '--'}</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-  );
-
   const ChartContent = () => (
     <View style={[
       styles.graphContainer,
       screenWidth <= 820 && styles.graphContainerMobile,
-      {
-        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9F9FA',
-      }
+      { backgroundColor: th.c.surface, borderColor: th.c.border, borderWidth: 1 },
     ]}>
       <View style={[styles.tabRow, screenWidth <= 820 && styles.tabRowMobile]}>
         <View style={styles.tabs}>
@@ -327,11 +116,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
             >
               <Text style={[
                 activeTab === tab ? styles.activeTab : styles.inactiveTab,
-                {
-                  color: activeTab === tab 
-                    ? (isDarkMode ? '#F9FAFB' : '#000')
-                    : (isDarkMode ? '#6B7280' : '#9ca3af')
-                }
+                { color: activeTab === tab ? th.c.text : th.c.textFaint }
               ]}>
                 {tab}
               </Text>
@@ -341,29 +126,20 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
         {screenWidth > 820 && (
           <View style={[
             styles.divider,
-            { backgroundColor: isDarkMode ? '#4B5563' : '#d1d5db' }
+            { backgroundColor: th.c.border }
           ]} />
         )}
         <View style={[styles.legend, screenWidth <= 820 && styles.legendMobile]}>
           <View style={styles.legendItem}>
-            <View style={[
-              styles.circle, 
-              { backgroundColor: isDarkMode ? '#F9FAFB' : '#000' }
-            ]} />
-            <Text style={[
-              styles.legendLabel,
-              { color: isDarkMode ? '#F9FAFB' : '#000' }
-            ]}>
-              {screenWidth <= 820 ? 'Team' : 'Current Team'}
+            <View style={[styles.circle, { backgroundColor: th.c.accent }]} />
+            <Text style={[styles.legendLabel, { color: th.c.textMuted }]}>
+              {screenWidth <= 820 ? 'Team' : 'This team'}
             </Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.circle, { backgroundColor: 'rgba(59,130,246,0.4)' }]} />
-            <Text style={[
-              styles.legendLabel,
-              { color: isDarkMode ? '#F9FAFB' : '#000' }
-            ]}>
-              {screenWidth <= 820 ? 'Avg' : 'Average'}
+            <View style={[styles.circle, { backgroundColor: th.c.textFaint }]} />
+            <Text style={[styles.legendLabel, { color: th.c.textMuted }]}>
+              {screenWidth <= 820 ? 'Avg' : 'Field average'}
             </Text>
           </View>
         </View>
@@ -375,63 +151,47 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
             <ComposedChart data={matchData} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
               <defs>
                 <linearGradient id="currentGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={isDarkMode ? "#F9FAFB" : "#000"} stopOpacity={0.15} />
-                  <stop offset="95%" stopColor={isDarkMode ? "#F9FAFB" : "#000"} stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="averageGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="rgba(59, 130, 246, 0.4)" stopOpacity={0.1} />
-                  <stop offset="95%" stopColor="rgba(59, 130, 246, 0.4)" stopOpacity={0} />
+                  <stop offset="5%" stopColor={th.c.accent} stopOpacity={0.18} />
+                  <stop offset="95%" stopColor={th.c.accent} stopOpacity={0} />
                 </linearGradient>
               </defs>
               <XAxis
                 dataKey="name"
                 axisLine={false}
                 tickLine={false}
-                tick={{ 
-                  fontSize: 10, 
-                  fill: isDarkMode ? '#9CA3AF' : '#6b7280', 
-                  fontFamily: 'Arial' 
-                }}
+                tick={{ fontSize: 10, fill: th.c.textMuted, fontFamily: CHART_FONT }}
                 tickMargin={15}
                 interval={(matchData.length > 9) ? Math.ceil((matchData.length - 2) / 8) : 0}
               />
               <YAxis
                 axisLine={false}
                 tickLine={false}
-                tick={{ 
-                  fontSize: 10, 
-                  fill: isDarkMode ? '#9CA3AF' : '#6b7280', 
-                  fontFamily: 'Arial' 
-                }}
+                tick={{ fontSize: 10, fill: th.c.textMuted, fontFamily: CHART_FONT }}
                 tickCount={4}
                 tickMargin={15}
               />
               <Tooltip
                 content={<CustomTooltip />}
-                cursor={{
-                  stroke: isDarkMode ? '#4B5563' : '#d1d5db',
-                  strokeWidth: 1,
-                  strokeDasharray: '3 3',
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="current"
-                stroke={isDarkMode ? "#F9FAFB" : "#000"}
-                strokeWidth={2}
-                fill="url(#currentGradient)"
-                dot={false}
-                activeDot={{ r: 4, fill: isDarkMode ? "#F9FAFB" : "#000" }}
+                cursor={{ stroke: th.c.borderStrong, strokeWidth: 1, strokeDasharray: '3 3' }}
               />
               <Area
                 type="monotone"
                 dataKey="average"
-                stroke="rgba(59, 130, 246, 0.4)"
-                strokeWidth={1}
-                strokeDasharray="6 3"
-                fill="url(#averageGradient)"
+                stroke={th.c.textFaint}
+                strokeWidth={1.5}
+                strokeDasharray="5 4"
+                fill="none"
                 dot={false}
                 activeDot={false}
+              />
+              <Area
+                type="monotone"
+                dataKey="current"
+                stroke={th.c.accent}
+                strokeWidth={2.4}
+                fill="url(#currentGradient)"
+                dot={false}
+                activeDot={{ r: 4, fill: th.c.accent, stroke: th.c.surface, strokeWidth: 2 }}
               />
             </ComposedChart>
           </ResponsiveContainer>
@@ -440,48 +200,59 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     </View>
   );
 
+  const sideBySide = screenWidth > 820;
+
   return (
-    <View>
-      {screenWidth > 820 ? (
-        <View style={[
-          styles.section, 
-          { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff' }
-        ]}>
-          <ChartContent />
-          <TeamData />
-        </View>
-      ) : (
-        <View
-          style={[
-            styles.section,
-            styles.sectionMobile,
-            { backgroundColor: isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff' }
-          ]}
-        >
-          <ChartContent />
-          <TeamData />
-        </View>
-      )} 
+    <View style={[styles.section, !sideBySide && styles.sectionMobile]}>
+      <View style={styles.graphSlot}>
+        <ChartContent />
+      </View>
+      <View style={[styles.radarSlot, !sideBySide && styles.radarSlotMobile]}>
+        <TeamRadar teamInfo={teamInfo} matches={matches} wins={wins} year={year} />
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  tdCard: { borderWidth: 1, borderRadius: 16, padding: 18, gap: 12 },
+  tdTitle: { fontSize: 15, fontWeight: '700', letterSpacing: -0.2, marginBottom: 2 },
+  tdSub: { fontSize: 12, fontWeight: '600', marginBottom: 2 },
+  tdGroup: { gap: 9 },
+  tdDivider: { height: 1, marginVertical: 4 },
+  tdLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 20 },
+  tdLineLabel: { fontSize: 12.5, fontWeight: '500' },
+  tdVal: { fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  tdRank: { fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  tdPct: { fontSize: 11, fontWeight: '600', fontVariant: ['tabular-nums'], minWidth: 30, textAlign: 'right' },
+  winTrack: { width: 60, height: 6, borderRadius: 3, overflow: 'hidden' },
+  pill: { paddingHorizontal: 8, paddingVertical: 1, borderRadius: 999, borderWidth: 1 },
   section: {
     flexDirection: 'row',
     gap: 12.6,
     borderRadius: 16,
-    marginBottom: 22,
+    alignItems: 'stretch',
+  },
+  sectionMobile: {
+    flexDirection: 'column',
+    gap: 12.6,
+  },
+  graphSlot: {
+    flex: 1.55,
+    minWidth: 0,
+  },
+  radarSlot: {
+    flex: 1,
+    minWidth: 0,
+  },
+  radarSlotMobile: {
+    width: '100%',
   },
   graphContainer: {
     minWidth: 0,
     flex: 1,
     padding: 17,
     borderRadius: 16,
-  },
-  sectionMobile: {
-    flexDirection: 'column',
-    gap: 12.6,
   },
   chartWrapper: {
     borderRadius: 12.6,

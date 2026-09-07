@@ -1,11 +1,17 @@
 import { usePageTitleContext } from '@/app/_layout';
+import { Feather } from '@expo/vector-icons';
 import { ErrorState } from '@/components/shared/ErrorState';
+import { TableSkeleton } from '@/components/shared/Skeleton';
+import { MetaRow } from '@/components/shared/MetaRow';
+import { webTransition } from '@/components/shared/motion';
+import { Cell, CellView, HeadCell, TableEmpty, TableHead, TablePager, TableRow, TableShell, tableStyles } from '@/components/shared/Table';
+import { useTheme } from '@/components/shared/theme';
 import { YearSelector } from '@/components/shared/YearSelector';
 import { useDarkMode } from '@/context/DarkModeContext';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
+    Pressable,
     RefreshControl,
     ScrollView,
     StatusBar,
@@ -16,11 +22,8 @@ import {
     useWindowDimensions,
     View
 } from 'react-native';
-import Calendar from '../../assets/icons/calendar.svg';
 import Down from '../../assets/icons/caret-down.svg';
 import Check from '../../assets/icons/check-circle.svg';
-import Clock from '../../assets/icons/clock.svg';
-import MapPin from '../../assets/icons/map-pin.svg';
 import { BasicEventInfo, SupportedYear } from '@/api/utils/types';
 import { getEventsBasic } from '@/api/basic-event-service';
 
@@ -69,73 +72,40 @@ const useDebounce = (value: string, delay: number) => {
     return debouncedValue;
 };
 
-const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
+const STATUS_COLOR = { upcoming: '#3B82F6', ongoing: '#F59E0B', completed: '#059669' } as const;
+const STATUS_ORDER: Record<string, number> = { ongoing: 0, upcoming: 1, completed: 2 };
+
+/** Compact date for the events table — "Nov 8" rather than a long locale string. */
+function shortDate(ev: { date?: string; rawDate?: string }): string {
+  const raw = ev.rawDate || ev.date || '';
+  const d = new Date(raw);
+  if (!Number.isNaN(d.getTime())) {
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+  // fall back to the first date-ish token of whatever string we got
+  const m = (ev.date || '').match(/[A-Za-z]{3,}\.?\s?\d{1,2}/);
+  return m ? m[0].replace('.', '') : (ev.date || '').slice(0, 6);
+}
+
+const EventTemplate: React.FC<{ pageTitle: string; summary?: string }> = ({ pageTitle, summary }) => {
     const { width } = useWindowDimensions();
     const { isDarkMode } = useDarkMode();
+    const t = useTheme();
     const { setPageTitleInfo } = usePageTitleContext();
     const router = useRouter();
-
-    // Memoized Event Card Component
-    const EventCard = React.memo(({ 
-        event, 
-        getEventStatus, 
-        isDarkMode,
-        onPress
-    }: { 
-        event: BasicEventInfo; 
-        getEventStatus: (event: BasicEventInfo) => 'upcoming' | 'ongoing' | 'completed'; 
-        isDarkMode: boolean;
-        onPress?: () => void;
-    }) => {
-        const status = getEventStatus(event);
-        const cardBg = isDarkMode ? '#262626' : '#FFFFFF';
-        const borderColor = isDarkMode ? '#374151' : '#E5E7EB';
-        const textPrimary = isDarkMode ? '#F9FAFB' : '#111827';
-        const textSecondary = isDarkMode ? '#9CA3AF' : '#6B7280';
-
-        const statusColors: Record<'upcoming' | 'ongoing' | 'completed', { bg: string; text: string }> = {
-            upcoming: { bg: isDarkMode ? '#1E3A8A' : '#DBEAFE', text: isDarkMode ? '#93C5FD' : '#1E40AF' },
-            ongoing: { bg: isDarkMode ? '#065F46' : '#D1FAE5', text: isDarkMode ? '#34D399' : '#065F46' },
-            completed: { bg: isDarkMode ? '#4B5563' : '#E5E7EB', text: isDarkMode ? '#9CA3AF' : '#6B7280' },
-        };
-
-        return (
-            <View style={styles.cardWrapper}>
-                <TouchableOpacity activeOpacity={0.7} style={[styles.eventCard, { backgroundColor: cardBg, borderColor: borderColor }]} onPress={onPress}>
-                    <View style={styles.eventCardTop}>
-                        <View style={styles.eventHeader}>
-                            <Text style={[styles.eventName, { color: textPrimary }]} numberOfLines={2}>{event.name}</Text>
-                            <Text style={[styles.eventCode, { color: textSecondary }]}>{event.eventCode}</Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.eventDetails}>
-                        <View style={[styles.statusBanner, { backgroundColor: statusColors[status].bg }]}>
-                            <Text style={[styles.statusText, { color: statusColors[status].text }]}>{status.toUpperCase()}</Text>
-                        </View>
-                        <View style={styles.eventDetailRow}>
-                            <Calendar width={16} height={16} fill={textSecondary} />
-                            <Text style={[styles.eventDetailText, { color: textSecondary }]}>{event.date}</Text>
-                        </View>
-                        <View style={styles.eventDetailRow}>
-                            <MapPin width={16} height={16} fill={textSecondary} />
-                            <Text style={[styles.eventDetailText, { color: textSecondary }]} numberOfLines={1}>{event.location}</Text>
-                        </View>
-                    </View>
-                </TouchableOpacity>
-            </View>
-        );
-    });
 
     // State
     const [selectedYear, setSelectedYear] = useState<SupportedYear>(2025);
     const [events, setEvents] = useState<BasicEventInfo[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchFocused, setSearchFocused] = useState(false);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     const [page, setPage] = useState(0);
+    const [eventSort, setEventSort] = useState<'name' | 'status' | 'date'>('date');
+    const [eventSortAsc, setEventSortAsc] = useState(false);
 
     // Dropdown Visibility
     const [statusDropdownVisible, setStatusDropdownVisible] = useState(false);
@@ -214,11 +184,9 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
             if (pageTitle === 'Premier') {
                 // Premier events have codes starting with 'FPE'
                 matchesType = event.eventCode?.startsWith('FPE') || event.name?.toLowerCase().includes('premier') || event.type?.toLowerCase() === 'premier';
-                console.log('Premier page - checking event:', event.name, event.eventCode, event.type);
             } else if (pageTitle === 'Championships') {
                 // Championship events have codes starting with 'FRC' or contain 'championship'
                 matchesType = event.eventCode?.startsWith('FRC') || event.name?.toLowerCase().includes('championship') || event.type?.toLowerCase() === 'championship';
-                console.log('Championship page - checking event:', event.name, event.eventCode, event.type);
             }
             // For "All Events", show all types
 
@@ -236,18 +204,29 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
         });
     }, [events, debouncedSearchQuery, statusFilters, selectedMonth, pageTitle]);
 
-    // Debug: Log events and filtered events
-    useEffect(() => {
-      console.log('All events:', events);
-      console.log('Filtered events:', filteredEvents);
-      console.log('Page title:', pageTitle);
-    }, [events, filteredEvents, pageTitle]);
+
+    const sortedEvents = useMemo(() => {
+        const arr = [...filteredEvents];
+        arr.sort((a, b) => {
+            let cmp = 0;
+            if (eventSort === 'name') cmp = (a.name || '').localeCompare(b.name || '');
+            else if (eventSort === 'status') cmp = STATUS_ORDER[getEventStatus(a)] - STATUS_ORDER[getEventStatus(b)];
+            else cmp = new Date(a.rawDate || a.date || 0).getTime() - new Date(b.rawDate || b.date || 0).getTime();
+            return eventSortAsc ? cmp : -cmp;
+        });
+        return arr;
+    }, [filteredEvents, eventSort, eventSortAsc, getEventStatus]);
 
     const paginatedEvents = useMemo(() => {
-        return filteredEvents.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE);
-    }, [filteredEvents, page]);
+        return sortedEvents.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE);
+    }, [sortedEvents, page]);
 
-    const isSmallDevice = width < 768;
+    const sortEventsBy = (k: 'name' | 'status' | 'date') => {
+        if (eventSort === k) setEventSortAsc((v) => !v);
+        else { setEventSort(k); setEventSortAsc(k === 'name' || k === 'status'); }
+        setPage(0);
+    };
+
 
     if (error) {
         return <View style={styles.container}><ErrorState error={error} onRetry={() => fetchEvents(selectedYear)} /></View>;
@@ -265,136 +244,141 @@ const EventTemplate: React.FC<{ pageTitle: string }> = ({ pageTitle }) => {
                 <View style={styles.header}>
                     <Text style={[styles.title, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{pageTitle}</Text>
                     <Text style={[styles.subtitle, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>{GAME_NAMES[selectedYear]}</Text>
-                    <View style={[styles.metadataContent, isSmallDevice ? styles.metadataContentMobile : styles.metadataContentDesktop, styles.metadataContentRight]}>
-                        <View style={[styles.metadataItem, !isSmallDevice && styles.metadataItemDesktop]}>
-                            <View style={styles.iconContainer}><Calendar width={20} height={20} fill={isDarkMode ? '#9CA3AF' : '#6B7280'}/></View>
-                            <View>
-                                <Text style={[styles.metadataLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Events Loaded</Text>
-                                <Text style={[styles.metadataValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{loading ? 'Loading...' : filteredEvents.length.toLocaleString()}</Text>
-                            </View>
-                        </View>
-                        <View style={[styles.metadataItem, !isSmallDevice && styles.metadataItemDesktop]}>
-                            <View style={styles.iconContainer}><Clock width={20} height={20} fill={isDarkMode ? '#9CA3AF' : '#6B7280'}/></View>
-                            <View>
-                                <Text style={[styles.metadataLabel, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Last Updated</Text>
-                                <Text style={[styles.metadataValue, { color: isDarkMode ? '#F9FAFB' : '#111827' }]}>{lastUpdated?.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) || 'Loading...'}</Text>
-                            </View>
-                        </View>
-                    </View>
+                    {!!summary && (
+                        <Text style={{ fontSize: 13, lineHeight: 19, marginTop: 6, maxWidth: 620, color: '#8A94A3' }}>{summary}</Text>
+                    )}
+                    <MetaRow
+                        items={[
+                            { icon: 'calendar', label: 'Events Loaded', value: loading ? 'Loading…' : filteredEvents.length },
+                            { icon: 'radio', label: 'Ongoing', value: loading ? 'Loading…' : filteredEvents.filter((e) => getEventStatus(e) === 'ongoing').length },
+                            { icon: 'arrow-right-circle', label: 'Upcoming', value: loading ? 'Loading…' : filteredEvents.filter((e) => getEventStatus(e) === 'upcoming').length },
+                            { icon: 'check-circle', label: 'Completed', value: loading ? 'Loading…' : filteredEvents.filter((e) => getEventStatus(e) === 'completed').length },
+                            { icon: 'clock', label: 'Last Updated', value: lastUpdated?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'Loading…' },
+                        ]}
+                    />
                 </View>
 
                 <YearSelector selectedYear={selectedYear} availableYears={availableYears} onYearChange={(y) => {setSelectedYear(y); setPage(0);}} />
 
-                {loading ? (
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color={isDarkMode ? '#F9FAFB' : '#111827'} />
-                        <Text style={[styles.loadingText, { color: isDarkMode ? '#9CA3AF' : '#6B7280' }]}>Loading events data...</Text>
-                    </View>
-                ) : (
-                    <View style={[styles.eventsContainer, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#F9FAFB' }]}>
-                        <View style={[styles.filterRow, isSmallDevice && styles.filterRowMobile]}>
-                            <TextInput
-                                style={[styles.input, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#fff', borderColor: isDarkMode ? '#4B5563' : '#e5e7eb', color: isDarkMode ? '#fff' : '#000', outline: 'none' }, isSmallDevice && styles.inputMobile]}
-                                placeholder="Search by name, code, location, or date..."
-                                placeholderTextColor={isDarkMode ? '#9ca3af' : '#6b7280'}
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                            />
-                            
-                            <View style={[styles.filterButtons, isSmallDevice && styles.filterButtonsMobile]}>
-                                <TouchableOpacity onPress={() => setMonthDropdownVisible(!monthDropdownVisible)} 
-                                    style={[styles.dropdown, { backgroundColor: isDarkMode ? '#374151' : '#f3f4f6' }]}>
-                                    <Text style={[styles.dropdownText, { color: isDarkMode ? '#fff' : '#000' }]}>{selectedMonth === 'All' ? 'Month' : selectedMonth}</Text>
-                                    <Down height={14} width={14} fill={isDarkMode ? '#fff' : '#000'}/>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity onPress={() => setStatusDropdownVisible(!statusDropdownVisible)} 
-                                    style={[styles.dropdown, { backgroundColor: isDarkMode ? '#374151' : '#f3f4f6' }]}>
-                                    <Text style={[styles.dropdownText, { color: isDarkMode ? '#fff' : '#000' }]}>Filter</Text>
-                                    <Down height={14} width={14} fill={isDarkMode ? '#fff' : '#000'}/>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-
-                        {/* Backdrop for closing dropdowns on mobile */}
-                        {(monthDropdownVisible || statusDropdownVisible) && (
-                            <TouchableOpacity 
-                                style={styles.dropdownBackdrop}
-                                onPress={() => {
-                                    setMonthDropdownVisible(false);
-                                    setStatusDropdownVisible(false);
-                                }}
-                                activeOpacity={1}
-                            />
-                        )}
-
-                        {/* Month Selection Menu */}
-                        {monthDropdownVisible && (
-                            <View style={[styles.dropdownMenu, isSmallDevice && styles.dropdownMenuMobile, { 
-                                backgroundColor: isDarkMode ? 'rgba(61, 61, 61, 1)' : '#fff', 
-                                borderColor: isDarkMode ? '#4B5563' : '#e5e7eb', 
-                                ...(isSmallDevice ? { right: 'auto', left: 0, width: '35%' } : { right: 85, width: 140 })
-                            }]}>
-                                <ScrollView style={{ maxHeight: 250 }}>
-                                    {MONTHS.map(m => (
-                                        <TouchableOpacity key={m} style={styles.dropdownItem} onPress={() => {setSelectedMonth(m); setMonthDropdownVisible(false); setPage(0);}}>
-                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                                <Text style={{ fontWeight: selectedMonth === m ? 'bold' : 'normal', color: isDarkMode ? '#fff' : '#000' }}>{m}</Text>
-                                                {selectedMonth === m && <Check height={14} width={14} fill={isDarkMode ? '#fff' : '#000'}/>}
-                                            </View>
-                                        </TouchableOpacity>
-                                    ))}
-                                </ScrollView>
-                            </View>
-                        )}
-
-                        {/* Status Selection Menu */}
-                        {statusDropdownVisible && (
-                            <View style={[styles.dropdownMenu, isSmallDevice && styles.dropdownMenuMobile, { 
-                                backgroundColor: isDarkMode ? 'rgba(61, 61, 61, 1)' : '#fff', 
-                                borderColor: isDarkMode ? '#4B5563' : '#e5e7eb', 
-                                ...(isSmallDevice ? { right: 0, width: '35%' } : { right: 0, width: 160 })
-                            }]}>
-                                {['upcoming', 'ongoing', 'completed'].map(s => (
-                                    <TouchableOpacity key={s} style={styles.dropdownItem} onPress={() => {
-                                        const next = statusFilters.includes(s) ? statusFilters.filter(v => v !== s) : [...statusFilters, s];
-                                        if(next.length > 0) { setStatusFilters(next); setPage(0); }
-                                    }}>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                            <Text style={{ fontWeight: statusFilters.includes(s) ? 'bold' : 'normal', color: isDarkMode ? '#fff' : '#000', textTransform: 'capitalize' }}>{s}</Text>
-                                            {statusFilters.includes(s) && <Check height={14} width={14} fill={isDarkMode ? '#fff' : '#000'}/>}
-                                        </View>
+                {(
+                    <TableShell
+                        controls={
+                            <>
+                                <View
+                                    style={[
+                                        tableStyles.filterInput,
+                                        webTransition('border-color'),
+                                        { backgroundColor: t.c.field, borderColor: searchFocused ? t.c.accent : t.c.border },
+                                    ]}
+                                >
+                                    <Feather name="search" size={13} color={searchFocused ? t.c.accent : t.c.textMuted} />
+                                    <TextInput
+                                        style={[tableStyles.filterInputText, { color: t.c.text }]}
+                                        placeholder="Search name, code, location…"
+                                        placeholderTextColor={t.c.textMuted}
+                                        value={searchQuery}
+                                        onChangeText={setSearchQuery}
+                                        onFocus={() => setSearchFocused(true)}
+                                        onBlur={() => setSearchFocused(false)}
+                                    />
+                                    {searchQuery.length > 0 && (
+                                        <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+                                            <Feather name="x" size={12} color={t.c.textMuted} />
+                                        </Pressable>
+                                    )}
+                                </View>
+                                <View style={{ position: 'relative', zIndex: 50 }}>
+                                    <TouchableOpacity onPress={() => setMonthDropdownVisible(!monthDropdownVisible)}
+                                        style={[tableStyles.actionBtn, { backgroundColor: t.c.bgSubtle, borderColor: t.c.border }]}>
+                                        <Text style={[tableStyles.actionBtnText, { color: t.c.text }]}>{selectedMonth === 'All' ? 'Month' : selectedMonth}</Text>
+                                        <Down height={12} width={12} fill={t.c.textMuted} />
                                     </TouchableOpacity>
-                                ))}
+                                    {monthDropdownVisible && (
+                                        <View style={[styles.menu, t.shadow.pop, { backgroundColor: t.c.raised, borderColor: t.c.border, right: 0, width: 150 }]}>
+                                            <ScrollView style={{ maxHeight: 260 }}>
+                                                {MONTHS.map(m => (
+                                                    <TouchableOpacity key={m} style={styles.menuItem} onPress={() => { setSelectedMonth(m); setMonthDropdownVisible(false); setPage(0); }}>
+                                                        <Text style={{ fontWeight: selectedMonth === m ? '600' : '400', color: t.c.text, fontSize: 13 }}>{m}</Text>
+                                                        {selectedMonth === m && <Check height={13} width={13} fill={t.c.accent} />}
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </ScrollView>
+                                        </View>
+                                    )}
+                                </View>
+                                <View style={{ position: 'relative', zIndex: 50 }}>
+                                    <TouchableOpacity onPress={() => setStatusDropdownVisible(!statusDropdownVisible)}
+                                        style={[tableStyles.actionBtn, { backgroundColor: t.c.bgSubtle, borderColor: t.c.border }]}>
+                                        <Text style={[tableStyles.actionBtnText, { color: t.c.text }]}>Status</Text>
+                                        <Down height={12} width={12} fill={t.c.textMuted} />
+                                    </TouchableOpacity>
+                                    {statusDropdownVisible && (
+                                        <View style={[styles.menu, t.shadow.pop, { backgroundColor: t.c.raised, borderColor: t.c.border, right: 0, width: 160 }]}>
+                                            {['upcoming', 'ongoing', 'completed'].map(s => (
+                                                <TouchableOpacity key={s} style={styles.menuItem} onPress={() => {
+                                                    const next = statusFilters.includes(s) ? statusFilters.filter(v => v !== s) : [...statusFilters, s];
+                                                    if (next.length > 0) { setStatusFilters(next); setPage(0); }
+                                                }}>
+                                                    <Text style={{ fontWeight: statusFilters.includes(s) ? '600' : '400', color: t.c.text, fontSize: 13, textTransform: 'capitalize' }}>{s}</Text>
+                                                    {statusFilters.includes(s) && <Check height={13} width={13} fill={t.c.accent} />}
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    )}
+                                </View>
+                            </>
+                        }
+                        footer={
+                            <TablePager
+                                page={page}
+                                totalPages={Math.max(1, Math.ceil(filteredEvents.length / ITEMS_PER_PAGE))}
+                                onPage={setPage}
+                                label={`${filteredEvents.length} event${filteredEvents.length === 1 ? '' : 's'}`}
+                            />
+                        }
+                    >
+                        <TableHead>
+                            <HeadCell label="Event" flex={2.6} sortable active={eventSort === 'name'} dir={eventSortAsc ? 'asc' : 'desc'} onPress={() => sortEventsBy('name')} />
+                            <HeadCell label="Status" flex={1} sortable active={eventSort === 'status'} dir={eventSortAsc ? 'asc' : 'desc'} onPress={() => sortEventsBy('status')} />
+                            <HeadCell label="Location" flex={1.6} align="right" />
+                            <HeadCell label="Date" flex={0.9} align="right" sortable active={eventSort === 'date'} dir={eventSortAsc ? 'asc' : 'desc'} onPress={() => sortEventsBy('date')} />
+                        </TableHead>
+
+                        {loading && paginatedEvents.length === 0 ? (
+                            <TableSkeleton rows={8} />
+                        ) : paginatedEvents.length === 0 ? (
+                            <TableEmpty icon="calendar" text="No events match your filters" />
+                        ) : (
+                            <View style={loading ? { opacity: 0.4 } : undefined} pointerEvents={loading ? 'none' : 'auto'}>
+                            {paginatedEvents.map((event, idx) => {
+                                const status = getEventStatus(event);
+                                return (
+                                    <TableRow
+                                        key={event.eventCode || idx}
+                                        first={idx === 0}
+                                        last={idx === paginatedEvents.length - 1}
+                                        onPress={() => router.push(`/analytics/events/${event.eventCode}?year=${selectedYear}` as any)}
+                                    >
+                                        <CellView flex={2.6} style={{ minWidth: 0 }}>
+                                            <View style={{ flex: 1, minWidth: 0 }}>
+                                                <Text style={[styles.evName, { color: t.c.text }]} numberOfLines={1}>{event.name}</Text>
+                                                <Text style={[styles.evCode, { color: t.c.textFaint }]} numberOfLines={1}>{event.eventCode}</Text>
+                                            </View>
+                                        </CellView>
+                                        <CellView flex={1}>
+                                            <View style={[styles.evStatus, { borderColor: STATUS_COLOR[status] }]}>
+                                                <View style={[styles.evDot, { backgroundColor: STATUS_COLOR[status] }]} />
+                                                <Text style={{ color: STATUS_COLOR[status], fontSize: 10.5, fontWeight: '700', textTransform: 'capitalize' }}>{status}</Text>
+                                            </View>
+                                        </CellView>
+                                        <Cell flex={1.6} align="right" tone="muted">{event.location}</Cell>
+                                        <Cell flex={0.9} align="right" tone="faint" style={{ fontSize: 11.5 }}>{shortDate(event)}</Cell>
+                                    </TableRow>
+                                );
+                            })}
                             </View>
                         )}
-
-                        <View style={styles.eventsGrid}>
-                            {paginatedEvents.map((event, idx) => (
-                                <EventCard 
-                                    key={event.eventCode || idx} 
-                                    event={event} 
-                                    getEventStatus={getEventStatus} 
-                                    isDarkMode={isDarkMode}
-                                    onPress={() => router.push(`/analytics/events/${event.eventCode}?year=${selectedYear}`)}
-                                />
-                            ))}
-                        </View>
-                        
-                        <View style={styles.footer}>
-                            <Text style={[styles.selectionText, { color: isDarkMode ? '#9ca3af' : '#6b7280' }]}>
-                                {filteredEvents.length} events found. Page {page + 1} of {Math.ceil(filteredEvents.length / ITEMS_PER_PAGE) || 1}
-                            </Text>
-                            <View style={styles.pagination}>
-                                <TouchableOpacity disabled={page === 0} onPress={() => setPage(p => p - 1)} style={[styles.pageBtn, { backgroundColor: isDarkMode ? '#374151' : '#f3f4f6', opacity: page === 0 ? 0.5 : 1 }]}>
-                                    <Text style={{ color: isDarkMode ? '#fff' : '#000' }}>Previous</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity disabled={page >= Math.ceil(filteredEvents.length / ITEMS_PER_PAGE) - 1} onPress={() => setPage(p => p + 1)} style={[styles.pageBtn, { backgroundColor: isDarkMode ? '#374151' : '#f3f4f6', opacity: page >= Math.ceil(filteredEvents.length / ITEMS_PER_PAGE) - 1 ? 0.5 : 1 }]}>
-                                    <Text style={{ color: isDarkMode ? '#fff' : '#000' }}>Next</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </View>
+                    </TableShell>
                 )}
             </ScrollView>
         </View>
@@ -449,7 +433,7 @@ const styles = StyleSheet.create({
     eventCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     eventHeader: { flex: 1, marginRight: 8 },
     eventName: { fontSize: 16, fontWeight: '700', marginBottom: 3 },
-    eventCode: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase' },
+    eventCode: { fontSize: 11, fontWeight: '600' },
     eventDetails: { gap: 5 },
     statusBanner: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4, alignSelf: 'flex-start', marginBottom: 4 },
     statusText: { fontSize: 9, fontWeight: '700' },
@@ -459,6 +443,12 @@ const styles = StyleSheet.create({
     selectionText: { fontSize: 10 },
     pagination: { flexDirection: 'row', gap: 8 },
     pageBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
+    menu: { position: 'absolute', top: 42, borderWidth: 1, borderRadius: 12, zIndex: 30, paddingVertical: 4, minWidth: 150 },
+    menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 9 },
+    evName: { fontSize: 13.5, fontWeight: '600', textAlign: 'left', writingDirection: 'ltr' },
+    evCode: { fontSize: 10.5, fontWeight: '600', marginTop: 1, letterSpacing: 0.3, textAlign: 'left', writingDirection: 'ltr' },
+    evStatus: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, borderWidth: 1 },
+    evDot: { width: 5, height: 5, borderRadius: 3 },
 });
 
 export default EventTemplate;

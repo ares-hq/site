@@ -1,4 +1,5 @@
 import { getCachedMatchScoreDetails } from '@/api/match-scores';
+import { routeFromSeason } from '@/api/utils/seasons';
 import { EventInfo, MatchInfo, SupportedYear } from '@/api/utils/types';
 import CalendarIcon from '@/assets/icons/calendar.svg';
 import LocationIcon from '@/assets/icons/map-pin.svg';
@@ -49,13 +50,7 @@ export default function EventCard({ eventData, teamNumber, seasonYear }: UserGra
   const [matchScoreDetails, setMatchScoreDetails] = useState<any>(null);
   const [matchScoreLoading, setMatchScoreLoading] = useState<Record<string, boolean>>({});
 
-  const getRoutePath = (year: SupportedYear) => {
-    const routePaths: Record<SupportedYear, string> = {
-      2019: 'rise', 2020: 'forward', 2021: 'gamechangers',
-      2022: 'energize', 2023: 'inshow', 2024: 'intothedeep', 2025: 'age',
-    };
-    return routePaths[year] || 'age';
-  };
+  const getRoutePath = routeFromSeason;
 
   const getEventStatus = (dateStr?: string) => {
     if (!dateStr) return { label: 'Unknown', color: '#9CA3AF', isLive: false };

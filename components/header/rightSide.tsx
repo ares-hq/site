@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useDarkMode } from '@/context/DarkModeContext';
+import { webTransition } from '@/components/shared/motion';
+import { DEFAULT_SEASON, seasonFromRoute } from '@/api/utils/seasons';
 import { useGlobalSearchParams, usePathname, useRouter } from 'expo-router';
 import Refresh from '../../assets/icons/arrow-clockwise.svg';
-import House from '../../assets/icons/house.svg';
 import Sun from '../../assets/icons/sun.svg';
 import SearchDropdown from './search';
 
@@ -26,7 +27,9 @@ const HoverIcon = ({
       onPress={onPress}
       style={[
         styles.iconWrapper,
+        webTransition('background-color, transform'),
         hovered && (isDarkMode ? styles.iconHoveredDark : styles.iconHoveredLight),
+        hovered && { transform: [{ scale: 1.08 }] },
       ]}
     >
       {children}
@@ -41,19 +44,8 @@ const RightSide = () => {
   const params = useGlobalSearchParams();
   const teamnumber = params.teamnumber ? parseInt(params.teamnumber as string, 10) : NaN;
 
-  // Determine current year based on the dashboard route
-  const getCurrentYear = (): 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 => {
-    if (pathname.includes('/rise')) return 2019;
-    if (pathname.includes('/forward')) return 2020;
-    if (pathname.includes('/gameChangers')) return 2021;
-    if (pathname.includes('/energize')) return 2022;
-    if (pathname.includes('/inShow')) return 2023;
-    if (pathname.includes('/intothedeep')) return 2024;
-    if (pathname.includes('/age')) return 2025;
-    return 2025; // Default fallback
-  };
-
-  const currentYear = getCurrentYear();
+  // Season currently being viewed (from the dashboard route), defaulting to the latest.
+  const currentYear = seasonFromRoute(pathname) ?? DEFAULT_SEASON;
 
   let fullPath = pathname;
   if (!isNaN(teamnumber)) {
@@ -64,7 +56,7 @@ const RightSide = () => {
     <View style={styles.container}>
       <View style={styles.search}>
         <SearchDropdown
-          year={2025}
+          year={currentYear}
           zIndex={999999}
         />
       </View>
@@ -76,10 +68,6 @@ const RightSide = () => {
       <HoverIcon isDarkMode={isDarkMode} onPress={() => router.replace(fullPath as any)}>
         <Refresh width={15} height={15} fill={isDarkMode ? '#fff' : '#000'}/>
       </HoverIcon>
-
-      {/* <HoverIcon isDarkMode={isDarkMode} onPress={() => router.replace('/')}>
-        <House width={15} height={15} fill={isDarkMode ? '#fff' : '#000'}/>
-      </HoverIcon> */}
     </View>
   );
 };

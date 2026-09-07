@@ -1,23 +1,11 @@
-import DataTable from '@/components/graphs/teamTables';
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import MatchAnalyticsTemplate from '@/components/templates/MatchAnalyticsTemplate';
 
-const MRanks = () => (
-  <View style={styles.container}>
-    <Text style={styles.text}>M Ranks — Coming Soon</Text>
-  </View>
-);
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  text: {
-    fontSize: 18,
-    color: '#9ca3af',
-  },
-});
-
-export default MRanks;
+export default function MRanks() {
+  return (
+    <MatchAnalyticsTemplate
+      pageTitle="All Match Rankings"
+      filter="all"
+      blurb="Every alliance result of the season, ranked by score. Scroll for the record book; the tiles above summarise the whole field."
+    />
+  );
+}

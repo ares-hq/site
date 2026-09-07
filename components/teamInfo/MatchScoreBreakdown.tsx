@@ -1,5 +1,6 @@
 import { MatchInfo } from '@/api/utils/types';
-import { useDarkMode } from '@/context/DarkModeContext';
+import { useTheme } from '@/components/shared/theme';
+import { Feather } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 
@@ -9,14 +10,26 @@ interface MatchScoreBreakdownProps {
   loadingScores: boolean;
 }
 
+// Alliance readout colours — match the shared TeamPill palette.
+const ALLIANCE = {
+  red: { light: '#DC2626', dark: '#F87171' },
+  blue: { light: '#2563EB', dark: '#60A5FA' },
+} as const;
+
 export default function MatchScoreBreakdown({
   match,
   matchScoreDetails,
   loadingScores,
 }: MatchScoreBreakdownProps) {
-  const { isDarkMode } = useDarkMode();
+  const t = useTheme();
+  const c = t.c;
+  const isDarkMode = t.isDark;
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+
+  const redText = isDarkMode ? ALLIANCE.red.dark : ALLIANCE.red.light;
+  const blueText = isDarkMode ? ALLIANCE.blue.dark : ALLIANCE.blue.light;
+
   // Only auto-expand Point Totals by default
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set([
     'Point Totals'
@@ -68,8 +81,6 @@ export default function MatchScoreBreakdown({
 
   // Filter point totals based on season
   const getRelevantPointTotals = (season: number): string[] => {
-    const allPointTotals = ['totalPoints', 'autoPoints', 'dcPoints', 'teleopPoints', 'driverControlledPoints', 'endgamePoints', 'endGamePoints', 'prePenaltyTotal', 'preFoulTotal'];
-    
     // For practice matches, only show total points (no auto points)
     if (isPracticeMatch) {
       return ['totalPoints'];
@@ -379,8 +390,8 @@ export default function MatchScoreBreakdown({
       const sequence = flattened.map(item => abbreviations[item] || item.charAt(0)).join('');
       
       // Truncate if too long for display
-      const maxLength = 12;
-      const display = sequence.length > maxLength ? sequence.substring(0, maxLength) + '...' : sequence;
+      const maxLength = 10;
+      const display = sequence.length > maxLength ? sequence.substring(0, maxLength) + '…' : sequence;
       
       return { display };
     }
@@ -440,21 +451,17 @@ export default function MatchScoreBreakdown({
     return { display: strValue };
   };
 
-  const renderCategory = (category: any) => {
+  const valW = isMobile ? 92 : 118;
+
+  const renderCategory = (category: any, catIdx: number) => {
     const fieldsToRender = category.fields.filter((field: string) => {
       const redValue = redData?.[field];
       const blueValue = blueData?.[field];
-      
+
       // While loading, show all fields for this season/year
-      if (loadingScores) {
-        return true;
-      }
-      
+      if (loadingScores) return true;
       // Always show Penalties & Fouls fields, even if no data
-      if (category.title === 'Penalties & Fouls') {
-        return true;
-      }
-      
+      if (category.title === 'Penalties & Fouls') return true;
       // After loading, only show fields where at least one alliance has data
       return (redValue !== undefined && redValue !== null) || (blueValue !== undefined && blueValue !== null);
     });
@@ -462,110 +469,68 @@ export default function MatchScoreBreakdown({
     if (fieldsToRender.length === 0 && category.title !== 'Penalties & Fouls') return null;
 
     const isExpanded = expandedCategories.has(category.title);
+    const emphasise = !!category.highlight;
 
-    // All categories are now expandable
     return (
-      <View key={category.title} style={[styles.category, { gap: isMobile ? 2 : 3 }]}>
-        <TouchableOpacity 
-          style={[styles.categoryHeader, { 
-            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-            paddingVertical: isMobile ? 4 : 6,
-            paddingHorizontal: isMobile ? 6 : 8,
-          }]}
+      <View key={category.title} style={styles.category}>
+        <TouchableOpacity
+          style={styles.categoryHeader}
           onPress={() => toggleCategory(category.title)}
-          activeOpacity={0.7}
+          activeOpacity={0.6}
         >
-          <Text style={[styles.categoryTitle, { 
-            color: category.color,
-            fontSize: isMobile ? 10 : 11,
-          }]}>
+          <Text style={[styles.categoryTitle, { color: c.text, fontSize: isMobile ? 12 : 12.5 }]}>
             {category.title}
           </Text>
-          <View style={[styles.dropdownIcon, { 
-            width: isMobile ? 16 : 18,
-            height: isMobile ? 16 : 18,
-          }]}>
-            <Text style={[styles.dropdownArrow, { 
-              color: category.color,
-              fontSize: isMobile ? 10 : 12,
-              transform: [{ rotate: isExpanded ? '90deg' : '0deg' }],
-            }]}>
-              ›
-            </Text>
-          </View>
+          <Feather
+            name="chevron-down"
+            size={14}
+            color={c.textFaint}
+            style={{ transform: [{ rotate: isExpanded ? '180deg' : '0deg' }] }}
+          />
         </TouchableOpacity>
-        {isExpanded && fieldsToRender.map((field: string) => {
-          const redValue = redData?.[field];
-          const blueValue = blueData?.[field];
-          const redFormatted = formatValue(redValue, field);
-          const blueFormatted = formatValue(blueValue, field);
-          
-          const redBgColor = isDarkMode ? 'rgba(239, 68, 68, 0.15)' : 'rgba(220, 38, 38, 0.1)';
-          const blueBgColor = isDarkMode ? 'rgba(59, 130, 246, 0.15)' : 'rgba(37, 99, 235, 0.1)';
-          
-          return (
-            <View key={field} style={[styles.statRow, category.highlight && styles.highlightRow, {
-              paddingVertical: isMobile ? 2 : 3,
-              paddingHorizontal: isMobile ? 2 : 4,
-            }]}>
-              <Text style={[styles.statLabel, { 
-                color: isDarkMode ? '#9CA3AF' : '#6B7280',
-                fontSize: isMobile ? 9 : 10,
-                marginRight: isMobile ? 6 : 8,
-              }]} numberOfLines={1}>
-                {formatLabel(field)}
-              </Text>
-              <View style={[styles.valuesContainer, { gap: isMobile ? 4 : 6 }]}>
-                <View style={[styles.valueCell, { 
-                  backgroundColor: redBgColor, 
-                  borderWidth: 1, 
-                  borderColor: isDarkMode ? 'rgba(239, 68, 68, 0.3)' : 'rgba(220, 38, 38, 0.2)',
-                  paddingHorizontal: isMobile ? 4 : 6,
-                  paddingVertical: isMobile ? 2 : 3,
-                  width: isMobile ? 80 : 105,
-                }]}>
-                  <Text style={[styles.statValue, { 
-                    color: redFormatted.color || (isDarkMode ? '#FCA5A5' : '#DC2626'), 
-                    fontSize: isMobile ? 9 : 10,
-                  }, category.highlight && styles.highlightValue]}>
-                    {redFormatted.display}
-                  </Text>
-                </View>
-                <View style={[styles.valueCell, { 
-                  backgroundColor: blueBgColor, 
-                  borderWidth: 1, 
-                  borderColor: isDarkMode ? 'rgba(59, 130, 246, 0.3)' : 'rgba(37, 99, 235, 0.2)',
-                  paddingHorizontal: isMobile ? 4 : 6,
-                  paddingVertical: isMobile ? 2 : 3,
-                  width: isMobile ? 80 : 105,
-                }]}>
-                  <Text style={[styles.statValue, { 
-                    color: blueFormatted.color || (isDarkMode ? '#93C5FD' : '#2563EB'),
-                    fontSize: isMobile ? 9 : 10,
-                  }, category.highlight && styles.highlightValue]}>
-                    {blueFormatted.display}
-                  </Text>
-                </View>
+        {catIdx < categories.length - 1 && (
+          <View style={[styles.catDivider, { backgroundColor: c.border }]} />
+        )}
+
+        {isExpanded &&
+          fieldsToRender.map((field: string, idx: number) => {
+            const redFormatted = formatValue(redData?.[field], field);
+            const blueFormatted = formatValue(blueData?.[field], field);
+            return (
+              <View
+                key={field}
+                style={[styles.statRow, idx % 2 === 1 && { backgroundColor: c.bgSubtle }]}
+              >
+                <Text style={[styles.statLabel, { color: c.textMuted }]} numberOfLines={1}>
+                  {formatLabel(field)}
+                </Text>
+                <Text
+                  style={[styles.statValue, { width: valW, color: redFormatted.color || redText, fontWeight: emphasise ? '700' : '600' }]}
+                  numberOfLines={1}
+                >
+                  {redFormatted.display}
+                </Text>
+                <Text
+                  style={[styles.statValue, { width: valW, color: blueFormatted.color || blueText, fontWeight: emphasise ? '700' : '600' }]}
+                  numberOfLines={1}
+                >
+                  {blueFormatted.display}
+                </Text>
               </View>
-            </View>
-          );
-        })}
+            );
+          })}
       </View>
     );
   };
 
   return (
-    <View style={[
-      styles.scoreBreakdown,
-      {
-        borderTopWidth: 0,
-        borderBottomWidth: 1,
-        borderBottomColor: isDarkMode ? '#374151' : '#E5E7EB',
-        paddingHorizontal: isMobile ? 8 : 12,
-        paddingVertical: isMobile ? 6 : 8,
-      }
-    ]}>
-      <View style={[styles.categoriesContainer, { gap: isMobile ? 6 : 8 }]}>
+    <View style={[styles.scoreBreakdown, { borderBottomColor: c.hairline }]}>
+      <View style={[styles.colHead, { borderBottomColor: c.border }]}>
+        <View style={{ flex: 1 }} />
+        <Text style={[styles.colHeadTxt, { width: valW, color: redText }]}>Red</Text>
+        <Text style={[styles.colHeadTxt, { width: valW, color: blueText }]}>Blue</Text>
+      </View>
+      <View style={styles.categoriesContainer}>
         {categories.map(renderCategory)}
       </View>
     </View>
@@ -574,73 +539,59 @@ export default function MatchScoreBreakdown({
 
 const styles = StyleSheet.create({
   scoreBreakdown: {
-    // Responsive padding handled inline
+    borderBottomWidth: 1,
+    paddingTop: 2,
+    paddingBottom: 6,
+    width: '100%',
+  },
+  colHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingBottom: 9,
+    borderBottomWidth: 1,
+  },
+  colHeadTxt: {
+    paddingHorizontal: 7,
+    textAlign: 'right',
+    fontSize: 11,
+    fontWeight: '700',
   },
   categoriesContainer: {
-    // Responsive gap handled inline
+    gap: 4,
+    marginTop: 2,
   },
-  category: {
-    // Responsive gap handled inline
-  },
+  category: {},
   categoryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 6,
-    marginHorizontal: -2,
-    // Responsive padding handled inline
+    minHeight: 40,
+    paddingHorizontal: 12,
   },
   categoryTitle: {
     fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    // Responsive fontSize handled inline
-  },
-  dropdownIcon: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    // Responsive dimensions handled inline
-  },
-  dropdownArrow: {
-    fontWeight: '600',
-    // Responsive fontSize and transform handled inline
   },
   statRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 4,
-    marginHorizontal: 2,
-    // Responsive padding handled inline
+    minHeight: 36,
+    paddingHorizontal: 12,
+    borderRadius: 6,
   },
+  catDivider: { height: 1, marginHorizontal: 12 },
   statLabel: {
-    fontWeight: '500',
-    flex: 2,
-    // Responsive fontSize and margin handled inline
-  },
-  valuesContainer: {
-    flexDirection: 'row',
     flex: 1,
-    justifyContent: 'flex-end',
-    // Responsive gap handled inline
-  },
-  valueCell: {
-    borderRadius: 4,
-    alignItems: 'center',
-    // Responsive padding and width handled inline
+    paddingHorizontal: 7,
+    fontSize: 13,
+    fontWeight: '500',
   },
   statValue: {
+    paddingHorizontal: 7,
+    textAlign: 'right',
+    fontSize: 13,
     fontWeight: '600',
-    textAlign: 'center',
-    // Responsive fontSize handled inline
-  },
-  highlightRow: {
-    backgroundColor: 'rgba(245, 158, 11, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.2)',
-  },
-  highlightValue: {
-    fontWeight: '700',
-    // Responsive fontSize handled inline
+    fontVariant: ['tabular-nums'],
   },
 });
 

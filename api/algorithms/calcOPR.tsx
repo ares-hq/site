@@ -134,3 +134,30 @@ export function calculateTeamOPR(matches: MatchInfo[], teamNumber: number): numb
     return 0;
   }
 }
+
+/**
+ * Solves for every team's OPR in a single least-squares pass — far cheaper
+ * than calling calculateTeamOPR once per team.
+ */
+export function calculateAllOPRs(matches: MatchInfo[]): Map<number, number> {
+  const result = new Map<number, number>();
+  if (!matches || matches.length === 0) return result;
+
+  const builder = new MatrixBuilder(matches);
+  builder.createBinaryAndScoreMatrices();
+
+  const A = builder.getBinaryMatrix();
+  const b = builder.getScoreMatrix().map(v => [v]);
+  const teamList = builder.getTeams();
+
+  try {
+    const x = MatrixMath.LSE(A, b);
+    teamList.forEach((team, idx) => {
+      const val = x[idx]?.[0];
+      if (Number.isFinite(val)) result.set(Number(team), Number(val.toFixed(2)));
+    });
+  } catch (err) {
+    console.error('Bulk OPR calculation failed:', err);
+  }
+  return result;
+}

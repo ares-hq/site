@@ -1,22 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import MatchAnalyticsTemplate from '@/components/templates/MatchAnalyticsTemplate';
 
-const Qual = () => (
-  <View style={styles.container}>
-    <Text style={styles.text}>Qualifiers — Coming Soon</Text>
-  </View>
-);
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  text: {
-    fontSize: 18,
-    color: '#9ca3af',
-  },
-});
-
-export default Qual;
+export default function Qual() {
+  return (
+    <MatchAnalyticsTemplate
+      pageTitle="Qualifier Match Rankings"
+      filter="QUALIFICATION"
+      blurb="Qualification-round scoring across the season — where OPR is earned. The leaderboard shows the biggest qual alliances."
+    />
+  );
+}

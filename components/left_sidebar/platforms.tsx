@@ -1,5 +1,6 @@
-import { useDarkMode } from '@/context/DarkModeContext';
-import { useRouter } from 'expo-router';
+import { webTransition } from '@/components/shared/motion';
+import { useTheme } from '@/components/shared/theme';
+import { usePathname, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Pressable,
@@ -17,42 +18,31 @@ type PlatformsProps = {
 
 const Platforms = ({ close, isMobile }: PlatformsProps) => {
   const router = useRouter();
-  const { isDarkMode } = useDarkMode();
+  const pathname = usePathname();
+  const t = useTheme();
+  const iconColor = t.c.text;
 
-  const backgroundColor = isDarkMode ? 'rgba(42, 42, 42, 1)' : '#fff';
-  const titleColor = isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)';
-  const iconColor = isDarkMode ? '#fff' : '#000';
+  const nav = (path: string) => {
+    router.push(path as any);
+    if (isMobile) close?.();
+  };
 
   return (
-    <View style={[styles.sidebar, { backgroundColor }]}>
-      <Text style={[styles.sectionTitle, { color: titleColor }]}>Platforms</Text>
+    <View style={[styles.sidebar, { backgroundColor: t.c.bg }]}>
+      <Text style={[styles.sectionTitle, { color: t.c.textFaint }]}>Platforms</Text>
 
       <SidebarItem
         label="Discord Bot"
-        icon={
-          <View style={styles.teamIcons}>
-            <Robot width={18} height={18} fill={iconColor} />
-          </View>
-        }
-        onPress={() => {
-          router.push('/platforms/discord');
-          if (isMobile) close?.();
-        }}
-        isDarkMode={isDarkMode}
+        icon={<View style={styles.teamIcons}><Robot width={18} height={18} fill={pathname === '/platforms/discord' ? t.c.accent : iconColor} /></View>}
+        active={pathname === '/platforms/discord'}
+        onPress={() => nav('/platforms/discord')}
       />
 
       <SidebarItem
         label="Mobile App"
-        icon={
-          <View style={styles.teamIcons}>
-            <App width={18} height={18} fill={iconColor} />
-          </View>
-        }
-        onPress={() => {
-          router.push('/platforms/app');
-          if (isMobile) close?.();
-        }}
-        isDarkMode={isDarkMode}
+        icon={<View style={styles.teamIcons}><App width={18} height={18} fill={pathname === '/platforms/app' ? t.c.accent : iconColor} /></View>}
+        active={pathname === '/platforms/app'}
+        onPress={() => nav('/platforms/app')}
       />
     </View>
   );
@@ -61,20 +51,16 @@ const Platforms = ({ close, isMobile }: PlatformsProps) => {
 const SidebarItem = ({
   label,
   icon,
-  isSelected = false,
+  active = false,
   onPress,
-  isDarkMode,
 }: {
   label: string;
   icon?: React.ReactNode;
-  isSelected?: boolean;
+  active?: boolean;
   onPress?: () => void;
-  isDarkMode: boolean;
 }) => {
+  const t = useTheme();
   const [hovered, setHovered] = useState(false);
-
-  const hoverBg = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
-  const textColor = isDarkMode ? '#fff' : '#000';
 
   return (
     <Pressable
@@ -83,12 +69,13 @@ const SidebarItem = ({
       onHoverOut={() => setHovered(false)}
       style={[
         styles.item,
-        hovered && { backgroundColor: hoverBg, borderRadius: 13 },
+        webTransition('background-color'),
+        (hovered || active) && { backgroundColor: active ? t.c.accentSoft : t.c.rowHover },
       ]}
     >
       <View style={styles.iconLabel}>
         {icon ? icon : <View style={{ width: 16, height: 16, paddingLeft: 60 }} />}
-        <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+        <Text style={[styles.label, { color: active ? t.c.accentText : t.c.text, fontWeight: active ? '600' : '400' }]}>{label}</Text>
       </View>
     </Pressable>
   );
@@ -102,12 +89,14 @@ const styles = StyleSheet.create({
     marginBottom: 9,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 13,
+    fontWeight: '600',
     marginBottom: 9,
     paddingHorizontal: 13,
   },
   item: {
     paddingVertical: 9,
+    borderRadius: 13,
   },
   iconLabel: {
     flexDirection: 'row',

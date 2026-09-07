@@ -1,22 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import MatchAnalyticsTemplate from '@/components/templates/MatchAnalyticsTemplate';
 
-const Premier = () => (
-  <View style={styles.container}>
-    <Text style={styles.text}>Premier — Coming Soon</Text>
-  </View>
-);
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  text: {
-    fontSize: 18,
-    color: '#9ca3af',
-  },
-});
-
-export default Premier;
+export default function Premier() {
+  return (
+    <MatchAnalyticsTemplate
+      pageTitle="Premier Match Rankings"
+      filter="all"
+      blurb="The season's ceiling: the single highest-scoring alliance performances recorded at any event."
+    />
+  );
+}

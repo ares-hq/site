@@ -1,15 +1,25 @@
-// SearchDropdown.tsx
+// SearchDropdown.tsx — global team / event search used in the header.
 import { filterTeams } from '@/api/algorithms/filter';
 import { getEventsBasic } from '@/api/basic-event-service';
 import { getAllTeams } from '@/api/dashboardInfo';
+import { routeFromSeason } from '@/api/utils/seasons';
 import { SupportedYear } from '@/api/utils/types';
-import { useDarkMode } from '@/context/DarkModeContext';
+import { webTransition } from '@/components/shared/motion';
+import { useTheme } from '@/components/shared/theme';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  FlatList,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
-type ResultType = 'team' | 'event' | 'aux';
+type ResultType = 'team' | 'event';
 type Item = {
   id: string;
   type: ResultType;
@@ -22,296 +32,381 @@ type Item = {
 type Props = {
   year: SupportedYear;
   onSelectTeam?: (teamNumber: number) => void;
-  onSelectAux?: (id: 'analysts' | 'favorites' | 'watchlist' | 'stats') => void;
   placeholder?: string;
   maxResults?: number;
-  /** If your parent has other absolute layers, raise this. */
   zIndex?: number;
-  /** Optional style for the outer wrapper */
   style?: any;
 };
 
-const DEBOUNCE_MS = 160;
+const DEBOUNCE_MS = 140;
+const RECENTS_KEY = 'ares:recent-search';
+const MAX_RECENTS = 6;
+const isWeb = Platform.OS === 'web';
 
-const getRoutePath = (year: SupportedYear) => {
-  const routePaths: Record<SupportedYear, string> = {
-    2019: 'rise',
-    2020: 'forward', 
-    2021: 'gameChangers',
-    2022: 'energize',
-    2023: 'inShow',
-    2024: 'intothedeep',
-    2025: 'age',
-  };
-  return routePaths[year] || 'age';
-};
+const getRoutePath = routeFromSeason;
+
+function readRecents(): Item[] {
+  if (!isWeb || typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(RECENTS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.slice(0, MAX_RECENTS) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeRecents(items: Item[]) {
+  if (!isWeb || typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(RECENTS_KEY, JSON.stringify(items.slice(0, MAX_RECENTS)));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Split `text` on `query` (case-insensitive) and bold the matches. */
+function Highlight({ text, query, color, matchColor }: { text: string; query: string; color: string; matchColor: string }) {
+  const q = query.trim();
+  if (!q) return <Text style={{ color }}>{text}</Text>;
+  const lower = text.toLowerCase();
+  const lq = q.toLowerCase();
+  const parts: React.ReactNode[] = [];
+  let i = 0;
+  let key = 0;
+  while (i < text.length) {
+    const idx = lower.indexOf(lq, i);
+    if (idx === -1) {
+      parts.push(<Text key={key++} style={{ color }}>{text.slice(i)}</Text>);
+      break;
+    }
+    if (idx > i) parts.push(<Text key={key++} style={{ color }}>{text.slice(i, idx)}</Text>);
+    parts.push(
+      <Text key={key++} style={{ color: matchColor, fontWeight: '700' }}>
+        {text.slice(idx, idx + q.length)}
+      </Text>,
+    );
+    i = idx + q.length;
+  }
+  return <Text>{parts}</Text>;
+}
 
 const SearchDropdown: React.FC<Props> = ({
   year,
   onSelectTeam,
-  onSelectAux,
-  placeholder = 'Search...',
-  maxResults = 30,
+  placeholder = 'Search teams & events',
+  maxResults = 24,
   zIndex = 99999,
   style,
 }) => {
-  const { isDarkMode } = useDarkMode();
+  const t = useTheme();
   const router = useRouter();
+
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [hoveredIndex, setHoveredIndex] = useState(-1);
   const [results, setResults] = useState<Item[]>([]);
-  const [allTeamsData, setAllTeamsData] = useState<any[] | null>(null);
-  const [allEventsData, setAllEventsData] = useState<any[] | null>(null);
+  const [recents, setRecents] = useState<Item[]>([]);
+  const [teamsData, setTeamsData] = useState<any[] | null>(null);
+  const [eventsData, setEventsData] = useState<any[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
   const inputRef = useRef<TextInput>(null);
-  const listRef = useRef<FlatList<Item>>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => setRecents(readRecents()), []);
+
   useEffect(() => {
-    const preloadTeamsData = async () => {
-      // Always reload when year changes
-      setIsLoading(true);
-      try {
-        const [teams, events] = await Promise.all([
-          getAllTeams(year),
-          getEventsBasic(year, true)
-        ]);
-        setAllTeamsData(teams || []);
-        setAllEventsData(events || []);
-      } catch (error) {
-        console.error('Failed to preload teams/events data:', error);
-        setAllTeamsData([]);
-        setAllEventsData([]);
-      } finally {
-        setIsLoading(false);
-      }
+    let cancelled = false;
+    setIsLoading(true);
+    (async () => {
+      const [teams, events] = await Promise.all([
+        getAllTeams(year).catch(() => []),
+        getEventsBasic(year, true).catch(() => []),
+      ]);
+      if (cancelled) return;
+      setTeamsData(teams ?? []);
+      setEventsData(events ?? []);
+      setIsLoading(false);
+    })();
+    return () => {
+      cancelled = true;
     };
-    preloadTeamsData();
   }, [year]);
 
-  // THEME: Neutralized Dark Mode (Removed Blues)
-  const theme = {
-    bg: isDarkMode ? 'rgba(255,255,255,0.06)' : '#f3f4f6',
-    text: isDarkMode ? '#f9fafb' : '#111827',
-    sub: isDarkMode ? '#9ca3af' : '#6b7280',
-    hintBg: isDarkMode ? 'rgba(255,255,255,0.04)' : '#fff',
-    hintBorder: isDarkMode ? '#4b5563' : '#e5e7eb',
-    chipBg: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-    chipText: isDarkMode ? '#9ca3af' : '#6b7280',
-    // FIXED: Neutral grayscale hover instead of blue
-    rowHover: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-    border: isDarkMode ? '#4b5563' : '#e5e7eb',
-    panel: isDarkMode ? '#262626' : '#ffffff',
-  };
+  const runSearch = useCallback(
+    (q: string) => {
+      const trimmed = q.trim();
+      if (!trimmed) {
+        setResults([]);
+        return;
+      }
+      const lq = trimmed.toLowerCase();
 
-  const runSearch = async (q: string) => {
-    const trimmed = q.trim();
-    if (!trimmed) {
-      setResults([]);
-      setOpen(false);
-      setSelectedIndex(0);
-      return;
-    }
-    
-    try {
-      let teamsData = allTeamsData;
-      let eventsData = allEventsData;
-      
-      if (!teamsData || teamsData.length === 0 || !eventsData) {
-        const [teams, events] = await Promise.all([
-          teamsData && teamsData.length > 0 ? Promise.resolve(teamsData) : getAllTeams(year),
-          eventsData ? Promise.resolve(eventsData) : getEventsBasic(year, true)
-        ]);
-        if (teams) setAllTeamsData(teams);
-        if (events) setAllEventsData(events);
-        teamsData = teams;
-        eventsData = events;
-      }
-      
-      if (!teamsData || teamsData.length === 0) {
-        teamsData = [];
-      }
-      if (!eventsData) {
-        eventsData = [];
-      }
+      const teamItems: Item[] = filterTeams(teamsData ?? [], trimmed)
+        .slice(0, Math.ceil(maxResults * 0.6))
+        .map((team: any) => ({
+          id: `team-${team.teamNumber}`,
+          type: 'team',
+          title: `Team ${team.teamNumber}`,
+          description: [team.teamName, team.location].filter(Boolean).join(' • ') || undefined,
+          teamNumber: team.teamNumber,
+        }));
 
-      // Search teams
-      const filteredTeams = filterTeams(teamsData, trimmed);
-      const teamItems: Item[] = filteredTeams.slice(0, Math.floor(maxResults * 0.5)).map((team) => ({
-        id: `team-${team.teamNumber}`,
-        type: 'team',
-        title: `Team ${team.teamNumber}`,
-        description: [team.teamName, team.location].filter(Boolean).join(' • '),
-        teamNumber: team.teamNumber,
-      }));
-      
-      // Search events
-      const lowerQuery = trimmed.toLowerCase();
-      const filteredEvents = eventsData.filter((event: any) =>
-        event.name?.toLowerCase().includes(lowerQuery) ||
-        event.eventCode?.toLowerCase().includes(lowerQuery) ||
-        event.location?.toLowerCase().includes(lowerQuery)
-      );
-      const eventItems: Item[] = filteredEvents.slice(0, Math.floor(maxResults * 0.5)).map((event: any) => ({
-        id: `event-${event.eventCode}`,
-        type: 'event',
-        title: event.name || event.eventCode,
-        description: event.location,
-        eventCode: event.eventCode,
-      }));
-      
-      // Combine results: teams first, then events
+      const eventItems: Item[] = (eventsData ?? [])
+        .filter(
+          (ev: any) =>
+            ev.name?.toLowerCase().includes(lq) ||
+            ev.eventCode?.toLowerCase().includes(lq) ||
+            ev.location?.toLowerCase().includes(lq),
+        )
+        .slice(0, Math.floor(maxResults * 0.4))
+        .map((ev: any) => ({
+          id: `event-${ev.eventCode}`,
+          type: 'event',
+          title: ev.name || ev.eventCode,
+          description: ev.location || undefined,
+          eventCode: ev.eventCode,
+        }));
+
       setResults([...teamItems, ...eventItems]);
-      setOpen(trimmed.length > 0);
       setSelectedIndex(0);
-    } catch (error) {
-      console.error('Search error:', error);
-      setResults([]);
-      setOpen(trimmed.length > 0);
-    }
-  };
+    },
+    [teamsData, eventsData, maxResults],
+  );
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => runSearch(query), DEBOUNCE_MS);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [query, allTeamsData, allEventsData]);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [query, runSearch]);
 
-  const onFocus = () => { if (results.length > 0) setOpen(true); };
-  const onBlur = () => setTimeout(() => setOpen(false), 80);
+  const handleSelect = useCallback(
+    (item: Item) => {
+      const next = [item, ...recents.filter((r) => r.id !== item.id)].slice(0, MAX_RECENTS);
+      setRecents(next);
+      writeRecents(next);
 
-  const handleSelect = useCallback((item: Item) => {
-    if (item.type === 'team' && item.teamNumber != null) {
-      const routePath = getRoutePath(year);
-      router.push(`/dashboards/${routePath}?teamnumber=${item.teamNumber}` as any);
-      onSelectTeam?.(item.teamNumber);
-    } else if (item.type === 'event' && item.eventCode) {
-      // Navigate to events page - you can add event filtering later if needed
-      router.push(`/analytics/events/${item.eventCode}` as any);
-    }
-    setOpen(false);
-    setQuery('');
-    inputRef.current?.blur();
-  }, [onSelectTeam, router, year]);
+      if (item.type === 'team' && item.teamNumber != null) {
+        router.push(`/dashboards/${getRoutePath(year)}?teamnumber=${item.teamNumber}` as any);
+        onSelectTeam?.(item.teamNumber);
+      } else if (item.type === 'event' && item.eventCode) {
+        router.push(`/analytics/events/${item.eventCode}` as any);
+      }
+      setOpen(false);
+      setQuery('');
+      inputRef.current?.blur();
+    },
+    [recents, router, year, onSelectTeam],
+  );
+
+  const clearRecents = () => {
+    setRecents([]);
+    writeRecents([]);
+  };
+
+  // Rows shown in the panel: either live results or (empty query) recents.
+  const showingRecents = query.trim().length === 0;
+  const rows = showingRecents ? recents : results;
+  const teamRows = rows.filter((r) => r.type === 'team');
+  const eventRows = rows.filter((r) => r.type === 'event');
 
   useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === '/' && document.activeElement !== inputRef.current) {
-        e.preventDefault();
-        inputRef.current?.focus();
-        return;
-      }
-      if (!open || results.length === 0) return;
+    setSelectedIndex((i) => Math.min(i, Math.max(0, rows.length - 1)));
+  }, [rows.length]);
 
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedIndex(prev => Math.min(prev + 1, results.length - 1));
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedIndex(prev => Math.max(prev - 1, 0));
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (results[selectedIndex]) handleSelect(results[selectedIndex]);
-      } else if (e.key === 'Escape') {
-        setOpen(false);
-        inputRef.current?.blur();
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open, results, selectedIndex, handleSelect]);
+  // ⌘K opens the command palette (app/_layout.tsx) — this chip is just the hint.
+  // Arrows / Enter / Esc while the input is focused. Handled directly on the input so
+  // it always sees the current rows + selection (no stale document-listener closure).
+  const onInputKey = (e: any) => {
+    const key: string = e?.nativeEvent?.key;
+    if (key === 'ArrowDown') {
+      e.preventDefault?.();
+      setOpen(true);
+      setSelectedIndex((p) => Math.min(p + 1, rows.length - 1));
+    } else if (key === 'ArrowUp') {
+      e.preventDefault?.();
+      setSelectedIndex((p) => Math.max(p - 1, 0));
+    } else if (key === 'Enter') {
+      e.preventDefault?.();
+      const target = rows[selectedIndex] ?? rows[0];
+      if (target) handleSelect(target);
+    } else if (key === 'Escape') {
+      setOpen(false);
+      inputRef.current?.blur();
+    }
+  };
 
-  const renderItem = ({ item, index }: { item: Item; index: number }) => {
-    const isSelected = index === selectedIndex;
-    const isHovered = index === hoveredIndex;
-    
+  const panelVisible = open && (isLoading || rows.length > 0 || query.trim().length > 0);
+
+  const renderRow = (item: Item, index: number) => {
+    const selected = index === selectedIndex;
     return (
       <Pressable
+        key={item.id}
         onPressIn={() => handleSelect(item)}
-        onHoverIn={() => {
-          setHoveredIndex(index);
-          setSelectedIndex(index);
-        }}
-        onHoverOut={() => setHoveredIndex(-1)}
+        onHoverIn={() => setSelectedIndex(index)}
         style={[
           styles.row,
-          { 
-            backgroundColor: (isSelected || isHovered) ? theme.rowHover : 'transparent', 
-            borderBottomColor: theme.border 
-          },
+          webTransition('background-color'),
+          { backgroundColor: selected ? t.c.rowHover : 'transparent' },
         ]}
       >
-        {/* <View style={[styles.iconWrap, { backgroundColor: theme.chipBg }]}>
-          <Feather name="users" size={14} color={theme.sub} />
-        </View> */}
-        <View style={styles.rowText}>
-          <Text style={[styles.rowTitle, { color: theme.text }]} numberOfLines={1}>
-            {item.title}
+        <View style={[styles.rowIcon, { backgroundColor: t.c.bgSubtle, borderColor: t.c.border }]}>
+          <Feather
+            name={item.type === 'team' ? 'users' : 'calendar'}
+            size={13}
+            color={selected ? t.c.accent : t.c.textMuted}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.rowTitle} numberOfLines={1}>
+            <Highlight text={item.title} query={showingRecents ? '' : query} color={t.c.text} matchColor={t.c.accentText} />
           </Text>
           {!!item.description && (
-            <Text style={[styles.rowDesc, { color: theme.sub }]} numberOfLines={1}>
+            <Text style={[styles.rowDesc, { color: t.c.textMuted }]} numberOfLines={1}>
               {item.description}
             </Text>
           )}
         </View>
-        <Text style={[styles.rowType, { color: theme.chipText, backgroundColor: theme.chipBg }]}>
-          {item.type}
-        </Text>
+        {selected && <Feather name="corner-down-left" size={13} color={t.c.textFaint} />}
       </Pressable>
     );
   };
 
+  const SectionLabel = ({ children, right }: { children: string; right?: React.ReactNode }) => (
+    <View style={styles.sectionLabelRow}>
+      <Text style={[styles.sectionLabel, { color: t.c.textFaint }]}>{children}</Text>
+      {right}
+    </View>
+  );
+
   return (
     <View style={[styles.wrap, { zIndex }, style]}>
-      <Pressable onPress={() => inputRef.current?.focus()} style={[styles.inputWrap, { backgroundColor: theme.bg }]}>
-        <Feather name="search" size={14} color={theme.sub} style={styles.searchIcon} />
+      <Pressable
+        onPress={() => inputRef.current?.focus()}
+        style={[
+          styles.inputWrap,
+          webTransition('border-color, background-color'),
+          {
+            backgroundColor: t.c.field,
+            borderColor: focused ? t.c.accent : t.c.border,
+          },
+        ]}
+      >
+        <Feather name="search" size={14} color={focused ? t.c.accent : t.c.textMuted} />
         <TextInput
           ref={inputRef}
           value={query}
-          onChangeText={setQuery}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          placeholder={isLoading ? "Loading data..." : placeholder}
-          placeholderTextColor={theme.sub}
-          style={[styles.input, { color: theme.text }]}
+          onChangeText={(v) => {
+            setQuery(v);
+            setOpen(true);
+          }}
+          onFocus={() => {
+            setFocused(true);
+            setOpen(true);
+          }}
+          onBlur={() => {
+            setFocused(false);
+            setTimeout(() => setOpen(false), 120);
+          }}
+          onKeyPress={onInputKey}
+          onSubmitEditing={() => {
+            const target = rows[selectedIndex] ?? rows[0];
+            if (target) handleSelect(target);
+          }}
+          blurOnSubmit={false}
+          returnKeyType="go"
+          placeholder={isLoading ? 'Loading…' : placeholder}
+          placeholderTextColor={t.c.textMuted}
+          style={[styles.input, { color: t.c.text }]}
           autoCorrect={false}
           autoCapitalize="none"
-          editable={!isLoading}
-          onSubmitEditing={() => {
-            if (results.length > 0) {
-              const firstResult = results[0];
-              if (firstResult.type === 'team' && firstResult.teamNumber) {
-                router.push(`/dashboards/${getRoutePath(year)}?teamnumber=${firstResult.teamNumber}` as any);
-              } else if (firstResult.type === 'event') {
-                router.push('/analytics/events' as any);
-              }
-            }
-          }}
         />
-        <View style={[styles.keyHint, { backgroundColor: theme.hintBg, borderColor: theme.hintBorder }]}>
-          <Text style={[styles.keyText, { color: theme.chipText }]}>/</Text>
-        </View>
+        {query.length > 0 ? (
+          <Pressable onPress={() => { setQuery(''); inputRef.current?.focus(); }} hitSlop={8}>
+            <Feather name="x" size={13} color={t.c.textMuted} />
+          </Pressable>
+        ) : (
+          <View style={[styles.kbd, { backgroundColor: t.c.bgSubtle, borderColor: t.c.border }]}>
+            <Text style={[styles.kbdText, { color: t.c.textFaint }]}>⌘K</Text>
+          </View>
+        )}
       </Pressable>
 
-      {open && (
-        <View style={[styles.panel, { backgroundColor: theme.panel, borderColor: theme.border, zIndex: zIndex + 10, elevation: 999 }]} pointerEvents="box-none">
+      {panelVisible && (
+        <View
+          style={[
+            styles.panel,
+            t.shadow.pop,
+            { backgroundColor: t.c.raised, borderColor: t.c.border, zIndex: zIndex + 10 },
+          ]}
+        >
           {isLoading ? (
-            <View style={styles.noResults}><Text style={[styles.noResultsText, { color: theme.sub }]}>Loading data...</Text></View>
-          ) : results.length > 0 ? (
+            <View style={{ paddingVertical: 8 }}>
+              {[0, 1, 2].map((i) => (
+                <View key={i} style={styles.row}>
+                  <View style={[styles.rowIcon, { backgroundColor: t.c.bgSubtle, borderColor: t.c.border }]} />
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <View style={{ height: 11, width: '45%', borderRadius: 5, backgroundColor: t.c.hairline }} />
+                    <View style={{ height: 9, width: '70%', borderRadius: 5, backgroundColor: t.c.hairline }} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : showingRecents ? (
+            recents.length > 0 ? (
+              <FlatList
+                data={recents}
+                keyExtractor={(it) => it.id}
+                keyboardShouldPersistTaps="handled"
+                style={{ maxHeight: 320 }}
+                ListHeaderComponent={
+                  <SectionLabel
+                    right={
+                      <Pressable onPress={clearRecents} hitSlop={6}>
+                        <Text style={[styles.clearText, { color: t.c.textFaint }]}>Clear</Text>
+                      </Pressable>
+                    }
+                  >
+                    Recent
+                  </SectionLabel>
+                }
+                renderItem={({ item, index }) => renderRow(item, index)}
+              />
+            ) : (
+              <View style={styles.hintBox}>
+                <Text style={[styles.hintTitle, { color: t.c.textMuted }]}>Search anything</Text>
+                <Text style={[styles.hintText, { color: t.c.textFaint }]}>
+                  Try a team number, a team name, or an event.
+                </Text>
+              </View>
+            )
+          ) : rows.length > 0 ? (
             <FlatList
-              ref={listRef}
-              data={results}
-              keyExtractor={(it) => it.id}
-              renderItem={renderItem}
+              data={[
+                ...(teamRows.length ? [{ __section: 'Teams' }] : []),
+                ...teamRows,
+                ...(eventRows.length ? [{ __section: 'Events' }] : []),
+                ...eventRows,
+              ]}
+              keyExtractor={(row: any, i) => (row.__section ? `s-${row.__section}` : row.id + i)}
               keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              style={{ maxHeight: 280 }}
+              style={{ maxHeight: 340 }}
+              renderItem={({ item }: any) => {
+                if (item.__section) return <SectionLabel>{item.__section}</SectionLabel>;
+                const idx = rows.findIndex((r) => r.id === item.id);
+                return renderRow(item, idx);
+              }}
             />
           ) : (
-            <View style={styles.noResults}><Text style={[styles.noResultsText, { color: theme.sub }]}>No results found</Text></View>
+            <View style={styles.hintBox}>
+              <Text style={[styles.hintTitle, { color: t.c.textMuted }]}>No matches for “{query.trim()}”</Text>
+              <Text style={[styles.hintText, { color: t.c.textFaint }]}>Check the spelling or try a team number.</Text>
+            </View>
           )}
         </View>
       )}
@@ -320,21 +415,77 @@ const SearchDropdown: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  wrap: { position: 'relative', width: 225, zIndex: 99999 },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 11, paddingVertical: 4, borderRadius: 9 },
-  searchIcon: { marginRight: 7 },
-  input: { fontSize: 13, padding: 0, borderWidth: 0, width: 175, outlineStyle: 'none' } as any,
-  keyHint: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 4, borderWidth: 1 },
-  keyText: { fontSize: 10, fontWeight: '500' },
-  panel: { position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 6, borderRadius: 10, borderWidth: 1, overflow: 'hidden' },
-  row: { minHeight: 52, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  iconWrap: { width: 28, height: 28, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
-  rowText: { flex: 1 },
-  rowTitle: { fontSize: 14, fontWeight: '500' },
-  rowDesc: { fontSize: 12 },
-  rowType: { fontSize: 10, textTransform: 'uppercase', fontWeight: '600', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, overflow: 'hidden' },
-  noResults: { paddingVertical: 20, paddingHorizontal: 12, alignItems: 'center' },
-  noResultsText: { fontSize: 14, textAlign: 'center' },
+  wrap: { position: 'relative', width: 256, zIndex: 99999 },
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingLeft: 11,
+    paddingRight: 7,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  input: {
+    flex: 1,
+    fontSize: 13,
+    padding: 0,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+  kbd: {
+    height: 18,
+    minWidth: 24,
+    paddingHorizontal: 5,
+    borderRadius: 4,
+    borderWidth: 1,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  kbdText: { fontSize: 10, fontWeight: '600', textAlign: 'center' },
+  panel: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+    paddingVertical: 4,
+  },
+  sectionLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  sectionLabel: { fontSize: 11, fontWeight: '700' },
+  clearText: { fontSize: 11, fontWeight: '600' },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginHorizontal: 4,
+    borderRadius: 8,
+  },
+  rowIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowTitle: { fontSize: 13.5, fontWeight: '500' },
+  rowDesc: { fontSize: 11.5, marginTop: 1 },
+  hintBox: { paddingHorizontal: 16, paddingVertical: 18, gap: 3 },
+  hintTitle: { fontSize: 13, fontWeight: '600' },
+  hintText: { fontSize: 12 },
 });
 
 export default SearchDropdown;
