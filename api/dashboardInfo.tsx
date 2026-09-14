@@ -114,7 +114,7 @@ export async function getTeamInfo(teamNumber: number, year: SupportedYear): Prom
     founded: data.founded?.toString() || 'N/A',
     teamNumber,
     eventsAttended: data.eventsAttended || 0,
-    events: JSON.parse(data.eventsAttended || '[]') || [],
+    events: Array.isArray(data.eventsAttended) ? data.eventsAttended : JSON.parse(data.eventsAttended || '[]') || [],
     website: data.website || 'None',
     sponsors: data.sponsors || '',
     achievements: data.achievements || 'None This Season',
