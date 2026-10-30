@@ -2,7 +2,7 @@ import { calculateAllOPRs } from '@/api/algorithms/calcOPR';
 import { getEventsBasic } from '@/api/basic-event-service';
 import { getAllTeams } from '@/api/dashboardInfo';
 import { getEventData } from '@/api/event-service';
-import { SUPPORTED_YEARS } from '@/api/utils/seasons';
+import { DEFAULT_SEASON, SUPPORTED_YEARS } from '@/api/utils/seasons';
 import { BasicEventInfo, MatchInfo, SupportedYear } from '@/api/utils/types';
 import { usePageTitleContext } from '@/app/_layout';
 import { MetaRow } from '@/components/shared/MetaRow';
@@ -224,7 +224,7 @@ export default function ScoutSheetTemplate() {
   const twoCol = width > 980;
   const showATE = width > 1160;
 
-  const [year, setYear] = useState<SupportedYear>(2025);
+  const [year, setYear] = useState<SupportedYear>(DEFAULT_SEASON);
   const [eventCode, setEventCode] = useState('');
   const [eventQuery, setEventQuery] = useState('');
   const [events, setEvents] = useState<BasicEventInfo[]>([]);

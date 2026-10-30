@@ -6,7 +6,7 @@ import {
   getTeamSeasonPerformances,
   SeasonMatchStats,
 } from '@/api/season-matches';
-import { routeFromSeason, SUPPORTED_YEARS } from '@/api/utils/seasons';
+import { DEFAULT_SEASON, routeFromSeason, SUPPORTED_YEARS } from '@/api/utils/seasons';
 import { SupportedYear, TeamInfo } from '@/api/utils/types';
 import { usePageTitleContext } from '@/app/_layout';
 import { MetaRow } from '@/components/shared/MetaRow';
@@ -39,6 +39,7 @@ const GAME_NAMES: Record<SupportedYear, string> = {
   2023: 'Centerstage',
   2024: 'Into the Deep',
   2025: 'Decode',
+  2026: 'BioBuzz',
 };
 
 const PER_PAGE = 50;
@@ -63,7 +64,7 @@ export default function MatchAnalyticsTemplate({ pageTitle, filter, blurb }: Pro
   const router = useRouter();
   const { setPageTitleInfo } = usePageTitleContext();
 
-  const [year, setYear] = useState<SupportedYear>(2025);
+  const [year, setYear] = useState<SupportedYear>(DEFAULT_SEASON);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(filter);
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
   const [leaders, setLeaders] = useState<AlliancePerformance[]>([]);

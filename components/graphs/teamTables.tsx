@@ -1,5 +1,5 @@
 import { filterTeams } from '@/api/algorithms/filter';
-import { routeFromSeason } from '@/api/utils/seasons';
+import { DEFAULT_SEASON, routeFromSeason } from '@/api/utils/seasons';
 import { SupportedYear, TeamInfo } from '@/api/utils/types';
 import { webTransition } from '@/components/shared/motion';
 import {
@@ -43,7 +43,7 @@ const ALL_COLUMNS = [
   { label: 'Location', value: 'location' },
 ];
 
-export default function DataTable({ teams, data, selectedYear = 2025, loading = false }: DataTableProps) {
+export default function DataTable({ teams, data, selectedYear = DEFAULT_SEASON, loading = false }: DataTableProps) {
   const t = useTheme();
   const router = useRouter();
   const { width } = useWindowDimensions();

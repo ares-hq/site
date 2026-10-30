@@ -25,6 +25,7 @@ import {
 import Down from '../../assets/icons/caret-down.svg';
 import Check from '../../assets/icons/check-circle.svg';
 import { BasicEventInfo, SupportedYear } from '@/api/utils/types';
+import { DEFAULT_SEASON, SUPPORTED_YEARS } from '@/api/utils/seasons';
 import { getEventsBasic } from '@/api/basic-event-service';
 
 const ITEMS_PER_PAGE = 24;
@@ -34,7 +35,7 @@ const CACHE_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
 const GAME_NAMES: Record<SupportedYear, string> = {
     2019: 'Skystone', 2020: 'Ultimate Goal', 2021: 'Freight Frenzy',
-    2022: 'Power Play', 2023: 'Centerstage', 2024: 'Into the Deep', 2025: 'Decode',
+    2022: 'Power Play', 2023: 'Centerstage', 2024: 'Into the Deep', 2025: 'Decode', 2026: 'BioBuzz',
 };
 
 // Global cache for API responses
@@ -95,7 +96,7 @@ const EventTemplate: React.FC<{ pageTitle: string; summary?: string }> = ({ page
     const router = useRouter();
 
     // State
-    const [selectedYear, setSelectedYear] = useState<SupportedYear>(2025);
+    const [selectedYear, setSelectedYear] = useState<SupportedYear>(DEFAULT_SEASON);
     const [events, setEvents] = useState<BasicEventInfo[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchFocused, setSearchFocused] = useState(false);
@@ -118,7 +119,7 @@ const EventTemplate: React.FC<{ pageTitle: string; summary?: string }> = ({ page
     // Debounced search query
     const debouncedSearchQuery = useDebounce(searchQuery, SEARCH_DEBOUNCE_MS);
 
-    const availableYears: SupportedYear[] = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
+    const availableYears = SUPPORTED_YEARS;
 
     const fetchEvents = useCallback(async (year: SupportedYear, isRefresh = false) => {
         try {

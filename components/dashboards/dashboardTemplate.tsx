@@ -38,6 +38,7 @@ const GAME_NAMES: Record<SupportedYear, string> = {
   2023: '2023 - Centerstage',
   2024: '2024 - Into the Deep',
   2025: '2025 - Decode',
+  2026: '2026 - BioBuzz',
 };
 
 interface DashboardProps {

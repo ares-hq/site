@@ -1,4 +1,5 @@
 import { getAllTeams, getAverageOPRs, getTeamMatchCount } from "@/api/dashboardInfo"
+import { DEFAULT_SEASON } from "@/api/utils/seasons"
 import { TeamInfo } from "@/api/utils/types"
 import { Reveal, webTransition } from "@/components/shared/motion"
 import { StatCard } from "@/components/shared/StatCard"
@@ -41,9 +42,9 @@ export default function LandingPage({ darkMode = false }: { darkMode?: boolean }
     const load = async () => {
       try {
         const [teamList, avg, matches] = await Promise.all([
-          getAllTeams(2025),
-          getAverageOPRs(2025),
-          getTeamMatchCount(2025),
+          getAllTeams(DEFAULT_SEASON),
+          getAverageOPRs(DEFAULT_SEASON),
+          getTeamMatchCount(DEFAULT_SEASON),
         ])
         if (cancelled) return
         setTeams(teamList ?? [])
@@ -424,7 +425,7 @@ function HeroPreview({ theme, darkMode }: { theme: Theme; darkMode: boolean }) {
               Live scouting feed
             </Text>
           </View>
-          <Text style={[styles.previewTag, { color: theme.textTertiary }]}>AGE · 2025</Text>
+          <Text style={[styles.previewTag, { color: theme.textTertiary }]}>CANOPY · {DEFAULT_SEASON}</Text>
         </View>
 
         <View style={styles.previewTeamRow}>
