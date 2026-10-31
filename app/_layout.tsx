@@ -109,7 +109,7 @@ function InnerLayout() {
   }, [isDarkMode, theme.backgroundColor]);
 
   const routeLabels: Record<string, string> = {
-    index: 'Home', age: 'AGE', intothedeep: 'DIVE', energize: 'ENERGIZE',
+    index: 'Home', canopy: 'CANOPY', age: 'AGE', intothedeep: 'DIVE', energize: 'ENERGIZE',
     forward: 'FORWARD', gameChangers: 'GAMECHANGERS', inshow: 'INSHOW',
     rise: 'RISE', discord: 'Discord', app: 'App', ScoutSheet: 'ScoutSheet',
     tranks: 'Teams', tauto: 'Auto', ttele: 'TeleOp', tendgame: 'Endgame',

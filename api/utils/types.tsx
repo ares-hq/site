@@ -22,7 +22,7 @@ export interface TeamInfo {
   events?: string[];
 }
 
-export type SupportedYear = 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025;
+export type SupportedYear = 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026;
 
 export interface TeamInfoSimple {
   teamName: string;

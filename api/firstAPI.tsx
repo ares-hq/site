@@ -218,7 +218,7 @@ class Decode2025Adapter implements ScoreAdapter {
   }
 }
 
-const SCORE_ADAPTERS: Record<SupportedYear, ScoreAdapter> = {
+const SCORE_ADAPTERS: Partial<Record<SupportedYear, ScoreAdapter>> = {
   2019: new Skystone2019Adapter(),
   2020: new UltimateGoal2020Adapter(),
   2021: new FreightFrenzy2021Adapter(),

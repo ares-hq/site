@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getEventData } from './event-service';
 import { ApiClient } from './utils/api-client';
 import { AllianceInfo, EventInfo, SupportedYear, TeamInfo } from './utils/types';
+import { SUPPORTED_YEARS } from './utils/seasons';
 
 const supabaseUrl = 'https://api.ares-bot.com';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
@@ -330,7 +331,7 @@ export function clearCacheForYear(year: SupportedYear): void {
 }
 
 // ------------------- MULTI-YEAR UTILITIES -------------------
-export async function getTeamHistoricalData(teamNumber: number, years: SupportedYear[] = [2019, 2020, 2021, 2022, 2023, 2024, 2025]): Promise<Map<SupportedYear, TeamInfo | null>> {
+export async function getTeamHistoricalData(teamNumber: number, years: SupportedYear[] = SUPPORTED_YEARS): Promise<Map<SupportedYear, TeamInfo | null>> {
   const historicalData = new Map<SupportedYear, TeamInfo | null>();
   
   await Promise.all(
@@ -348,7 +349,7 @@ export async function getTeamHistoricalData(teamNumber: number, years: Supported
   return historicalData;
 }
 
-export async function getEventistoricalData(eventCode: string, years: SupportedYear[] = [2019, 2020, 2021, 2022, 2023, 2024, 2025]): Promise<Map<SupportedYear, EventInfo | null>> {
+export async function getEventistoricalData(eventCode: string, years: SupportedYear[] = SUPPORTED_YEARS): Promise<Map<SupportedYear, EventInfo | null>> {
   const historicalData = new Map<SupportedYear, EventInfo | null>();
   
   await Promise.all(
@@ -369,7 +370,7 @@ export async function getEventistoricalData(eventCode: string, years: SupportedY
 export async function getAvailableYears(): Promise<SupportedYear[]> {
   // You could make this dynamic by querying your database for available tables
   // For now, returning all supported years
-  return [2019, 2020, 2021, 2022, 2023, 2024, 2025];
+  return SUPPORTED_YEARS;
 }
 
 // ------------------- USER MANAGEMENT (Year-agnostic) -------------------

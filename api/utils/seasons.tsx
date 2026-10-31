@@ -16,13 +16,14 @@ export const SEASON_ROUTE: Record<SupportedYear, string> = {
   2023: 'inshow',
   2024: 'intothedeep',
   2025: 'age',
+  2026: 'canopy',
 };
 
 export const SUPPORTED_YEARS: SupportedYear[] = [
-  2019, 2020, 2021, 2022, 2023, 2024, 2025,
+  2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026,
 ];
 
-export const DEFAULT_SEASON: SupportedYear = 2025;
+export const DEFAULT_SEASON: SupportedYear = 2026;
 
 const ROUTE_SEASON: Record<string, SupportedYear> = Object.entries(SEASON_ROUTE).reduce(
   (acc, [year, route]) => {

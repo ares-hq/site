@@ -2,7 +2,7 @@ import { calculateAllOPRs } from '@/api/algorithms/calcOPR';
 import { getAverageOPRs, getEventistoricalData } from '@/api/dashboardInfo';
 import { getEventData } from '@/api/event-service';
 import { EventInfo, MatchInfo, SupportedYear } from '@/api/utils/types';
-import { routeFromSeason } from '@/api/utils/seasons';
+import { DEFAULT_SEASON, routeFromSeason } from '@/api/utils/seasons';
 import { usePageTitleContext } from '@/app/_layout';
 import EventTrends from '@/components/graphs/eventTrends';
 import { DashboardSkeleton } from '@/components/shared/Skeleton';
@@ -26,6 +26,7 @@ const GAME_NAMES: Record<SupportedYear, string> = {
   2023: 'Centerstage',
   2024: 'Into the Deep',
   2025: 'Decode',
+  2026: 'BioBuzz',
 };
 
 type RankRow = {
@@ -57,7 +58,7 @@ export const EventDashboardTemplate = ({ seasonYear: propSeasonYear }: { seasonY
   const eventCode = Array.isArray(params.eventCode) ? params.eventCode[0] : params.eventCode;
   const yearParam = Array.isArray(params.year) ? params.year[0] : params.year;
   const focusMatch = Array.isArray(params.match) ? params.match[0] : params.match;
-  const seasonYear: SupportedYear = ((yearParam ? parseInt(yearParam) : propSeasonYear) as SupportedYear) || 2025;
+  const seasonYear: SupportedYear = ((yearParam ? parseInt(yearParam) : propSeasonYear) as SupportedYear) || DEFAULT_SEASON;
 
   const [eventInfo, setEventInfo] = useState<EventInfo | null>(null);
   const [availableYears, setAvailableYears] = useState<SupportedYear[]>([]);

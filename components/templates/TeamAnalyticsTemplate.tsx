@@ -1,4 +1,5 @@
 import { SupportedYear, TeamInfo } from '@/api/utils/types';
+import { DEFAULT_SEASON, SUPPORTED_YEARS } from '@/api/utils/seasons';
 import { usePageTitleContext } from '@/app/_layout';
 import DataTable from '@/components/graphs/teamTables';
 import { ErrorState } from '@/components/shared/ErrorState';
@@ -31,6 +32,7 @@ const GAME_NAMES: Record<SupportedYear, string> = {
   2023: 'Centerstage',
   2024: 'Into the Deep',
   2025: 'Decode',
+  2026: 'BioBuzz',
 };
 
 const TeamAnalyticsTemplate: React.FC<TeamAnalyticsTemplateProps> = ({ pageTitle, dataType, summary }) => {
@@ -39,14 +41,14 @@ const TeamAnalyticsTemplate: React.FC<TeamAnalyticsTemplateProps> = ({ pageTitle
   const { setPageTitleInfo } = usePageTitleContext();
 
   // State variables
-  const [selectedYear, setSelectedYear] = useState<SupportedYear>(2025);
+  const [selectedYear, setSelectedYear] = useState<SupportedYear>(DEFAULT_SEASON);
   const [teams, setTeams] = useState<TeamInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const availableYears: SupportedYear[] = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
+  const availableYears = SUPPORTED_YEARS;
 
   const getSeasonName = (year: SupportedYear): string => {
     return GAME_NAMES[year] || `${year} Season`;
